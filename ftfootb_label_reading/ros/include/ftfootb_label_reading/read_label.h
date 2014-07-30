@@ -13,7 +13,7 @@
  *
  * +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  *
- * Author:  Wenzhe Li
+ * Author:  Wenzhe Li, email:liwenzhe0914@gmail.com
  * 			Richard Bormann, email:richard.bormann@ipa.fhg.de
  * Supervised by: Richard Bormann, email:richard.bormann@ipa.fhg.de
  *
