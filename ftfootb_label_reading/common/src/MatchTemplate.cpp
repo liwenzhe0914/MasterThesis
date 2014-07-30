@@ -2,8 +2,6 @@
 
 int main( int argc, char** argv )
 {
-	//matchLoc_pre.x = 0;
-	//matchLoc_pre.y = 0;
 	std::string letters;
 	double start_time;
 	double time_in_seconds;
