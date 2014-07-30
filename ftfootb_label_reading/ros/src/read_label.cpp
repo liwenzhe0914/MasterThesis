@@ -17,7 +17,7 @@
  * 			Richard Bormann, email:richard.bormann@ipa.fhg.de
  * Supervised by: Richard Bormann, email:richard.bormann@ipa.fhg.de
  *
- * Date of creation: May 2011
+ * Date of creation: August 2014
  * ToDo:
  *
  * +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
