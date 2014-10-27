@@ -28,7 +28,9 @@ public:
 
 	MatchTemplate(const std::string& templates_storage_path);
 
-	void load_templates(const std::string& templates_storage_path, std::map<std::string, cv::Mat>& template_data_structure);
+	void load_templates(const std::string& templates_storage_path, TokenTemplates& token_templates);
+
+	void resize_templates(TokenTemplates& token_templates);
 
 	// divide a tag into single regions (letter pairs, number pairs) and read from them using template matching
 	void read_tag(const cv::Mat& tag_image, std::string& tag_label);
@@ -42,4 +44,7 @@ private:
 
 	TokenTemplates letter_pair_templates;	// first: name of letter combination (e.g. "AA", "GF"), second: images of letter templates
 	TokenTemplates number_pair_templates;	// first: name of number combination (e.g. "73", "34"), second: images of number templates
+
+	// parameters
+	double standard_tag_image_height_;
 };
