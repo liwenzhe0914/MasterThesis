@@ -3,7 +3,7 @@
 <launch>
 	<!--arg name="robot" default="$(env ROBOT)"/-->
 	
-  <!-- label reader node -->
+  <!-- label reader node -->Iterator
   <node name="read_label" pkg="ftfootb_label_reading" ns="/label_reading" type="read_label" output="screen"> <!--launch-prefix="valgrind"-->
     <rosparam command="load" file="$(find ftfootb_label_reading)/ros/launch/read_label_params.yaml"/>
 	<!--param name="robot" type="string" value="$(arg robot)"/-->

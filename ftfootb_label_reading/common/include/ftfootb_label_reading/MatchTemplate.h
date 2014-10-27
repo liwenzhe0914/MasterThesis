@@ -20,31 +20,26 @@
 #include <cmath>
 #include <map>
 
-//class MatchTemplate
-//{
-//public:
-//	std::vector<std::string> filelist(std::string foldername);
-//
-//};
+class MatchTemplate
+{
+public:
+	typedef std::map<std::string, cv::Mat> TokenTemplates;
+	typedef TokenTemplates::iterator TokenTemplatesIterator;
 
+	MatchTemplate(const std::string& templates_storage_path);
 
+	void load_templates(const std::string& templates_storage_path, std::map<std::string, cv::Mat>& template_data_structure);
 
-// main method
+	// divide a tag into single regions (letter pairs, number pairs) and read from them using template matching
+	void read_tag(const cv::Mat& tag_image, std::string& tag_label);
 
-// Variables
-// I/O
+	// matches a set of templates to image
+	// it is assumed that there is only one valid match within image
+	// low matching scores are best, matching_scores.begin() has the lowest score
+	void match_token_templates(const cv::Mat& image, const TokenTemplates& token_templates, std::multimap<double, std::string>& matching_scores);
 
-cv::Mat img;
-cv::Mat templ;
-cv::Mat result;
-cv::Mat templ_pre;
-cv::Mat templ_original;
-std::string image_window = "Source Image";
-std::string result_window = "Result window";
-std::string path;
-std::string letters_pre = "";
+private:
 
-int match_method = 5;
-double score=0.;
-double score_pre = -1e10;
-
+	TokenTemplates letter_pair_templates;	// first: name of letter combination (e.g. "AA", "GF"), second: images of letter templates
+	TokenTemplates number_pair_templates;	// first: name of number combination (e.g. "73", "34"), second: images of number templates
+};

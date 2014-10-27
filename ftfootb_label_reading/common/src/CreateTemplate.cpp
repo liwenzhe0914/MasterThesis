@@ -29,7 +29,7 @@ int main() {
 			cv::Mat img(25, 40, CV_8UC3, cv::Scalar(255,255,255));
 			CvFont font = fontQt(namefont, 25, cv::Scalar(0,0,0),CV_FONT_BOLD);
 			cv::addText( img, letter_combnations, cv::Point(0,25), font);
-			filename1 = "/home/damon/MasterThesis/LettersTemplate/" + letter_combnations + ".png";
+			filename1 = "/home/damon/MasterThesis/LetterTemplates/" + letter_combnations + ".png";
 			cv::imshow( "Display window", img );
 			cv::imwrite(filename1, img, compression_params);
 		}
@@ -43,7 +43,7 @@ int main() {
 			cv::namedWindow( "Display window", cv::WINDOW_AUTOSIZE );
 			CvFont font = fontQt(namefont, 25, cv::Scalar(0,0,0),CV_FONT_BOLD);
 			cv::addText( img, number_combnations, cv::Point(0,25), font);
-			filename2 = "/home/damon/MasterThesis/NumbersTemplate/" + number_combnations + ".png";
+			filename2 = "/home/damon/MasterThesis/NumberTemplates/" + number_combnations + ".png";
 			cv::imshow( "Display window", img );
 			cv::imwrite(filename2, img, compression_params);
 		}
