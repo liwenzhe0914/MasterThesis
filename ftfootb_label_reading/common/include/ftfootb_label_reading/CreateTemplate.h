@@ -14,7 +14,7 @@
 
 std::string path(){
 	char *path=NULL;
-	size_t size;
+	size_t size = 0;
 	path=getcwd(path,size);
 	return path;
 }
