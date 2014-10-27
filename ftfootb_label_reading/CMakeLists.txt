@@ -34,9 +34,10 @@ rosbuild_add_boost_directories()
 #target_link_libraries(example ${PROJECT_NAME})
 rosbuild_add_roslaunch_check(ros/launch)
 
-rosbuild_add_executable(read_label ros/src/read_label.cpp)
+rosbuild_add_executable(read_label ros/src/read_label.cpp
+                                   common/src/MatchTemplate.cpp)
 
-rosbuild_add_executable(match_template common/src/MatchTemplate.cpp)
+rosbuild_add_executable(match_template common/src/MatchTemplateNode.cpp common/src/MatchTemplate.cpp)
 rosbuild_link_boost(match_template filesystem system)
 
 #rosbuild_add_executable(capture_image common/src/CaptureImage.cpp)

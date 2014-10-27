@@ -82,6 +82,9 @@
 // System
 #include <iostream>
 
+// project
+#include "ftfootb_label_reading/MatchTemplate.h"
+
 class LabelReader
 {
 protected:
@@ -95,6 +98,10 @@ protected:
 	//message_filters::Connection sync_pointcloud_callback_connection_;
 
 	//tf::TransformListener* transform_listener_;
+
+	MatchTemplate match_template_;
+
+	double roi_height_;
 
 	ros::NodeHandle node_handle_; ///< ROS node handle
 

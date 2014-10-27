@@ -51,14 +51,19 @@
  *
  ****************************************************************/
 
+#define MAIN
+
 //##################
 //#### includes ####
 
 #include <ftfootb_label_reading/read_label.h>
 
 LabelReader::LabelReader(ros::NodeHandle nh)
+: match_template_("/home/rmb-lw/git/care-o-bot/ftfootb/ftfootb_label_reading/common/files/")
 {
 	node_handle_ = nh;
+
+	roi_height_ = 38;
 
 	// set parameters
 	//pointcloud_data_format_ = "xyz";
@@ -81,7 +86,7 @@ LabelReader::LabelReader(ros::NodeHandle nh)
 
 //	transform_listener_ = new tf::TransformListener(node_handle_);
 
-	std::cout << "LabelReader initilized." << std::endl;
+	std::cout << "LabelReader initialized." << std::endl;
 }
 
 LabelReader::~LabelReader()
@@ -126,9 +131,39 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& color_image_ms
 	cv::Mat color_image;
 	convertColorImageMessageToMat(color_image_msg, color_image_ptr, color_image);
 
+	// mark segment of original image
+	double roi_height = roi_height_;
+	double roi_width = 140.*roi_height_/38.;
+	cv::Rect roi_rect((color_image.cols-roi_width)/2,(color_image.rows-roi_height)/2,roi_width,roi_height);
+	cv::rectangle(color_image, cv::Point(roi_rect.x-2, roi_rect.y-2), cv::Point(roi_rect.x+roi_rect.width+2, roi_rect.y+roi_rect.height+2), CV_RGB(0,255,0), 2);
+	cv::Mat gray_image;
+	cv::cvtColor(color_image, gray_image, CV_BGR2GRAY);
+	cv::Mat roi = gray_image(roi_rect);
+
+	// detect text
+	double start_time;
+	double time_in_seconds;
+	start_time = clock();
+
+	std::string tag_label;
+	match_template_.read_tag(roi, tag_label);
+
+	time_in_seconds = (clock() - start_time) / (double)CLOCKS_PER_SEC;
+	std::cout << "[" << time_in_seconds << " s] processing time" << std::endl;
+
+	std::cout << "The text tag reads: " << tag_label << "." << std::endl;
+	cv::putText(color_image, tag_label, cv::Point(roi_rect.x-100, roi_rect.y-5), cv::FONT_HERSHEY_PLAIN, 3, CV_RGB(0,255,0), 2);
+	std::stringstream ss;
+	ss << roi_height_;
+	cv::putText(color_image, ss.str(), cv::Point(roi_rect.x+roi_rect.width+10, roi_rect.y+roi_rect.height), cv::FONT_HERSHEY_PLAIN, 1, CV_RGB(255,0,0), 1);
+
 	// now do something with color_image
-	cv::imshow("received image", color_image);
-	cv::waitKey(10);
+	cv::imshow("image", color_image);
+	char c = cv::waitKey(10);
+	if (c=='x')
+		roi_height_ += 1.0;
+	if (c=='y')
+		roi_height_ = std::max(10.0, roi_height_-1.0);
 
 	// create ReadLabel object (from common folder) and call detect function
 
