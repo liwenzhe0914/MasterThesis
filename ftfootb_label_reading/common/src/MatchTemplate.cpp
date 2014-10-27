@@ -96,7 +96,7 @@ void MatchTemplate::resize_templates(TokenTemplates& token_templates)
 void MatchTemplate::read_tag(const cv::Mat& tag_image, std::string& tag_label)
 {
 	// todo: make this a parameter
-	double token_threshold = 0.4;
+	double token_threshold = 0.45;
 
 	tag_label.clear();
 	std::multimap<double, std::string> matching_scores;
@@ -140,8 +140,8 @@ void MatchTemplate::match_token_templates(const cv::Mat& image, const TokenTempl
 //	double letter_height_tag_image_height_ratio = 16./38.;		// 15./23.
 
 	// binarization
-	cv::Mat image_binarized;
-	cv::adaptiveThreshold(image, image_binarized, 255, cv::ADAPTIVE_THRESH_MEAN_C, cv::THRESH_BINARY, 15, -5);
+	cv::Mat image_binarized = image;
+	//cv::adaptiveThreshold(image, image_binarized, 255, cv::ADAPTIVE_THRESH_MEAN_C, cv::THRESH_BINARY, 15, -5);
 //	cv::imshow("bin_image", image_binarized);
 
 	// resize image

@@ -135,7 +135,7 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& color_image_ms
 	double roi_height = roi_height_;
 	double roi_width = 140.*roi_height_/38.;
 	cv::Rect roi_rect((color_image.cols-roi_width)/2,(color_image.rows-roi_height)/2,roi_width,roi_height);
-	cv::rectangle(color_image, cv::Point(roi_rect.x-2, roi_rect.y-2), cv::Point(roi_rect.x+roi_rect.width+2, roi_rect.y+roi_rect.height+2), CV_RGB(0,255,0), 2);
+	cv::rectangle(color_image, cv::Point(roi_rect.x-2, roi_rect.y-2), cv::Point(roi_rect.x+roi_rect.width+2, roi_rect.y+roi_rect.height+2), CV_RGB(0,0,255), 2);
 	cv::Mat gray_image;
 	cv::cvtColor(color_image, gray_image, CV_BGR2GRAY);
 	cv::Mat roi = gray_image(roi_rect);
@@ -152,7 +152,7 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& color_image_ms
 	std::cout << "[" << time_in_seconds << " s] processing time" << std::endl;
 
 	std::cout << "The text tag reads: " << tag_label << "." << std::endl;
-	cv::putText(color_image, tag_label, cv::Point(roi_rect.x-100, roi_rect.y-5), cv::FONT_HERSHEY_PLAIN, 3, CV_RGB(0,255,0), 2);
+	cv::putText(color_image, tag_label, cv::Point(roi_rect.x-100, roi_rect.y-5), cv::FONT_HERSHEY_PLAIN, 3, CV_RGB(0,0,255), 2);
 	std::stringstream ss;
 	ss << roi_height_;
 	cv::putText(color_image, ss.str(), cv::Point(roi_rect.x+roi_rect.width+10, roi_rect.y+roi_rect.height), cv::FONT_HERSHEY_PLAIN, 1, CV_RGB(255,0,0), 1);
