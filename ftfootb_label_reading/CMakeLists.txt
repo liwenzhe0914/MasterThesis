@@ -39,6 +39,9 @@ rosbuild_add_executable(read_label ros/src/read_label.cpp)
 rosbuild_add_executable(match_template common/src/MatchTemplate.cpp)
 rosbuild_link_boost(match_template filesystem system)
 
-rosbuild_add_executable(create_template common/src/CreateTemplate.cpp)
+rosbuild_add_executable(capture_image common/src/CaptureImage.cpp)
+rosbuild_link_boost(capture_image filesystem system)
 
-rosbuild_add_executable(create_text common/src/CreateText.cpp)
+#rosbuild_add_executable(create_template common/src/CreateTemplate.cpp)
+
+#rosbuild_add_executable(create_text common/src/CreateText.cpp)

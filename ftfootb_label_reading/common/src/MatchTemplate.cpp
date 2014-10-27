@@ -73,14 +73,15 @@ int main( int argc, char** argv )
 		std::string rawname = allImageNames[i].substr(lastindex2+1, lastindex-lastindex2-1);
 		std::cout << "Current template:" << rawname << std::endl;
 		templ_original = letter_templates[rawname]; // originalImage like it used to be, never modify
-		cv::Size size( (img.rows-1)*templ_original.cols/templ_original.rows,img.rows-1);
+		cv::Size size( (2*img.rows/3)*templ_original.cols/templ_original.rows,2*img.rows/3); //resize templates. In this case, parameter: 2/3 is only suitable for those source images in database.
 		std::cout << "size:" << size << std::endl;
 		cv::resize(templ_original,templ,size);//resize image
+		std::cout << "template size: " << templ.cols<<"x"<<templ.rows<< std::endl;
 		letters=rawname;
 		/// Create windows
 		cv::namedWindow( image_window, CV_WINDOW_AUTOSIZE );
 		cv::namedWindow( result_window, CV_WINDOW_AUTOSIZE );
-
+		cv::namedWindow( "region of interest", CV_WINDOW_AUTOSIZE );
 		  /// Source image to display
 		cv::Mat img_display;
 		img.copyTo( img_display );
@@ -91,10 +92,12 @@ int main( int argc, char** argv )
 		result.create( result_cols, result_rows, CV_32FC1 );
   
 		/// Do the Matching
-		cv::Mat img_roi = img(cv::Rect(0,0,0.25*img.cols,img.rows));//to speed up the program, only load a part of interest region is
+		cv::Mat img_roi = img(cv::Rect(0,0,templ.cols,img.rows));//to speed up the program, only load a part of interest region
 		matchTemplate( img_roi, templ, result, match_method );
+		//matchTemplate( img, templ, result, match_method );
+		//img_roi.copyTo( img_display );
 		std::cout << "match_method:" << match_method <<std::endl;
-
+		cv::imshow( "region of interest", img_roi );
 		/// Localizing the best match with minMaxLoc
 		double minVal; double maxVal; cv::Point minLoc; cv::Point maxLoc;
 		cv::Point matchLoc;
