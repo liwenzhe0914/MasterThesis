@@ -225,13 +225,14 @@ int main(int argc, char* argv[]) {
 
             vector<Rect> obj_detectados;
             Rect retang;
+            std::vector<cv::Rect> rectangles_list;
             if (!error) {
                 totaltime -= time(0);
 
                 cascade.detectMultiScale(img, obj_detectados, scale_factor, 4, 0
                 //|CV_HAAR_FIND_BIGGEST_OBJECT
                 // |CV_HAAR_DO_ROUGH_SEARCH
-                        | CV_HAAR_SCALE_IMAGE, Size(25, 15));
+                        | CV_HAAR_SCALE_IMAGE, cv::Size(35, 9));
 
                 totaltime += time(0);
 
@@ -244,6 +245,13 @@ int main(int argc, char* argv[]) {
                     detcount = obj_detectados.size();
                 }
 
+                if (obj_detectados.size() > 1)
+                	for( unsigned int i = 0; i < obj_detectados.size(); i++ )
+                	{
+                		rectangles_list.push_back(obj_detectados[i]);
+                	}
+                	groupRectangles(rectangles_list,1,0.8);
+
                 det = (detcount > 0) ?
                         ((ObjectPos*) cvAlloc(detcount * sizeof(*det))) : NULL;
                 hits = missed = falseAlarms = 0;
@@ -254,7 +262,7 @@ int main(int argc, char* argv[]) {
 		fprintf (detected_text_tags,"</imageName>\n");
 		fprintf (detected_text_tags,"    <taggedRectangles>\n");
 		//fprintf (detected_text_tags,"%s \n", filename);
-                for (vector<Rect>::const_iterator r = obj_detectados.begin(); r != obj_detectados.end(); r++, i++) 
+                for (vector<Rect>::const_iterator r = obj_detectados.begin(); r != obj_detectados.end(); r++, i++)
 		{
                     Point r1, r2;
 
@@ -267,7 +275,7 @@ int main(int argc, char* argv[]) {
                     retang.y = r1.y;
                     retang.width = abs(r2.x - r1.x);
                     retang.height = abs(r2.y - r1.y);
-		    
+
 		    //write the geometry infomation of detected text tags into xml file.
 		    //fprintf (detected_text_tags, "%d \n", retang.x);
 		    //fprintf (detected_text_tags, "%d \n", retang.y);
@@ -282,11 +290,16 @@ int main(int argc, char* argv[]) {
 		    fprintf (detected_text_tags, "\" height=\"");
 		    fprintf (detected_text_tags, "%d", retang.height);
 		    fprintf (detected_text_tags, "\" modelType=\"1\"  />\n");
+		    if (rectangles_list.size()>0)
+		    {
+		    	//cout<<"rectangles_list size:"<< rectangles_list.size()<<endl;
 
-		    //printf(filename, "retangle.x: ", retang.x, "retangle.y: ", retang.y, "retangle.w: ", retang.width, "retangle.h: ", retang.height);
-			if (saveDetected) 
+		    	rectangle( img, cv::Point(rectangles_list[1].x,rectangles_list[1].y), cv::Point(rectangles_list[1].x + rectangles_list[1].width,rectangles_list[1].y+rectangles_list[1].height), cv::Scalar( 255, 255, 0 ) , 4 , 8 , 0 );
+		    }
+		    	//printf(filename, "retangle.x: ", retang.x, "retangle.y: ", retang.y, "retangle.w: ", retang.width, "retangle.h: ", retang.height);
+			if (saveDetected)
 			{
-			rectangle(img, retang, Scalar(0, 0, 255), 3, CV_AA);
+			rectangle(img, retang, Scalar(0, 0, 255), 1, CV_AA);
 			}
 
 			det[i].x = 0.5F*r->width + r->x;
