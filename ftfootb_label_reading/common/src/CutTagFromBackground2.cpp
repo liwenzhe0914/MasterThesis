@@ -137,7 +137,7 @@ Rect get_rect_with_hough_line_transform(Mat src)
 	double CannyThresh = 0.1 * CannyAccThresh;
 	Canny(src,dst,0,CannyAccThresh/2);
 //	Canny(src, dst, 100, 200, 3);
-//	imshow("source", dst);
+	imshow("canny", dst);
 	waitKey(0);
 	cvtColor(dst, cdst, CV_GRAY2BGR);
 	vector<Vec2f> lines_horizontal;

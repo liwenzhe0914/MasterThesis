@@ -40,15 +40,20 @@ rosbuild_add_executable(read_label ros/src/read_label.cpp
 rosbuild_add_executable(match_template common/src/MatchTemplateNode.cpp common/src/MatchTemplate.cpp)
 rosbuild_link_boost(match_template filesystem system)
 
-rosbuild_add_executable(resize common/src/resize.cpp)
-rosbuild_link_boost(resize filesystem system)
+rosbuild_add_executable(extract_features_and_reconition common/src/ExtractFeaturesAndReconition.cpp
+                                   common/src/MatchTemplate.cpp)
+rosbuild_add_executable(CutTagFromBackground2 common/src/CutTagFromBackground2.cpp)
+rosbuild_add_executable(detect_dashes_by_contour common/src/detect_dashes_by_contour.cpp)
 
-rosbuild_add_executable(create_negatives_from_video common/src/CreateNegativesFromVideo.cpp)
+#rosbuild_add_executable(resize common/src/resize.cpp)
+#rosbuild_link_boost(resize filesystem system)
 
-rosbuild_add_executable(puttext common/src/puttext.cpp)
+#rosbuild_add_executable(create_negatives_from_video common/src/CreateNegativesFromVideo.cpp)
 
-rosbuild_add_executable(combine_positives_and_negatives common/src/CombinePositivesAndNegatives.cpp)
-rosbuild_link_boost(resize filesystem system)
+#rosbuild_add_executable(puttext common/src/puttext.cpp)
+
+#rosbuild_add_executable(combine_positives_and_negatives common/src/CombinePositivesAndNegatives.cpp)
+#rosbuild_link_boost(resize filesystem system)
 
 #rosbuild_add_executable(create_positive_images common/src/CreatePositiveImages.cpp)
 #rosbuild_link_boost(create_positive_images filesystem system)
@@ -58,6 +63,6 @@ rosbuild_link_boost(resize filesystem system)
 
 rosbuild_add_executable(detect_text_label common/src/DetectTextLabel.cpp)
 
-rosbuild_add_executable(create_template common/src/CreateTemplate.cpp)
+#rosbuild_add_executable(create_template common/src/CreateTemplate.cpp)
 
-rosbuild_add_executable(create_text common/src/CreateText.cpp)
+#rosbuild_add_executable(create_text common/src/CreateText.cpp)
