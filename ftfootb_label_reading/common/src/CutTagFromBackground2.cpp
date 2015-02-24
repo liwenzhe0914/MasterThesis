@@ -117,9 +117,9 @@ float find_best_two_lines(std::map<float,float> lines_with_count_map)
 
 void help()
 {
- cout << "\nThis program demonstrates line finding with the Hough transform.\n"
+ cout << "\nThis program demonstrates text tag finding with the Hough transform.\n"
          "Usage:\n"
-         "./cut_tag_from_background <image_name>, Default is pic1.jpg\n" << endl;
+         "./cut_tag_from_background2 <image_folder>" << endl;
 }
 
 Rect get_rect_with_hough_line_transform(Mat src)
