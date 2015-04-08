@@ -70,3 +70,9 @@ rosbuild_add_executable(opencv_performance_new_with_hough_line_transform common/
 #rosbuild_add_executable(create_template common/src/CreateTemplate.cpp)
 
 #rosbuild_add_executable(create_text common/src/CreateText.cpp)
+
+rosbuild_add_executable(CutTagFromBackground2 common/src/CutTagFromBackground2.cpp)
+
+rosbuild_add_executable(ExtractLBP common/src/ExtractLBP.cpp
+									common/src/lbp.cpp
+									common/src/histogram.cpp)

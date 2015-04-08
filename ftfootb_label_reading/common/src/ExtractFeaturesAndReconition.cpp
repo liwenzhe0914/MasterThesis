@@ -149,7 +149,7 @@ Mat get_hogdescriptor_visual_image(Mat& origImg,
             int mx = drawX + cellSize.width/2;
             int my = drawY + cellSize.height/2;
 
-            rectangle(visual_image,
+            cv::rectangle(visual_image,
                       Point(drawX*scaleFactor,drawY*scaleFactor),
                       Point((drawX+cellSize.width)*scaleFactor,
                       (drawY+cellSize.height)*scaleFactor),

@@ -769,8 +769,9 @@ int main(int argc, char* argv[]) {
 		    fprintf (detected_text_tags, "\" height=\"");
 		    fprintf (detected_text_tags, "%d", rectangle_updated_by_dashes_detection.height);
 		    fprintf (detected_text_tags, "\" modelType=\"1\"  />\n");
-		    rectangle(img_copy, rectangle_updated_by_hough_line, cv::Scalar(121, 150, 233), 2, CV_AA);
-		    rectangle(img_copy, rectangle_updated_by_dashes_detection, cv::Scalar(0, 238, 0), 1, CV_AA);
+		    rectangle(img_copy, rectangle_updated_by_dashes_detection, cv::Scalar(0, 0, 255), 2, CV_AA);
+		    rectangle(img_copy, retang, cv::Scalar(121, 150, 233), 1, CV_AA);
+		    rectangle(img_copy, rectangle_updated_by_hough_line, cv::Scalar(0, 238, 0), 2, CV_AA);
 
 		    //fprintf (detected_text_tags, "%d \n", retang.x);
 		    //fprintf (detected_text_tags, "%d \n", retang.y);
