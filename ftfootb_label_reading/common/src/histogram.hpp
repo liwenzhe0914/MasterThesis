@@ -8,30 +8,24 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <limits>
+#include "opencv2/contrib/contrib.hpp"
+#include "opencv2/features2d/features2d.hpp"
+#include "opencv2/objdetect/objdetect.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+#include "opencv2/imgproc/imgproc_c.h"
+#include "opencv2/core/internal.hpp"
+#include <set>
 
 using namespace cv;
 using namespace std;
 
 namespace lbp {
 
-// templated functions
-template <typename _Tp>
-void histogram_(const Mat& src, Mat& hist, int numPatterns);
 
-template <typename _Tp>
-double chi_square_(const Mat& histogram0, const Mat& histogram1);
+Mat histogram_(const Mat& src, int minVal=0, int maxVal=255, bool normed=false);
 
-// non-templated functions
-void spatial_histogram(const Mat& src, Mat& spatialhist, int numPatterns, const Size& window, int overlap=0);
+Mat histogram(InputArray _src, int minVal, int maxVal, bool normed);
 
-// wrapper functions
-void spatial_histogram(const Mat& src, Mat& spatialhist, int numPatterns, int gridx=8, int gridy=8, int overlap=0);
-void histogram(const Mat& src, Mat& hist, int numPatterns);
-double chi_square(const Mat& histogram0, const Mat& histogram1);
-
-// Mat return type functions
-Mat histogram(const Mat& src, int numPatterns);
-Mat spatial_histogram(const Mat& src, int numPatterns, const Size& window, int overlap=0);
-Mat spatial_histogram(const Mat& src, int numPatterns, int gridx=8, int gridy=8, int overlap=0);
+Mat spatial_histogram(InputArray _src, int numPatterns,int grid_x, int grid_y, bool /*normed*/);
 }
 #endif

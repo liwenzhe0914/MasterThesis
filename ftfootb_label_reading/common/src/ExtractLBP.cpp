@@ -12,6 +12,7 @@
 #include <vector>
 #include <iostream>
 #include "lbp.hpp"
+#include <set>
 #include "histogram.hpp"
 
 using namespace cv;
@@ -41,15 +42,16 @@ int main()
 		lbp::OLBP(img_gray,lbp_image);
 		cout<<lbp_image.cols<<"x"<<lbp_image.rows<<" "<<lbp_image.type()<<endl;
 		normalize(lbp_image, lbp_image, 0, 255, NORM_MINMAX, CV_8UC1);
+		cout<<"lbp_image: "<<lbp_image<<endl;
 		namedWindow( "0", CV_WINDOW_AUTOSIZE );
 		imshow("0",lbp_image);
 		namedWindow( "0_", CV_WINDOW_AUTOSIZE );
 		imshow("0_",img_gray);
 		waitKey(0);
-		hist = lbp::spatial_histogram(lbp_image, 16, 8, 8, 0);
-		namedWindow( "0_1", CV_WINDOW_AUTOSIZE );
-				imshow("0_1",hist);
+		hist=lbp::spatial_histogram(lbp_image, 59 , 8,8, true);
+		cout<<"hist: "<<hist<<endl;
+/*		namedWindow( "0_1", CV_WINDOW_AUTOSIZE );
+		imshow("0_1",hist);*/
 		waitKey(0);
 	}
-
 }

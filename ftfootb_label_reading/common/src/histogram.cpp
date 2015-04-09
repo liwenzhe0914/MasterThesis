@@ -1,106 +1,80 @@
 #include "histogram.hpp"
 #include <vector>
 
-template <typename _Tp>
-void lbp::histogram_(const Mat& src, Mat& hist, int numPatterns) {
-	hist = Mat::zeros(1, numPatterns, CV_32SC1);
-	for(int i = 0; i < src.rows; i++) {
-		for(int j = 0; j < src.cols; j++) {
-			int bin = src.at<_Tp>(i,j);
-			hist.at<int>(0,bin) += 1;
-		}
-	}
-	cout<<"hist: "<<hist<<endl;
+
+Mat lbp::histogram_(const Mat& src, int minVal, int maxVal, bool normed)
+{
+    Mat result;
+    // Establish the number of bins.
+    int histSize = maxVal-minVal+1;
+    // Set the ranges.
+    float range[] = { static_cast<float>(minVal), static_cast<float>(maxVal+1) };
+
+    const float* histRange = {range};
+    // calc histogram
+    calcHist(&src, 1, 0, Mat(), result, 1, &histSize, &histRange, true, false);
+    // normalize
+    if(normed) {
+        result /= (int)src.total();
+    }
+    cout<<"result: "<<result.reshape(1,1)<<endl;
+
+    return result.reshape(1,1);
 }
 
-template <typename _Tp>
-double lbp::chi_square_(const Mat& histogram0, const Mat& histogram1) {
-	if(histogram0.type() != histogram1.type())
-			CV_Error(CV_StsBadArg, "Histograms must be of equal type.");
-	if(histogram0.rows != 1 || histogram0.rows != histogram1.rows || histogram0.cols != histogram1.cols)
-			CV_Error(CV_StsBadArg, "Histograms must be of equal dimension.");
-	double result = 0.0;
-	for(int i=0; i < histogram0.cols; i++) {
-		double a = histogram0.at<_Tp>(0,i) - histogram1.at<_Tp>(0,i);
-		double b = histogram0.at<_Tp>(0,i) + histogram1.at<_Tp>(0,i);
-		if(abs(b) > numeric_limits<double>::epsilon()) {
-			result+=(a*a)/b;
-		}
-	}
-	return result;
+Mat lbp::histogram(InputArray _src, int minVal, int maxVal, bool normed)
+{
+    Mat src = _src.getMat();
+    switch (src.type()) {
+        case CV_8SC1:
+            return histogram_(Mat_<float>(src), minVal, maxVal, normed);
+            break;
+        case CV_8UC1:
+            return histogram_(src, minVal, maxVal, normed);
+            break;
+        case CV_16SC1:
+            return histogram_(Mat_<float>(src), minVal, maxVal, normed);
+            break;
+        case CV_16UC1:
+            return histogram_(src, minVal, maxVal, normed);
+            break;
+        case CV_32SC1:
+            return histogram_(Mat_<float>(src), minVal, maxVal, normed);
+            break;
+        case CV_32FC1:
+            return histogram_(src, minVal, maxVal, normed);
+            break;
+        default:
+            CV_Error(CV_StsUnmatchedFormats, "This type is not implemented yet."); break;
+    }
+    return Mat();
 }
 
-
-void lbp::spatial_histogram(const Mat& src, Mat& hist, int numPatterns, const Size& window, int overlap) {
-	int width = src.cols;
-	int height = src.rows;
-	vector<Mat> histograms;
-	for(int x=0; x < (width - window.width); x+=(window.width-overlap)) {
-		cout<<"x: "<<x<<endl;
-		for(int y=0; y < (height-window.height); y+=(window.height-overlap)) {
-			cout<<"y: "<<y<<endl;
-			Mat cell = Mat::zeros(window.width,window.height,CV_32SC1);
-			cell=Mat(src, Rect(x,y,window.width, window.height));
-			histograms.push_back(histogram(cell, numPatterns));
-			cout<<histograms.size()<<" size"<<endl;
-		}
-	}
-	cout<<"44"<<endl;
-	hist.create(1, histograms.size()*numPatterns, CV_32SC1);
-	// i know this is a bit lame now... feel free to make this a bit more efficient...
-	for(int histIdx=0; histIdx < histograms.size(); histIdx++) {
-		for(int valIdx = 0; valIdx < numPatterns; valIdx++) {
-			int y = histIdx*numPatterns+valIdx;
-			hist.at<int>(0,y) = histograms[histIdx].at<int>(valIdx);
-		}
-	}
-}
-
-// wrappers
-void lbp::histogram(const Mat& src, Mat& hist, int numPatterns) {
-	switch(src.type()) {
-		case CV_8SC1: histogram_<char>(src, hist, numPatterns); break;
-		case CV_8UC1: histogram_<unsigned char>(src, hist, numPatterns); break;
-		case CV_16SC1: histogram_<short>(src, hist, numPatterns); break;
-		case CV_16UC1: histogram_<unsigned short>(src, hist, numPatterns); break;
-		case CV_32SC1: histogram_<int>(src, hist, numPatterns); break;
-	}
-}
-
-double lbp::chi_square(const Mat& histogram0, const Mat& histogram1) {
-	switch(histogram0.type()) {
-		case CV_8SC1: return chi_square_<char>(histogram0,histogram1); break;
-		case CV_8UC1: return chi_square_<unsigned char>(histogram0,histogram1); break;
-		case CV_16SC1: return chi_square_<short>(histogram0, histogram1); break;
-		case CV_16UC1: return chi_square_<unsigned short>(histogram0,histogram1); break;
-		case CV_32SC1: return chi_square_<int>(histogram0,histogram1); break;
-	}
-}
-
-void lbp::spatial_histogram(const Mat& src, Mat& dst, int numPatterns, int gridx, int gridy, int overlap) {
-	int width = static_cast<int>(floor(src.cols/gridx));
-	int height = static_cast<int>(floor(src.rows / gridy));
-	cout<<"width:"<<width<<" "<< height<<endl;
-	spatial_histogram(src, dst, numPatterns, Size_<int>(width, height), overlap);
-}
-
-// Mat return type functions
-Mat lbp::histogram(const Mat& src, int numPatterns) {
-	Mat hist;
-	histogram(src, hist, numPatterns);
-	return hist;
-}
-
-
-Mat lbp::spatial_histogram(const Mat& src, int numPatterns, const Size& window, int overlap) {
-	Mat hist;
-	spatial_histogram(src, hist, numPatterns, window, overlap);
-	return hist;
-}
-
-
-Mat lbp::spatial_histogram(const Mat& src, int numPatterns, int gridx, int gridy, int overlap) {
-	Mat hist;
-	spatial_histogram(src, hist, numPatterns, gridx, gridy);
-	return hist;
+Mat lbp::spatial_histogram(InputArray _src, int numPatterns, int grid_x, int grid_y, bool /*normed*/)
+{
+    Mat src = _src.getMat();
+    // calculate LBP patch size
+    int width = src.cols/grid_x;
+    int height = src.rows/grid_y;
+    // allocate memory for the spatial histogram
+    Mat result = Mat::zeros(grid_x * grid_y, numPatterns, CV_32FC1);
+    // return matrix with zeros if no data was given
+    if(src.empty())
+        return result.reshape(1,1);
+    // initial result_row
+    int resultRowIdx = 0;
+    // iterate through grid
+    for(int i = 0; i < grid_y; i++) {
+        for(int j = 0; j < grid_x; j++) {
+            Mat src_cell = Mat(src, Range(i*height,(i+1)*height), Range(j*width,(j+1)*width));
+            Mat cell_hist = histogram(src_cell, 0, (numPatterns-1), true);
+            // copy to the result matrix
+            Mat result_row = result.row(resultRowIdx);
+            cell_hist.reshape(1,1).convertTo(result_row, CV_32FC1);
+            // increase row count in result matrix
+            resultRowIdx++;
+        }
+    }
+    // return result as reshaped feature vector
+    return result.reshape(1,1);
 }
