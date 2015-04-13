@@ -41,7 +41,9 @@ rosbuild_add_executable(match_template common/src/MatchTemplateNode.cpp common/s
 rosbuild_link_boost(match_template filesystem system)
 
 rosbuild_add_executable(extract_features_and_reconition common/src/ExtractFeaturesAndReconition.cpp
-                                   common/src/MatchTemplate.cpp)
+                                   common/src/MatchTemplate.cpp
+                                   common/src/lbp.cpp
+									common/src/histogram.cpp)
 rosbuild_add_executable(CutTagFromBackground2 common/src/CutTagFromBackground2.cpp)
 rosbuild_add_executable(detect_dashes_by_contour common/src/detect_dashes_by_contour.cpp)
 
@@ -76,5 +78,7 @@ rosbuild_add_executable(CutTagFromBackground2 common/src/CutTagFromBackground2.c
 rosbuild_add_executable(ExtractLBP common/src/ExtractLBP.cpp
 									common/src/lbp.cpp
 									common/src/histogram.cpp)
+rosbuild_add_executable(similiarity common/src/similiarity.cpp)									
+
 									
-rosbuild_add_executable(ExtractHOG common/src/Extract_HOG.cpp)
+									

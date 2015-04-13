@@ -23,7 +23,7 @@ int main()
 	//variables
 	char FullFileName[100];
 	//char FirstFileName[100]="/home/damon/Desktop/test_XC_";
-	char FirstFileName[100]="/home/rmb-om/Desktop/text_portion_";
+	char FirstFileName[100]="/home/damon/Desktop/text_portion_";
 	//char SaveHogDesFileName[100] = "Positive.xml";
 	int FileNum=1;
 
@@ -36,20 +36,19 @@ int main()
 		//read image file
 		cv::Mat img, img_gray,lbp_image,hist;
 		img = imread(FullFileName);
-		resize(img, img, Size(64,64));
+		resize(img, img, Size(66,66));
 		cvtColor(img, img_gray, CV_RGB2GRAY);
 
 		lbp::OLBP(img_gray,lbp_image);
 		cout<<lbp_image.cols<<"x"<<lbp_image.rows<<" "<<lbp_image.type()<<endl;
 		normalize(lbp_image, lbp_image, 0, 255, NORM_MINMAX, CV_8UC1);
-		Mat lbp_image_resized;
-		resize(lbp_image, lbp_image_resized, Size(lbp_image.cols*4.0, lbp_image.rows*4.0));
-		cout<<"lbp_image_resized: "<<lbp_image_resized<<endl;
-
-		imshow("lbp_image_resized",lbp_image);
+		cout<<"lbp_image: "<<lbp_image<<endl;
+		namedWindow( "0", CV_WINDOW_AUTOSIZE );
+		imshow("0",lbp_image);
+		namedWindow( "0_", CV_WINDOW_AUTOSIZE );
 		imshow("0_",img_gray);
 		waitKey(0);
-		hist=lbp::spatial_histogram(lbp_image, 59,8, 8,true);
+		hist=lbp::spatial_histogram(lbp_image, 59 , 8,8, true);
 		cout<<"hist: "<<hist<<endl;
 /*		namedWindow( "0_1", CV_WINDOW_AUTOSIZE );
 		imshow("0_1",hist);*/
