@@ -47,8 +47,6 @@ rosbuild_add_executable(extract_features_and_reconition common/src/ExtractFeatur
 rosbuild_add_executable(CutTagFromBackground2 common/src/CutTagFromBackground2.cpp)
 rosbuild_add_executable(detect_dashes_by_contour common/src/detect_dashes_by_contour.cpp)
 
-
-
 #rosbuild_add_executable(resize common/src/resize.cpp)
 #rosbuild_link_boost(resize filesystem system)
 
@@ -65,7 +63,8 @@ rosbuild_add_executable(detect_dashes_by_contour common/src/detect_dashes_by_con
 #rosbuild_add_executable(capture_image common/src/CaptureImage.cpp)
 #rosbuild_link_boost(capture_image filesystem system)
 
-rosbuild_add_executable(detect_text_label common/src/DetectTextLabel.cpp)
+rosbuild_add_executable(detect_text_label common/src/DetectTextLabel.cpp
+											common/src/TextTagDetection.cpp)
 
 rosbuild_add_executable(opencv_performance_new_with_hough_line_transform common/src/performance_new_with_hough_line_transform.cpp)
 
@@ -78,7 +77,4 @@ rosbuild_add_executable(CutTagFromBackground2 common/src/CutTagFromBackground2.c
 rosbuild_add_executable(ExtractLBP common/src/ExtractLBP.cpp
 									common/src/lbp.cpp
 									common/src/histogram.cpp)
-rosbuild_add_executable(similiarity common/src/similiarity.cpp)									
-
-									
 									

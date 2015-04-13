@@ -1,4 +1,5 @@
-//This program is modified from original performance.cpp to give the performance of new cascade classifier and also save the detected text tags' infomation into a xml file like following formate.
+//This program is modified from original performance.cpp to give the performance of new cascade classifier and
+//also save the detected text tags' infomation into a xml file like following format.
 //<?xml version="1.0" encoding="UTF-8"?>
 //<tagset>
 //  <image>
