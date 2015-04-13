@@ -76,3 +76,5 @@ rosbuild_add_executable(CutTagFromBackground2 common/src/CutTagFromBackground2.c
 rosbuild_add_executable(ExtractLBP common/src/ExtractLBP.cpp
 									common/src/lbp.cpp
 									common/src/histogram.cpp)
+									
+rosbuild_add_executable(ExtractHOG common/src/Extract_HOG.cpp)

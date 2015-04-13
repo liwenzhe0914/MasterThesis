@@ -206,13 +206,13 @@ int main()
  //variables
  char FullFileName[100];
  //char FirstFileName[100]="/home/damon/Desktop/test_XC_";
- char FirstFileName[100]="/home/damon/git/opencv-haar-classifier-training/test_XC_";
+ char FirstFileName[100]="/home/rmb-om/Desktop/text_portion_";
  //char SaveHogDesFileName[100] = "Positive.xml";
  int FileNum=1;
  int class_number=1;
  for(int i=0; i< FileNum; ++i)
   {
- 	 sprintf(FullFileName, "%s%d.jpg", FirstFileName, i+1);
+ 	 sprintf(FullFileName, "%s%d.png", FirstFileName, i+1);
  	 printf("%s\n", FullFileName);
 
    //read image file
