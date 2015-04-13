@@ -579,7 +579,7 @@ std::vector<cv::Rect> TextTagDetection::text_tag_detection_with_VJ(cv::Mat image
 
 	// Load Text cascade (.xml file)
 	cv::CascadeClassifier text_tags_cascade;
-	text_tags_cascade.load( "/home/rmb-om/damon_backup/git/opencv-haar-classifier-training/text_tag_classifiers_3/cascade.xml" );
+	text_tags_cascade.load( "/home/rmb-om/git/care-o-bot/ftfootb/ftfootb_label_reading/common/files/TextLabelClassifier/haarclassifier_new/cascade.xml" );
 
 	text_tags_cascade.detectMultiScale( image, rectangle_list,1.03 ,2,0, cv::Size(35, 9),cv::Size());
     if (rectangle_list.size() == 0)

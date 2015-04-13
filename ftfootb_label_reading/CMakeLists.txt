@@ -37,7 +37,7 @@ rosbuild_add_roslaunch_check(ros/launch)
 rosbuild_add_executable(read_label ros/src/read_label.cpp
                                    common/src/MatchTemplate.cpp)
 
-rosbuild_add_executable(match_template common/src/MatchTemplateNode.cpp common/src/MatchTemplate.cpp)
+rosbuild_add_executable(match_template_node common/src/MatchTemplateNode.cpp common/src/MatchTemplate.cpp)
 rosbuild_link_boost(match_template filesystem system)
 
 rosbuild_add_executable(extract_features_and_reconition common/src/ExtractFeaturesAndReconition.cpp
@@ -63,7 +63,7 @@ rosbuild_add_executable(detect_dashes_by_contour common/src/detect_dashes_by_con
 #rosbuild_add_executable(capture_image common/src/CaptureImage.cpp)
 #rosbuild_link_boost(capture_image filesystem system)
 
-rosbuild_add_executable(detect_text_label common/src/DetectTextLabel.cpp
+rosbuild_add_executable(text_tag_detection_node common/src/TextTagDetectionNode.cpp
 											common/src/TextTagDetection.cpp)
 
 rosbuild_add_executable(opencv_performance_new_with_hough_line_transform common/src/performance_new_with_hough_line_transform.cpp)

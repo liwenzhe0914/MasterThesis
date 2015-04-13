@@ -841,9 +841,6 @@ int main(int argc, char** argv)
 		///train SVM with trainData and trainClasses with BRIEF
 
 
-
-
-
 		/*cout<<"training SVM +BRIEF "<<endl;
 		numbers_svm_BRIEF.train(numbers_trainData_BRIEF,numbers_trainClasses_BRIEF, Mat(), Mat(),params);
 		letters_svm_BRIEF.train(letters_trainData_BRIEF,letters_trainClasses_BRIEF, Mat(), Mat(),params);*/
