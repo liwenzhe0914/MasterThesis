@@ -1,4 +1,5 @@
 #include "ftfootb_label_reading/FeatureRepresentation.h"
+#include <typeinfo>
 
 
 std::vector<std::string> FeatureReprenstation::folder_list(std::string path)
@@ -69,7 +70,8 @@ return ImageNames;
 cv::Mat FeatureReprenstation::get_feature_descriptor(cv::Mat img,int feature_number)
 {
 	//read image file
-	cv::Mat img_gray,descriptorsValues;
+	cv::Mat img_gray;
+	cv::Mat descriptorsValues;
 	if(feature_number==1)
 	{
 		//resizing
@@ -81,9 +83,10 @@ cv::Mat FeatureReprenstation::get_feature_descriptor(cv::Mat img,int feature_num
 		cv::vector< cv::Point> locations;
 		d.compute( img_gray, descriptorsValues_vector, cv::Size(0,0), cv::Size(0,0), locations);
 
-		cv::Mat descriptorsValues(1, descriptorsValues_vector.size(),CV_32FC1);
+		cv::Mat descriptorsValues_temp(1, descriptorsValues_vector.size(),CV_32FC1);
 		//convert descriptorsValues(type vector) to row matrix
-		memcpy(descriptorsValues.data,descriptorsValues_vector.data(),descriptorsValues_vector.size()*sizeof(float));
+		memcpy(descriptorsValues_temp.data,descriptorsValues_vector.data(),descriptorsValues_vector.size()*sizeof(float));
+		descriptorsValues_temp.copyTo(descriptorsValues);
 	}
 	else if(feature_number==2)
 	{
@@ -113,13 +116,13 @@ cv::Mat FeatureReprenstation::get_feature_descriptor(cv::Mat img,int feature_num
 	//	detector.detect(img_gray,keyPoints);
 		extractor.compute(img_gray,keyPoints,descriptorsValues_Mat);
 		std::vector<float> descriptorsValues_vector;
-		cv::Mat descriptorsValues;
 
 		descriptorsValues_vector.assign(descriptorsValues_Mat.datastart, descriptorsValues_Mat.dataend);
 
-		cv::Mat descriptorsValues(1, descriptorsValues_vector.size(),CV_32FC1);
+		cv::Mat descriptorsValues_temp(1, descriptorsValues_vector.size(),CV_32FC1);
 		//convert descriptorsValues(type vector) to row matrix
-		memcpy(descriptorsValues.data,descriptorsValues_vector.data(),descriptorsValues_vector.size()*sizeof(float));
+		memcpy(descriptorsValues_temp.data,descriptorsValues_vector.data(),descriptorsValues_vector.size()*sizeof(float));
+		descriptorsValues_temp.copyTo(descriptorsValues);
 	}
 
 	return descriptorsValues;
@@ -150,18 +153,19 @@ cv::Mat FeatureReprenstation::get_feature_descriptor_from_training_data(std::vec
 		cstr = new char[FirstFileName.length() + 1];
 		strcpy(cstr, FirstFileName.c_str());
 		ImageNames = load_folder_of_image(foldername_temp);
-		int FileNum = ImageNames.size();
-		for(int k=0; k< FileNum; ++k)
+		unsigned int FileNum = ImageNames.size();
+		for(unsigned int k=0; k< FileNum; ++k)
 		{
 			sprintf(FullFileName, "%s%d.png", cstr, k+1);
-
+//			std::cout<<"FullFileName: "<<FullFileName<<std::endl;
 			cv::Mat img = cv::imread(FullFileName);
 
 			descriptorsValues=get_feature_descriptor(img,feature_number);
+//			std::cout << "descriptorsValues dimensions: " << descriptorsValues.cols << " width x " << descriptorsValues.rows << " height" << std::endl;
 			trainData.push_back(descriptorsValues);
 			if (number_or_letter == 1)
 			{
-				istringstream ( foldersNames ) >> Classes;
+				std::istringstream ( foldersNames ) >> Classes;
 			}
 			else
 			{
@@ -171,22 +175,17 @@ cv::Mat FeatureReprenstation::get_feature_descriptor_from_training_data(std::vec
 		}
 	}
 	delete [] cstr;
-
+//	std::cout << "trainData dimensions: " << trainData.cols << " width x " << trainData.rows << " height" << std::endl;
+//	std::cout << "trainCLass dimensions: " << trainClasses.cols << " width x " << trainClasses.rows << " height" << std::endl;
 	cv::Mat trainData_trainClasses(trainData.rows,trainData.cols+trainClasses.cols,CV_32FC1,cv::Scalar::all(0));
 ///combine two Matrix -- trainData and trainClasses into one Matrix
 
 	for (int i = 1;i<trainData.cols;i++)
 	{
-		cv::Mat row = trainData.col(i);
-		cv::Mat row2;
-		row.copyTo(row2);
-		trainData_trainClasses.col(i)=row2;
+		trainData.col(i).copyTo(trainData_trainClasses.col(i));
 	}
-	cv::Mat row = trainClasses.col(0);
-	cv::Mat row2;
-	row.copyTo(row2);
-	trainData_trainClasses.col(trainData.cols+trainClasses.cols-1)=row2;
-
+	trainClasses.col(0).copyTo(trainData_trainClasses.col(trainData.cols+trainClasses.cols-1));
+	std::cout<<"trainData_trainClasses size:"<<trainData_trainClasses.cols<< " "<<trainData_trainClasses.rows<<std::endl;
 	return trainData_trainClasses;//trainData_trainClasses contains trainData and trainClasses
 }
 
@@ -229,7 +228,8 @@ cv::Mat FeatureReprenstation::load_all_training_data_with_feature_descriptors(st
 {
 	//load: 1. load data from yml. 0. load from raw data
 
-
+	std::cout<<"load:"<<load<<"    feature number: "<<feature_number<<std::endl;
+	std::cout << "type:"<<typeid(feature_number).name() << std::endl;
 	cv::Mat trainData_and_trainClasses;
 	std::string prefix,suffix;
 	std::stringstream ss_numbers;
@@ -245,13 +245,15 @@ cv::Mat FeatureReprenstation::load_all_training_data_with_feature_descriptors(st
 	std::vector<std::string> TrainingFoldersFullNames;
 	if (number_or_letter==1)
 	{
+		std::cout <<"giving path_numbers..." <<number_or_letter<< std::endl;
 		TrainingFoldersFullNames = folder_list(path_numbers);
-		std::string prefix = "numbers";
+		prefix = "numbers";
 	}
 	else if (number_or_letter==0)
 	{
+		std::cout <<"giving path_letters..." << std::endl;
 		TrainingFoldersFullNames = folder_list(path_letters);
-		std::string prefix = "letters";
+		prefix = "letters";
 	}
 	if (feature_number==1)
 	{
@@ -265,27 +267,67 @@ cv::Mat FeatureReprenstation::load_all_training_data_with_feature_descriptors(st
 	{
 		suffix = "BRIEF";
 	}
-
 if (load==0)
 {
 
 	std::cout<<"computing trainData_and_trainClasses from training dataset."<<std::endl;
 
-
-	ss<<"common/files/"<<prefix<<"_numbers_trainData_and_trainClasses_"<<suffix<<".yml";
-	trainData_and_trainClasses=get_HOG_descriptor_from_training_data(TrainingFoldersFullNames,number_or_letter);
-
-	cv::FileStorage fs(ss, cv::FileStorage::WRITE);
-	fs << prefix<<"_numbers_trainData_and_trainClasses_"<<suffix << trainData_and_trainClasses;
+	trainData_and_trainClasses=get_feature_descriptor_from_training_data(TrainingFoldersFullNames,number_or_letter,feature_number);
 	ss.str("");
-	fs.release();
+	if (number_or_letter==1)
+	{
+		std::cout <<"giving number_or_letter..." << number_or_letter<<std::endl;
+		if (feature_number==1)
+		{
+			std::cout <<"giving feature_number..." << feature_number<<std::endl;
+			cv::FileStorage fs("common/files/numbers_trainData_and_trainClasses_HOG.yml", cv::FileStorage::WRITE);
+			fs << "numbers_trainData_and_trainClasses_HOG" << trainData_and_trainClasses;
+		}
+		else if (feature_number==2)
+		{
+			cv::FileStorage fs("common/files/numbers_trainData_and_trainClasses_LBP.yml", cv::FileStorage::WRITE);
+			fs << "trainData_and_trainClasses_LBP" << trainData_and_trainClasses;
+		}
+		else if (feature_number==3)
+		{
+			cv::FileStorage fs("common/files/numbers_trainData_and_trainClasses_BRIEF.yml", cv::FileStorage::WRITE);
+			fs << "trainData_and_trainClasses_BRIEF" << trainData_and_trainClasses;
+		}
+	}
+	else if (number_or_letter==0)
+	{
+		std::cout <<"giving number_or_letter..." << number_or_letter<<std::endl;
+		if (feature_number==1)
+		{
+			std::cout <<"giving feature_number..." << feature_number<<std::endl;
+			cv::FileStorage fs("common/files/letters_trainData_and_trainClasses_HOG.yml", cv::FileStorage::WRITE);
+			fs << "letters_trainData_and_trainClasses_HOG" << trainData_and_trainClasses;
+			fs.release();
+		}
+		else if (feature_number==2)
+		{
+			cv::FileStorage fs("common/files/letters_trainData_and_trainClasses_LBP.yml", cv::FileStorage::WRITE);
+			fs << "letters_trainData_and_trainClasses_LBP" << trainData_and_trainClasses;
+			fs.release();
+		}
+		else if (feature_number==3)
+		{
+			cv::FileStorage fs("common/files/letters_trainData_and_trainClasses_BRIEF.yml", cv::FileStorage::WRITE);
+			fs << "letters_trainData_and_trainClasses_BRIEF" << trainData_and_trainClasses;
+			fs.release();
+		}
+	}
+	std::cout<<"herer"<<std::endl;
+
 }
 else if (load==1)
 {
 	std::cout<<"Reading trainData_and_trainClasses from feature description files."<<std::endl;
-	ss<<"common/files/"<<prefix<<"_numbers_trainData_and_trainClasses_"<<suffix<<".yml";
-	cv::FileStorage fs(ss, cv::FileStorage::READ);
-	fs[prefix<<"_numbers_trainData_and_trainClasses_"<<suffix] >> trainData_and_trainClasses;
+	ss<<"common/files/"<<prefix<<"_trainData_and_trainClasses_"<<suffix<<".yml";
+	std::string load_name = ss.str();
+	cv::FileStorage fs(load_name, cv::FileStorage::READ);
+	ss.str("");
+	fs["trainData_and_trainClasses"] >> trainData_and_trainClasses;
 	fs.release();
 }
 
@@ -329,11 +371,12 @@ std::string FeatureReprenstation::read_text_tag(cv::Mat testImg,int load,int cla
 	{
 		suffix = "BRIEF";
 	}
+
 	cv::Mat test_descriptorsValues=preprocess_test_text_tag(testImg,feature_number);
 
 	double start_time;
 	double time_in_seconds;
-
+	std::cout<<"start processing training data..."<<std::endl;
 	std::string training_path = "/home/damon/training_samples_for_SVM/";
 
 	cv::Mat numbers_trainData_and_trainClasses = load_all_training_data_with_feature_descriptors(training_path,1,feature_number,load);
@@ -370,22 +413,25 @@ std::string FeatureReprenstation::read_text_tag(cv::Mat testImg,int load,int cla
 		}
 
 		char *cstr_number,*cstr_letter;
+		ss<<"common/files/numbers_svm_model_"<<suffix<<".xml";
+		number_svm_model = ss.str();
+		ss.str("");
+		ss<<"common/files/letters_svm_model_"<<suffix<<".xml";
+		letter_svm_model = ss.str();
+		ss.str("");
 		cstr_number = new char[number_svm_model.length() + 1];
 		cstr_letter = new char[letter_svm_model.length() + 1];
 		strcpy(cstr_number, number_svm_model.c_str());
 		strcpy(cstr_letter, letter_svm_model.c_str());
+		std::cout<<"cstr_letter: "<<cstr_letter<<std::endl;
+		std::cout<<"cstr_number: "<<cstr_number<<std::endl;
 
-		ss<<"common/files/number_svm_model_"<<suffix<<".xml";
-		std::string number_svm_model = ss.str();
-		ss.str("");
-		ss<<"common/files/letters_svm_model_"<<suffix<<".xml";
-		std::string letter_svm_model = ss.str();
-		ss.str("");
 
 		if(classifier==3)
 		{
 			std::cout<<"loading SVM classifiers"<<std::endl;
 			start_time=clock();
+
 			numbers_svm.load(cstr_number);
 			letters_svm.load(cstr_letter);
 			time_in_seconds = (clock() - start_time) / (double)CLOCKS_PER_SEC;
@@ -415,12 +461,13 @@ std::string FeatureReprenstation::read_text_tag(cv::Mat testImg,int load,int cla
 
 			std::cout << "SVM training model Saved" << std::endl;
 		}
-		delete [] cstr_number,cstr_letter;
+		delete [] cstr_number;
+		delete [] cstr_letter;
 
 		float response = letters_svm.predict(test_descriptorsValues.row(0),test_descriptorsValues.row(0).cols);
 		text_label_result_int.push_back(response);
 
-		for (unsigned int j =0;j<4;j++)
+		for (unsigned int j =1;j<4;j++)
 		{
 			float response = numbers_svm.predict(test_descriptorsValues.row(j),test_descriptorsValues.row(j).cols);
 			text_label_result_int.push_back(response);
@@ -441,7 +488,7 @@ std::string FeatureReprenstation::read_text_tag(cv::Mat testImg,int load,int cla
 
 		//strat training
 
-		std::cout<<"training KNN classifiers wit HOG"<<std::endl;
+		std::cout<<"training KNN classifiers with"<<std::endl;
 		start_time = clock();
 		numbers_knn.train(numbers_trainData, numbers_trainClasses);
 		letters_knn.train(letters_trainData, letters_trainClasses);
@@ -473,6 +520,10 @@ void FeatureReprenstation::help()
 {
  std::cout <<
          "Usage:\n"
-         "./feature_representation_node string <image_name> int<load:1-load training data from file 0-load traning data from raw images> int<classifier: 1-KNN,2-train svm, 3 load svm> int<feature number:1. HOG 2. LBP. 3 BRIEF>" << std::endl;
+         "./feature_representation_node \n"
+         "string <image_name> \n"
+         "int<load:1-load training data from file 0-load traning data from raw images> \n"
+         "int<classifier: 1-KNN,2-train svm, 3 load svm>\n "
+         "int<feature number:1. HOG 2. LBP. 3 BRIEF>" << std::endl;
 }
 

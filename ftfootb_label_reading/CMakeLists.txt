@@ -38,14 +38,13 @@ rosbuild_add_executable(read_label ros/src/read_label.cpp
                                    common/src/MatchTemplate.cpp)
 
 rosbuild_add_executable(match_template_node common/src/MatchTemplateNode.cpp common/src/MatchTemplate.cpp)
-rosbuild_link_boost(match_template filesystem system)
+rosbuild_link_boost(match_template_node filesystem system)
 
 rosbuild_add_executable(extract_features_and_reconition common/src/ExtractFeaturesAndReconition.cpp
                                    common/src/MatchTemplate.cpp
-                                   common/src/lbp.cpp
-									common/src/histogram.cpp)
-rosbuild_add_executable(CutTagFromBackground2 common/src/CutTagFromBackground2.cpp)
-rosbuild_add_executable(detect_dashes_by_contour common/src/detect_dashes_by_contour.cpp)
+                                   common/src/LBPandHistogram.cpp)
+#rosbuild_add_executable(CutTagFromBackground2 common/src/CutTagFromBackground2.cpp)
+#rosbuild_add_executable(detect_dashes_by_contour common/src/detect_dashes_by_contour.cpp)
 
 #rosbuild_add_executable(resize common/src/resize.cpp)
 #rosbuild_link_boost(resize filesystem system)
@@ -72,9 +71,14 @@ rosbuild_add_executable(opencv_performance_new_with_hough_line_transform common/
 
 #rosbuild_add_executable(create_text common/src/CreateText.cpp)
 
-rosbuild_add_executable(CutTagFromBackground2 common/src/CutTagFromBackground2.cpp)
+#rosbuild_add_executable(CutTagFromBackground2 common/src/CutTagFromBackground2.cpp)
 
-rosbuild_add_executable(ExtractLBP common/src/ExtractLBP.cpp
-									common/src/lbp.cpp
-									common/src/histogram.cpp)
+#rosbuild_add_executable(ExtractLBP common/src/ExtractLBP.cpp
+#									common/src/lbp.cpp
+#									common/src/histogram.cpp)
+			
+rosbuild_add_executable(feature_representation_node common/src/FeatureRepresentationNode.cpp 
+											common/src/LBPandHistogram.cpp
+											common/src/FeatureRepresentation.cpp)
+
 									

@@ -1,7 +1,6 @@
 #include "ftfootb_label_reading/ExtractFeatures.h"
 #include "ftfootb_label_reading/MatchTemplate.h"
-#include "histogram.hpp"
-#include "lbp.hpp"
+#include "ftfootb_label_reading/LBPandHistogram.h"
 
 
 using namespace cv;

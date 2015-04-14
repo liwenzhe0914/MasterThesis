@@ -72,19 +72,19 @@ cv::Mat lbp::histogram(cv::InputArray _src, int minVal, int maxVal, bool normed)
 	cv::Mat src = _src.getMat();
     switch (src.type()) {
         case CV_8SC1:
-            return histogram_(Mat_<float>(src), minVal, maxVal, normed);
+            return histogram_(cv::Mat_<float>(src), minVal, maxVal, normed);
             break;
         case CV_8UC1:
             return histogram_(src, minVal, maxVal, normed);
             break;
         case CV_16SC1:
-            return histogram_(Mat_<float>(src), minVal, maxVal, normed);
+            return histogram_(cv::Mat_<float>(src), minVal, maxVal, normed);
             break;
         case CV_16UC1:
             return histogram_(src, minVal, maxVal, normed);
             break;
         case CV_32SC1:
-            return histogram_(Mat_<float>(src), minVal, maxVal, normed);
+            return histogram_(cv::Mat_<float>(src), minVal, maxVal, normed);
             break;
         case CV_32FC1:
             return histogram_(src, minVal, maxVal, normed);
@@ -111,7 +111,7 @@ cv::Mat lbp::spatial_histogram(cv::InputArray _src, int numPatterns, int grid_x,
     // iterate through grid
     for(int i = 0; i < grid_y; i++) {
         for(int j = 0; j < grid_x; j++) {
-        	cv::Mat src_cell = Mat(src, cv::Range(i*height,(i+1)*height), Range(j*width,(j+1)*width));
+        	cv::Mat src_cell = cv::Mat(src, cv::Range(i*height,(i+1)*height), cv::Range(j*width,(j+1)*width));
         	cv:: Mat cell_hist = histogram(src_cell, 0, (numPatterns-1), true);
             // copy to the result matrix
         	cv::Mat result_row = result.row(resultRowIdx);

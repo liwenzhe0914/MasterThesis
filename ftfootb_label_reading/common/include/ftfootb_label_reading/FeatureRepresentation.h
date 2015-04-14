@@ -27,7 +27,7 @@ class FeatureReprenstation
 {
 public:
 
-		cv::Mat FeatureReprenstation::get_feature_descriptor(cv::Mat img,int feature_number);
+		cv::Mat get_feature_descriptor(cv::Mat img,int feature_number);
 
 		int convertLettersToASCII(std::string letter);
 
@@ -37,7 +37,7 @@ public:
 
 		std::vector<std::string> load_folder_of_image(std::string path);
 
-		cv::Mat FeatureReprenstation::get_feature_descriptor_from_training_data(std::vector<std::string> FoldersFullNames,int number_or_letter,int feature_number);
+		cv::Mat get_feature_descriptor_from_training_data(std::vector<std::string> FoldersFullNames,int number_or_letter,int feature_number);
 
 		cv::Mat load_all_training_data_with_feature_descriptors(std::string training_path,int number_or_letter,int feature_number,int load);
 
