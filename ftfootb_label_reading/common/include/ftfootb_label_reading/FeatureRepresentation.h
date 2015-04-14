@@ -27,11 +27,7 @@ class FeatureReprenstation
 {
 public:
 
-		std::vector<float> get_HOG_descriptor(cv::Mat img);
-
-		cv::Mat get_LBP_descriptor(cv::Mat img);
-
-		std::vector<float> get_BRIEF_descriptor(cv::Mat img);
+		cv::Mat FeatureReprenstation::get_feature_descriptor(cv::Mat img,int feature_number);
 
 		int convertLettersToASCII(std::string letter);
 
@@ -45,6 +41,8 @@ public:
 
 		cv::Mat load_all_training_data_with_feature_descriptors(std::string training_path,int number_or_letter,int feature_number,int load);
 
-		std::string read_text_tag(cv::Mat image,int load);
+		std::string read_text_tag(cv::Mat image,int load,int classifier,int feature_number);
+
+		cv::Mat preprocess_test_text_tag(cv::Mat testImg,int feature_number);
 
 };

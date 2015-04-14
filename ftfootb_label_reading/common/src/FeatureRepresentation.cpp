@@ -66,63 +66,61 @@ return ImageNames;
 }
 
 
-std::vector<float> FeatureReprenstation::get_HOG_descriptor(cv::Mat img)
+cv::Mat FeatureReprenstation::get_feature_descriptor(cv::Mat img,int feature_number)
 {
 	//read image file
-	cv::Mat img_gray;
+	cv::Mat img_gray,descriptorsValues;
+	if(feature_number==1)
+	{
+		//resizing
+		cv::resize(img, img, cv::Size(64,64) ); //Size(64,48) ); //Size(32*2,16*2)); //Size(80,72) );
+		//gray
+		cvtColor(img, img_gray, CV_RGB2GRAY,CV_32FC1);
+		cv::HOGDescriptor d( cv::Size(64,64), cv::Size(16,16),cv:: Size(8,8), cv::Size(8,8), 9);
+		cv::vector< float> descriptorsValues_vector;
+		cv::vector< cv::Point> locations;
+		d.compute( img_gray, descriptorsValues_vector, cv::Size(0,0), cv::Size(0,0), locations);
 
-	//resizing
-	cv::resize(img, img, cv::Size(64,64) ); //Size(64,48) ); //Size(32*2,16*2)); //Size(80,72) );
-	//gray
-	cvtColor(img, img_gray, CV_RGB2GRAY,CV_32FC1);
-	cv::HOGDescriptor d( cv::Size(64,64), cv::Size(16,16),cv:: Size(8,8), cv::Size(8,8), 9);
-	cv::vector< float> descriptorsValues;
-	cv::vector< cv::Point> locations;
-	d.compute( img_gray, descriptorsValues, cv::Size(0,0), cv::Size(0,0), locations);
+		cv::Mat descriptorsValues(1, descriptorsValues_vector.size(),CV_32FC1);
+		//convert descriptorsValues(type vector) to row matrix
+		memcpy(descriptorsValues.data,descriptorsValues_vector.data(),descriptorsValues_vector.size()*sizeof(float));
+	}
+	else if(feature_number==2)
+	{
+		cv::Mat lbp_image;
+		//resizing
+		cv::resize(img, img, cv::Size(64,64) ); //Size(64,48) ); //Size(32*2,16*2)); //Size(80,72) );
+		//gray
+		cv::cvtColor(img, img_gray, CV_RGB2GRAY);
+		lbp::OLBP(img_gray,lbp_image);
+		cv::normalize(lbp_image, lbp_image, 0, 255, cv::NORM_MINMAX, CV_8UC1);
 
-	return descriptorsValues;
-}
+		descriptorsValues=lbp::spatial_histogram(lbp_image, 59 , 8,8, true);
+	}
+	else if (feature_number==3)
+	{
+		cv::Mat descriptorsValues_Mat;
+		cv::resize(img, img, cv::Size(57,57)); //Size(64,48) ); //Size(32*2,16*2)); //Size(80,72) );
+		cv::DenseFeatureDetector detector(12.0f, 1, 0.1f, 10);
+		cv::BriefDescriptorExtractor extractor(32);
+		std::vector<cv::KeyPoint> keyPoints;
 
-cv::Mat FeatureReprenstation::get_LBP_descriptor(cv::Mat img)
-{
-	//read image file
-	cv::Mat img_gray,lbp_image,hist;
+		//gray
+		cvtColor(img, img_gray, CV_RGB2GRAY,CV_32FC1);
+		cv::KeyPoint pt(float(img_gray.cols/2),float(img_gray.rows/2),1,-1, 0, 0, -1);
+		keyPoints.push_back(pt);
 
-	//resizing
-	cv::resize(img, img, cv::Size(64,64) ); //Size(64,48) ); //Size(32*2,16*2)); //Size(80,72) );
-	//gray
-	cv::cvtColor(img, img_gray, CV_RGB2GRAY);
-	lbp::OLBP(img_gray,lbp_image);
-	cv::normalize(lbp_image, lbp_image, 0, 255, cv::NORM_MINMAX, CV_8UC1);
+	//	detector.detect(img_gray,keyPoints);
+		extractor.compute(img_gray,keyPoints,descriptorsValues_Mat);
+		std::vector<float> descriptorsValues_vector;
+		cv::Mat descriptorsValues;
 
-	hist=lbp::spatial_histogram(lbp_image, 59 , 8,8, true);
+		descriptorsValues_vector.assign(descriptorsValues_Mat.datastart, descriptorsValues_Mat.dataend);
 
-	return hist;
-}
-
-std::vector<float> FeatureReprenstation::get_BRIEF_descriptor(cv::Mat img)
-{
-	cv::DenseFeatureDetector detector(12.0f, 1, 0.1f, 10);
-	cv::BriefDescriptorExtractor extractor(32);
-	std::vector<cv::KeyPoint> keyPoints;
-
-	cv::Mat descriptorsValues_Mat;
-	//read image file
-	cv::Mat img_gray;
-
-	//resizing
-	cv::resize(img, img, cv::Size(57,57)); //Size(64,48) ); //Size(32*2,16*2)); //Size(80,72) );
-
-	//gray
-	cvtColor(img, img_gray, CV_RGB2GRAY,CV_32FC1);
-	cv::KeyPoint pt(float(img_gray.cols/2),float(img_gray.rows/2),1,-1, 0, 0, -1);
-	keyPoints.push_back(pt);
-
-//	detector.detect(img_gray,keyPoints);
-	extractor.compute(img_gray,keyPoints,descriptorsValues_Mat);
-	std::vector<float> descriptorsValues;
-
-	descriptorsValues.assign(descriptorsValues_Mat.datastart, descriptorsValues_Mat.dataend);
+		cv::Mat descriptorsValues(1, descriptorsValues_vector.size(),CV_32FC1);
+		//convert descriptorsValues(type vector) to row matrix
+		memcpy(descriptorsValues.data,descriptorsValues_vector.data(),descriptorsValues_vector.size()*sizeof(float));
+	}
 
 	return descriptorsValues;
 }
@@ -136,9 +134,8 @@ cv::Mat FeatureReprenstation::get_feature_descriptor_from_training_data(std::vec
 	cv::Mat trainData,trainClasses;
 	char *cstr;
 	std::vector<std::string> ImageNames;
-	std::vector< float> descriptorsValues;
 	std::vector< cv::Point> locations;
-	cv::Mat LBP_hist;
+	cv::Mat descriptorsValues;
 	int Classes;
 	std::ofstream out_file;
 
@@ -159,55 +156,18 @@ cv::Mat FeatureReprenstation::get_feature_descriptor_from_training_data(std::vec
 			sprintf(FullFileName, "%s%d.png", cstr, k+1);
 
 			cv::Mat img = cv::imread(FullFileName);
-			if (feature_number==1)
-			{
-				descriptorsValues=get_HOG_descriptor(img);
 
-				// convert descriptorsValues vector to a row
-				cv::Mat row(1, descriptorsValues.size(),CV_32FC1);
-				memcpy(row.data,descriptorsValues.data(),descriptorsValues.size()*sizeof(float));
-				trainData.push_back(row);
-				if (number_or_letter == 1)
-				{
-					istringstream ( foldersNames ) >> Classes;
-				}
-				else
-				{
-					Classes = convertLettersToASCII(foldersNames);
-				}
+			descriptorsValues=get_feature_descriptor(img,feature_number);
+			trainData.push_back(descriptorsValues);
+			if (number_or_letter == 1)
+			{
+				istringstream ( foldersNames ) >> Classes;
+			}
+			else
+			{
+				Classes = convertLettersToASCII(foldersNames);
+			}
 			trainClasses.push_back( Classes );
-			}
-			else if (feature_number==2)
-				{
-					LBP_hist=get_LBP_descriptor(img);
-					trainData.push_back(LBP_hist);
-					if (number_or_letter == 1)
-					{
-						istringstream ( foldersNames ) >> Classes;
-					}
-					else
-					{
-						Classes = convertLettersToASCII(foldersNames);
-					}
-					trainClasses.push_back( Classes );
-				}
-			else if (feature_number==3)
-			{
-				descriptorsValues=get_BRIEF_descriptor(img);
-
-				// convert descriptorsValues vector to a row
-				cv::Mat row(1, descriptorsValues.size(),CV_32FC1);
-				memcpy(row.data,descriptorsValues.data(),descriptorsValues.size()*sizeof(float));
-				trainData.push_back(row);
-				if (number_or_letter == 1)
-				{
-					istringstream ( foldersNames ) >> Classes;
-				}
-				else
-				{
-					Classes = convertLettersToASCII(foldersNames);
-				}
-			}
 		}
 	}
 	delete [] cstr;
@@ -225,7 +185,7 @@ cv::Mat FeatureReprenstation::get_feature_descriptor_from_training_data(std::vec
 	return trainData_trainClasses;//trainData_trainClasses contains trainData and trainClasses
 }
 
-int convertLettersToASCII(std::string letter)
+int FeatureReprenstation::convertLettersToASCII(std::string letter)
 {
 	int class_number;
 	char label1 = letter.at(0);
@@ -235,7 +195,7 @@ int convertLettersToASCII(std::string letter)
     return class_number;
 }
 
-std::string convertASCIIToLetters(int number)
+std::string FeatureReprenstation::convertASCIIToLetters(int number)
 {
 	int ASCII_1st_letter;
 	int remainder = number%26;
@@ -260,7 +220,7 @@ std::string convertASCIIToLetters(int number)
     return letter_class;
 }
 
-cv::Mat load_all_training_data_with_feature_descriptors(std::string training_path,int number_or_letter,int feature_number, int load)
+cv::Mat FeatureReprenstation::load_all_training_data_with_feature_descriptors(std::string training_path,int number_or_letter,int feature_number, int load)
 {
 	//load: 1. load data from yml. 0. load from raw data
 
@@ -327,56 +287,11 @@ else if (load==1)
 return trainData_and_trainClasses;
 }
 
-std::string read_text_tag(cv::Mat testImg,int load)
+cv::Mat FeatureReprenstation::preprocess_test_text_tag(cv::Mat testImg,int feature_number)
 {
-	std::string training_path = "/home/damon/training_samples_for_SVM/";
-
-	cv::Mat numbers_trainData_and_trainClasses_HOG = load_all_training_data_with_feature_descriptors(training_path,1,1,load);
-	cv::Mat letters_trainData_and_trainClasses_HOG = load_all_training_data_with_feature_descriptors(training_path,0,1,load);
-	cv::Mat numbers_trainData_and_trainClasses_BRIEF = load_all_training_data_with_feature_descriptors(training_path,1,1,load);
-	cv::Mat letters_trainData_and_trainClasses_BRIEF = load_all_training_data_with_feature_descriptors(training_path,0,1,load);
-	cv::Mat numbers_trainData_and_trainClasses_LBP = load_all_training_data_with_feature_descriptors(training_path,1,1,load);
-	cv::Mat letters_trainData_and_trainClasses_LBP = load_all_training_data_with_feature_descriptors(training_path,0,1,load);
-
-
-	cv::Mat numbers_trainData_HOG (numbers_trainData_and_trainClasses_HOG,cv::Rect(0,0,numbers_trainData_and_trainClasses_HOG.cols-1,numbers_trainData_and_trainClasses_HOG.rows));
-	cv::Mat letters_trainData_HOG (letters_trainData_and_trainClasses_HOG,cv::Rect(0,0,letters_trainData_and_trainClasses_HOG.cols-1,letters_trainData_and_trainClasses_HOG.rows));
-	cv::Mat numbers_trainClasses_HOG = numbers_trainData_and_trainClasses_HOG.col(numbers_trainData_and_trainClasses_HOG.cols-1);
-	cv::Mat letters_trainClasses_HOG = letters_trainData_and_trainClasses_HOG.col(letters_trainData_and_trainClasses_HOG.cols-1);
-
-	cv::Mat numbers_trainData_BRIEF (numbers_trainData_and_trainClasses_BRIEF,cv::Rect(0,0,numbers_trainData_and_trainClasses_BRIEF.cols-1,numbers_trainData_and_trainClasses_BRIEF.rows));
-	cv::Mat letters_trainData_BRIEF (letters_trainData_and_trainClasses_BRIEF,cv::Rect(0,0,letters_trainData_and_trainClasses_BRIEF.cols-1,letters_trainData_and_trainClasses_BRIEF.rows));
-	cv::Mat numbers_trainClasses_BRIEF=numbers_trainData_and_trainClasses_BRIEF.col(numbers_trainData_and_trainClasses_BRIEF.cols-1);
-	cv::Mat letters_trainClasses_BRIEF=letters_trainData_and_trainClasses_BRIEF.col(letters_trainData_and_trainClasses_BRIEF.cols-1);
-
-	cv::Mat numbers_trainData_LBP (numbers_trainData_and_trainClasses_LBP,cv::Rect(0,0,numbers_trainData_and_trainClasses_LBP.cols-1,numbers_trainData_and_trainClasses_LBP.rows));
-	cv::Mat letters_trainData_LBP (letters_trainData_and_trainClasses_LBP,cv::Rect(0,0,letters_trainData_and_trainClasses_LBP.cols-1,letters_trainData_and_trainClasses_LBP.rows));
-	cv::Mat numbers_trainClasses_LBP=numbers_trainData_and_trainClasses_LBP.col(numbers_trainData_and_trainClasses_LBP.cols-1);
-	cv::Mat letters_trainClasses_LBP=letters_trainData_and_trainClasses_LBP.col(letters_trainData_and_trainClasses_LBP.cols-1);
-
-	std::cout<<"finish processing training data..."<<std::endl;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	std::vector< float> descriptorsValues_HOG,descriptorsValues_BRIEF;
-	cv:: Mat descriptorsValues_LBP;
-
 	std::vector<cv::Mat> image_portions;
+	cv:: Mat test_descriptorsValues;
+
 	cv::Mat letter_portion = testImg(cv::Rect(0,0, testImg.cols*0.25, testImg.rows));
 	image_portions.push_back(letter_portion);
 	for (double x_min_ratio = 0.25; x_min_ratio < 1.0; x_min_ratio += 0.25)
@@ -385,147 +300,166 @@ std::string read_text_tag(cv::Mat testImg,int load)
 		image_portions.push_back(number_portion);
 	}
 
-//	descriptorsValues_HOG=get_HOG_descriptor(image_portions[0]);
-//	descriptorsValues_LBP=get_LBP_descriptor(image_portions[0]);
-//	descriptorsValues_BRIEF=get_BRIEF_descriptor(image_portions[0]);
-//
-//	for(unsigned int i=1; i<= 3; ++i)
-//	{
-//		descriptorsValues_HOG=get_HOG_descriptor(image_portions[i]);
-//		descriptorsValues_BRIEF=get_BRIEF_descriptor(image_portions[i]);
-//		descriptorsValues_LBP=get_LBP_descriptor(image_portions[i]);
-//	}
-
-	//write descritorValues of 4 portions(4 row matrix)
-	cv::Mat test_descriptorsValues_HOG;
-	cv::Mat row_temp_HOG(1, descriptorsValues_HOG.size(),CV_32FC1);
-	cv::Mat test_descriptorsValues_BRIEF;
-	cv::Mat row_temp_BRIEF(1, descriptorsValues_BRIEF.size(),CV_32FC1);
-	cv::Mat test_descriptorsValues_LBP;
-	cv::Mat row_temp_LBP(descriptorsValues_LBP.size(),CV_32FC1);
-
-	// write text portions to test_descriptorsValues Matrix, respectively
-	std::vector< float> test_descriptorsValues_temp_HOG;
-	test_descriptorsValues_temp_HOG = get_HOG_descriptor(image_portions[0]);
-	memcpy(row_temp_HOG.data,test_descriptorsValues_temp_HOG.data(),test_descriptorsValues_temp_HOG.size()*sizeof(float));//convert descriptorsValues(type vector) to row matrix
-	test_descriptorsValues_HOG.push_back(row_temp_HOG);
-
-	std::vector< float> test_descriptorsValues_temp_BRIEF;
-	test_descriptorsValues_temp_BRIEF = get_BRIEF_descriptor(image_portions[0]);
-	memcpy(row_temp_BRIEF.data,test_descriptorsValues_temp_BRIEF.data(),test_descriptorsValues_temp_BRIEF.size()*sizeof(float));//convert descriptorsValues(type vector) to row matrix
-	test_descriptorsValues_BRIEF.push_back(row_temp_BRIEF);
-
-	row_temp_LBP=get_LBP_descriptor(image_portions[0]);
-	test_descriptorsValues_LBP.push_back(row_temp_LBP);
-
-	for (unsigned int j = 1;j<4;j++)
+	for (unsigned int i = 0; i<4;i++)
 	{
-		test_descriptorsValues_temp_HOG = get_HOG_descriptor(image_portions[j]);
-		memcpy(row_temp_HOG.data,test_descriptorsValues_temp_HOG.data(),test_descriptorsValues_temp_HOG.size()*sizeof(float));
-		test_descriptorsValues_HOG.push_back(row_temp_HOG);
-
-		test_descriptorsValues_temp_BRIEF = get_BRIEF_descriptor(image_portions[j]);
-		memcpy(row_temp_BRIEF.data,test_descriptorsValues_temp_BRIEF.data(),test_descriptorsValues_temp_BRIEF.size()*sizeof(float));
-		test_descriptorsValues_BRIEF.push_back(row_temp_BRIEF);
-
-		row_temp_LBP=get_LBP_descriptor(image_portions[j]);
-		test_descriptorsValues_LBP.push_back(row_temp_LBP);
+		test_descriptorsValues.push_back(get_feature_descriptor(image_portions[i],feature_number));
 	}
 
-	for (unsigned int j = 1;j<4;j++)
+return test_descriptorsValues;
+}
+
+std::string FeatureReprenstation::read_text_tag(cv::Mat testImg,int load,int classifier,int feature_number)
+{
+	//classifier: 1. KNN 2. train SVM 3. load SVM
+	std::string suffix,prefix;
+	if (feature_number==1)
 	{
-		test_descriptorsValues_temp_HOG = get_HOG_descriptor(image_portions[j]);
-		//test_descriptorsValues_temp_BRIEF = get_BRIEF_descriptor(image_portions[j]);
-		memcpy(row_temp_HOG.data,test_descriptorsValues_temp_HOG.data(),test_descriptorsValues_temp_HOG.size()*sizeof(float));
-		//memcpy(row_temp_BRIEF.data,test_descriptorsValues_temp_BRIEF.data(),test_descriptorsValues_temp_BRIEF.size()*sizeof(float));
-		test_descriptorsValues_HOG.push_back(row_temp_HOG);
-		//test_descriptorsValues_BRIEF.push_back(row_temp_BRIEF);
-		row_temp_LBP=get_LBP_descriptor(image_portions[j]);
-		test_descriptorsValues_LBP.push_back(row_temp_LBP);
+		suffix = "HOG";
+	}
+	else if (feature_number==2)
+	{
+		suffix = "LBP";
+	}
+	else if (feature_number==3)
+	{
+		suffix = "BRIEF";
+	}
+	cv::Mat test_descriptorsValues=preprocess_test_text_tag(testImg,feature_number);
+
+	double start_time;
+	double time_in_seconds;
+
+	std::string training_path = "/home/damon/training_samples_for_SVM/";
+
+	cv::Mat numbers_trainData_and_trainClasses = load_all_training_data_with_feature_descriptors(training_path,1,feature_number,load);
+	cv::Mat letters_trainData_and_trainClasses = load_all_training_data_with_feature_descriptors(training_path,0,feature_number,load);
+
+	cv::Mat numbers_trainData (numbers_trainData_and_trainClasses,cv::Rect(0,0,numbers_trainData_and_trainClasses.cols-1,numbers_trainData_and_trainClasses.rows));
+	cv::Mat letters_trainData (letters_trainData_and_trainClasses,cv::Rect(0,0,letters_trainData_and_trainClasses.cols-1,letters_trainData_and_trainClasses.rows));
+	cv::Mat numbers_trainClasses = numbers_trainData_and_trainClasses.col(numbers_trainData_and_trainClasses.cols-1);
+	cv::Mat letters_trainClasses = letters_trainData_and_trainClasses.col(letters_trainData_and_trainClasses.cols-1);
+
+	std::cout<<"finish processing training data..."<<std::endl;
+
+	// the result of letter combinations.(at first they were ASCII numbers)
+	std::vector<int> text_label_result_int;
+
+
+	if (classifier==3 || classifier==2)
+	{
+		cv::SVM numbers_svm,letters_svm;
+		std::stringstream ss;
+		std::string number_svm_model,letter_svm_model;
+		prefix="SVM";
+		if (feature_number==1)
+		{
+			suffix = "HOG";
+		}
+		else if (feature_number==2)
+		{
+			suffix = "LBP";
+		}
+		else if (feature_number==3)
+		{
+			suffix = "BRIEF";
+		}
+
+		char *cstr_number,*cstr_letter;
+		cstr_number = new char[number_svm_model.length() + 1];
+		cstr_letter = new char[letter_svm_model.length() + 1];
+		strcpy(cstr_number, number_svm_model.c_str());
+		strcpy(cstr_letter, letter_svm_model.c_str());
+
+		ss<<"common/files/number_svm_model_"<<suffix<<".xml";
+		std::string number_svm_model = ss.str();
+		ss.str("");
+		ss<<"common/files/letters_svm_model_"<<suffix<<".xml";
+		std::string letter_svm_model = ss.str();
+		ss.str("");
+
+		if(classifier==3)
+		{
+			std::cout<<"loading SVM classifiers"<<std::endl;
+			start_time=clock();
+			numbers_svm.load(cstr_number);
+			letters_svm.load(cstr_letter);
+			time_in_seconds = (clock() - start_time) / (double)CLOCKS_PER_SEC;
+			std::cout << "[" << time_in_seconds << " s] processing time for loading 2 SVMs." << std::endl;
+		}
+		else if (classifier==2)
+		{
+			std::cout<<"training SVM classifiers"<<std::endl;
+
+			///train SVM with trainData and trainClasses
+			cv::SVMParams params;
+			params.svm_type=cv::SVM::C_SVC;
+			params.C=1;
+			params.kernel_type=cv::SVM::LINEAR;
+			params.term_crit=cv::TermCriteria(CV_TERMCRIT_ITER, (int)1e7, 1e-6);
+			start_time = clock();
+
+			std::cout<<"training SVM... "<<std::endl;
+			numbers_svm.train(numbers_trainData,numbers_trainClasses, cv::Mat(), cv::Mat(),params);
+			letters_svm.train(letters_trainData,letters_trainClasses, cv::Mat(), cv::Mat(),params);
+
+			time_in_seconds = (clock() - start_time) / (double)CLOCKS_PER_SEC;
+			std::cout << "[" << time_in_seconds << " s] processing time for training SVM" << std::endl;
+
+			numbers_svm.save(cstr_number);
+			letters_svm.save(cstr_letter);
+
+			std::cout << "SVM training model Saved" << std::endl;
+		}
+		delete [] cstr_number,cstr_letter;
+
+		float response = letters_svm.predict(test_descriptorsValues.row(0),test_descriptorsValues.row(0).cols);
+		text_label_result_int.push_back(response);
+
+		for (unsigned int j =0;j<4;j++)
+		{
+			float response = numbers_svm.predict(test_descriptorsValues.row(j),test_descriptorsValues.row(j).cols);
+			text_label_result_int.push_back(response);
+		}
+	}
+	else if (classifier==1)
+	{
+		prefix="KNN";
+
+		//Build KNNs
+
+		cv::KNearest numbers_knn(numbers_trainData,numbers_trainClasses);
+		cv::KNearest letters_knn(letters_trainData,letters_trainClasses);
+
+		cv::Mat results(1,1,CV_32FC1);
+		cv::Mat neighbourResponses = cv::Mat::ones(1,10,CV_32FC1);
+		cv::Mat dist = cv::Mat::ones(1, 10, CV_32FC1);
+
+		//strat training
+
+		std::cout<<"training KNN classifiers wit HOG"<<std::endl;
+		start_time = clock();
+		numbers_knn.train(numbers_trainData, numbers_trainClasses);
+		letters_knn.train(letters_trainData, letters_trainClasses);
+		time_in_seconds = (clock() - start_time) / (double)CLOCKS_PER_SEC;
+		std::cout << "[" << time_in_seconds << " s] processing time for training KNN" << std::endl;
+
+
+		letters_knn.find_nearest(test_descriptorsValues.row(0),1,results, neighbourResponses, dist);
+		text_label_result_int.push_back(results.at<float>(0,0));
+
+		for (unsigned int j =1;j<4;j++)
+		{
+			numbers_knn.find_nearest(test_descriptorsValues.row(j),1,results, neighbourResponses, dist);
+			text_label_result_int.push_back(results.at<float>(0,0));
+		}
 	}
 
-	//Build result function -- knn.find_nearest
-	cv::Mat results_HOG(1,1,CV_32FC1);
-	cv::Mat neighbourResponses_HOG = cv::Mat::ones(1,10,CV_32FC1);
-	cv::Mat dist_HOG = cv::Mat::ones(1, 10, CV_32FC1);
-
-	cv::Mat results_BRIEF(1,1,CV_32FC1);
-	cv::Mat neighbourResponses_BRIEF = cv::Mat::ones(1,10,CV_32FC1);
-	cv::Mat dist_BRIEF = cv::Mat::ones(1, 10, CV_32FC1);
-
-	cv::Mat results_LBP(1,1,CV_32FC1);
-	cv::Mat neighbourResponses_LBP = cv::Mat::ones(1,10,CV_32FC1);
-	cv::Mat dist_LBP = cv::Mat::ones(1, 10, CV_32FC1);
-
-	///////////////  KNN ///////////
-	letters_knn_HOG.find_nearest(test_descriptorsValues_HOG.row(0),1,results_HOG, neighbourResponses_HOG, dist_HOG);
-	text_label_result_KNN_int_HOG.push_back(results_HOG.at<float>(0,0));
-
-	//letters_knn_BRIEF.find_nearest(test_descriptorsValues_BRIEF.row(0),5,results_BRIEF, neighbourResponses_BRIEF, dist_BRIEF);
-	//text_label_result_KNN_int_BRIEF.push_back(results_BRIEF.at<float>(0,0));
-
-	letters_knn_LBP.find_nearest(test_descriptorsValues_LBP.row(0),1,results_LBP, neighbourResponses_LBP, dist_LBP);
-	text_label_result_KNN_int_LBP.push_back(results_LBP.at<float>(0,0));
-
-	float response_HOG = letters_svm_HOG.predict(test_descriptorsValues_HOG.row(0),test_descriptorsValues_HOG.row(0).cols);
-	text_label_result_SVM_int_HOG.push_back(response_HOG);
-
-	//float response_BRIEF = letters_svm_BRIEF.predict(test_descriptorsValues_BRIEF.row(0),test_descriptorsValues_BRIEF.row(0).cols);
-	//text_label_result_SVM_int_BRIEF.push_back(response_BRIEF);
-
-	float response_LBP = letters_svm_LBP.predict(test_descriptorsValues_LBP.row(0),test_descriptorsValues_LBP.row(0).cols);
-	text_label_result_SVM_int_LBP.push_back(response_LBP);
-
-	for (unsigned int j =1;j<4;j++)
-	{
-		numbers_knn_HOG.find_nearest(test_descriptorsValues_HOG.row(j),1,results_HOG, neighbourResponses_HOG, dist_HOG);
-		text_label_result_KNN_int_HOG.push_back(results_HOG.at<float>(0,0));
-
-		numbers_knn_LBP.find_nearest(test_descriptorsValues_LBP.row(j),1,results_LBP, neighbourResponses_LBP, dist_LBP);
-		text_label_result_KNN_int_LBP.push_back(results_LBP.at<float>(0,0));
-
-		/*numbers_knn_BRIEF.find_nearest(test_descriptorsValues_BRIEF.row(j),5,results_BRIEF, neighbourResponses_BRIEF, dist_BRIEF);
-		text_label_result_KNN_int_BRIEF.push_back(results_BRIEF.at<float>(0,0));*/
-
-		float response_HOG = numbers_svm_HOG.predict(test_descriptorsValues_HOG.row(j),test_descriptorsValues_HOG.row(j).cols);
-		text_label_result_SVM_int_HOG.push_back(response_HOG);
-
-		float response_LBP = numbers_svm_LBP.predict(test_descriptorsValues_LBP.row(j),test_descriptorsValues_LBP.row(j).cols);
-		text_label_result_SVM_int_LBP.push_back(response_LBP);
-
-		/*float response_BRIEF = numbers_svm_BRIEF.predict(test_descriptorsValues_BRIEF.row(j),test_descriptorsValues_BRIEF.row(j).cols);
-		text_label_result_SVM_int_BRIEF.push_back(response_BRIEF);*/
-	}
-
-	std::string text_label;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	std::stringstream ss;
+	ss<<convertASCIIToLetters(text_label_result_int[0])<<"-"<<text_label_result_int[1]
+	                    <<"-"<<text_label_result_int[2]<<"-"<<text_label_result_int[3];
+	std::string text_label = ss.str();
+	ss.str("");
+	std::cout << "From classifier $"<<prefix<<"$ with the feature $"<<suffix <<"$ got label = "<<text_label<< std::endl;
 
 	return text_label;
 }
