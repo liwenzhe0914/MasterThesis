@@ -1,6 +1,4 @@
 #include "ftfootb_label_reading/FeatureRepresentation.h"
-#include <typeinfo>
-
 
 std::vector<std::string> FeatureReprenstation::folder_list(std::string path)
 {
@@ -185,7 +183,7 @@ cv::Mat FeatureReprenstation::get_feature_descriptor_from_training_data(std::vec
 		trainData.col(i).copyTo(trainData_trainClasses.col(i));
 	}
 	trainClasses.col(0).copyTo(trainData_trainClasses.col(trainData.cols+trainClasses.cols-1));
-	std::cout<<"trainData_trainClasses size:"<<trainData_trainClasses.cols<< " "<<trainData_trainClasses.rows<<std::endl;
+//	std::cout<<"trainData_trainClasses size:"<<trainData_trainClasses.cols<< " "<<trainData_trainClasses.rows<<std::endl;
 	return trainData_trainClasses;//trainData_trainClasses contains trainData and trainClasses
 }
 
@@ -228,8 +226,8 @@ cv::Mat FeatureReprenstation::load_all_training_data_with_feature_descriptors(st
 {
 	//load: 1. load data from yml. 0. load from raw data
 
-	std::cout<<"load:"<<load<<"    feature number: "<<feature_number<<std::endl;
-	std::cout << "type:"<<typeid(feature_number).name() << std::endl;
+//	std::cout<<"load:"<<load<<"    feature number: "<<feature_number<<std::endl;
+//	std::cout << "type:"<<typeid(feature_number).name() << std::endl;
 	cv::Mat trainData_and_trainClasses;
 	std::string prefix,suffix;
 	std::stringstream ss_numbers;
@@ -245,13 +243,13 @@ cv::Mat FeatureReprenstation::load_all_training_data_with_feature_descriptors(st
 	std::vector<std::string> TrainingFoldersFullNames;
 	if (number_or_letter==1)
 	{
-		std::cout <<"giving path_numbers..." <<number_or_letter<< std::endl;
+//		std::cout <<"giving path_numbers..." <<number_or_letter<< std::endl;
 		TrainingFoldersFullNames = folder_list(path_numbers);
 		prefix = "numbers";
 	}
 	else if (number_or_letter==0)
 	{
-		std::cout <<"giving path_letters..." << std::endl;
+//		std::cout <<"giving path_letters..." << std::endl;
 		TrainingFoldersFullNames = folder_list(path_letters);
 		prefix = "letters";
 	}
@@ -276,10 +274,10 @@ if (load==0)
 	ss.str("");
 	if (number_or_letter==1)
 	{
-		std::cout <<"giving number_or_letter..." << number_or_letter<<std::endl;
+//		std::cout <<"giving number_or_letter..." << number_or_letter<<std::endl;
 		if (feature_number==1)
 		{
-			std::cout <<"giving feature_number..." << feature_number<<std::endl;
+			//std::cout <<"giving feature_number..." << feature_number<<std::endl;
 			cv::FileStorage fs("common/files/numbers_trainData_and_trainClasses_HOG.yml", cv::FileStorage::WRITE);
 			fs << "numbers_trainData_and_trainClasses_HOG" << trainData_and_trainClasses;
 		}
@@ -296,10 +294,10 @@ if (load==0)
 	}
 	else if (number_or_letter==0)
 	{
-		std::cout <<"giving number_or_letter..." << number_or_letter<<std::endl;
+		//std::cout <<"giving number_or_letter..." << number_or_letter<<std::endl;
 		if (feature_number==1)
 		{
-			std::cout <<"giving feature_number..." << feature_number<<std::endl;
+			//std::cout <<"giving feature_number..." << feature_number<<std::endl;
 			cv::FileStorage fs("common/files/letters_trainData_and_trainClasses_HOG.yml", cv::FileStorage::WRITE);
 			fs << "letters_trainData_and_trainClasses_HOG" << trainData_and_trainClasses;
 			fs.release();
@@ -317,8 +315,6 @@ if (load==0)
 			fs.release();
 		}
 	}
-	std::cout<<"herer"<<std::endl;
-
 }
 else if (load==1)
 {
@@ -423,8 +419,8 @@ std::string FeatureReprenstation::read_text_tag(cv::Mat testImg,int load,int cla
 		cstr_letter = new char[letter_svm_model.length() + 1];
 		strcpy(cstr_number, number_svm_model.c_str());
 		strcpy(cstr_letter, letter_svm_model.c_str());
-		std::cout<<"cstr_letter: "<<cstr_letter<<std::endl;
-		std::cout<<"cstr_number: "<<cstr_number<<std::endl;
+		std::cout<<"letter_svm_model: "<<cstr_letter<<std::endl;
+		std::cout<<"number_svm_model: "<<cstr_number<<std::endl;
 
 
 		if(classifier==3)

@@ -18,7 +18,6 @@
  * Supervised by: Richard Bormann, email:richard.bormann@ipa.fhg.de
  *
  * Date of creation: August 2014
- * ToDo:
  *
  * +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  *
@@ -84,6 +83,8 @@
 
 // project
 #include "ftfootb_label_reading/MatchTemplate.h"
+#include "ftfootb_label_reading/FeatureRepresentation.h"
+#include "ftfootb_label_reading/TextTagDetection.h"
 
 class LabelReader
 {
@@ -99,13 +100,17 @@ protected:
 
 	//tf::TransformListener* transform_listener_;
 
-	MatchTemplate match_template_;
+
 
 	double roi_height_;
 
 	ros::NodeHandle node_handle_; ///< ROS node handle
 
 public:
+
+	MatchTemplate match_template_;
+	TextTagDetection text_tag_detection_;
+	FeatureReprenstation feature_reprenstation_;
 
 	LabelReader(ros::NodeHandle nh);
 

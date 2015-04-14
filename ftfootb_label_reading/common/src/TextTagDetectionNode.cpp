@@ -13,7 +13,7 @@ int main(int argc, char** argv)
 	TextTagDetection ttd;
 	std::vector<cv::Rect> detection_list;
 	cv::Mat img = cv::imread(image_filename, 1);
-	std::cout << "image size: " << img.cols<<"x"<<img.rows<< std::endl;
+//	std::cout << "image size: " << img.cols<<"x"<<img.rows<< std::endl;
 
 	double start_time;
 	double time_in_seconds;

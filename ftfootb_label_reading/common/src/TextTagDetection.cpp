@@ -1,6 +1,5 @@
 #include "ftfootb_label_reading/TextTagDetection.h"
 
-
 // struct byArea and byCenterX are meant to compare the area
 //and x coordinate of two rectangles.
 struct byArea
