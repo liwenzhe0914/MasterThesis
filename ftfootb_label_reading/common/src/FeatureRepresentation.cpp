@@ -173,14 +173,19 @@ cv::Mat FeatureReprenstation::get_feature_descriptor_from_training_data(std::vec
 	delete [] cstr;
 
 	cv::Mat trainData_trainClasses(trainData.rows,trainData.cols+trainClasses.cols,CV_32FC1,cv::Scalar::all(0));
-
 ///combine two Matrix -- trainData and trainClasses into one Matrix
+
 	for (int i = 1;i<trainData.cols;i++)
 	{
-		trainData.col(i).copyTo(trainData_trainClasses.col(i));
+		cv::Mat row = trainData.col(i);
+		cv::Mat row2;
+		row.copyTo(row2);
+		trainData_trainClasses.col(i)=row2;
 	}
-//	cout<<trainClasses.col(0)<<endl;
-	trainClasses.col(0).copyTo(trainData_trainClasses.col(trainData.cols+trainClasses.cols-1));
+	cv::Mat row = trainClasses.col(0);
+	cv::Mat row2;
+	row.copyTo(row2);
+	trainData_trainClasses.col(trainData.cols+trainClasses.cols-1)=row2;
 
 	return trainData_trainClasses;//trainData_trainClasses contains trainData and trainClasses
 }
@@ -464,5 +469,10 @@ std::string FeatureReprenstation::read_text_tag(cv::Mat testImg,int load,int cla
 	return text_label;
 }
 
-
+void FeatureReprenstation::help()
+{
+ std::cout <<
+         "Usage:\n"
+         "./feature_representation_node string <image_name> int<load:1-load training data from file 0-load traning data from raw images> int<classifier: 1-KNN,2-train svm, 3 load svm> int<feature number:1. HOG 2. LBP. 3 BRIEF>" << std::endl;
+}
 

@@ -45,4 +45,6 @@ public:
 
 		cv::Mat preprocess_test_text_tag(cv::Mat testImg,int feature_number);
 
+		void help();
+
 };
