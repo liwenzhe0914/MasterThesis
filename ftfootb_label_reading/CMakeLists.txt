@@ -83,5 +83,7 @@ rosbuild_add_executable(opencv_performance_new_with_hough_line_transform common/
 rosbuild_add_executable(feature_representation_node common/src/FeatureRepresentationNode.cpp 
 											common/src/LBPandHistogram.cpp
 											common/src/FeatureRepresentation.cpp)
+											
+#rosbuild_add_executable(CreateSamplesForSingleCharacters common/src/CreateSamplesForSingleCharacters.cpp)
 
 									

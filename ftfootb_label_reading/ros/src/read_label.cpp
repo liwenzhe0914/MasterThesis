@@ -149,7 +149,7 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& color_image_ms
 		cv::Mat roi = gray_image(detection_list[i]);
 
 		match_template_.read_tag(roi, tag_label_template_matching);
-		std::string tag_label_features=feature_reprenstation_.read_text_tag(roi,0,1,1);
+		std::string tag_label_features=feature_reprenstation_.read_text_tag(roi,0,1,1,2);
 
 		time_in_seconds = (clock() - start_time) / (double)CLOCKS_PER_SEC;
 		std::cout << "[" << time_in_seconds << " s] processing time" << std::endl;

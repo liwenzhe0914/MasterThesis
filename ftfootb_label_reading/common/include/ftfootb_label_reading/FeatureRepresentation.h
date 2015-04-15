@@ -27,23 +27,25 @@ class FeatureReprenstation
 {
 public:
 
-		cv::Mat get_feature_descriptor(cv::Mat img,int feature_number);
+		cv::Mat get_feature_descriptor(cv::Mat img,int feature_number,int single_or_combination);
 
-		int convertLettersToASCII(std::string letter);
+		int convertLettersToASCII(std::string letter,int single_or_combination);
 
-		std::string convertASCIIToLetters(int number);
+		std::string convertASCIIToLetters(int number,int single_or_combination);
 
 		std::vector<std::string> folder_list(std::string path);
 
 		std::vector<std::string> load_folder_of_image(std::string path);
 
-		cv::Mat get_feature_descriptor_from_training_data(std::vector<std::string> FoldersFullNames,int number_or_letter,int feature_number);
+		cv::Mat get_feature_descriptor_from_training_data(std::vector<std::string> FoldersFullNames,int number_or_letter,
+																int feature_number,int single_or_combination);
 
-		cv::Mat load_all_training_data_with_feature_descriptors(std::string training_path,int number_or_letter,int feature_number,int load);
+		cv::Mat load_all_training_data_with_feature_descriptors(std::string training_path,int number_or_letter,
+																int feature_number,int load,int single_or_combination);
 
-		std::string read_text_tag(cv::Mat image,int load,int classifier,int feature_number);
+		std::string read_text_tag(cv::Mat image,int load,int classifier,int feature_number,int single_or_combination);
 
-		cv::Mat preprocess_test_text_tag(cv::Mat testImg,int feature_number);
+		cv::Mat preprocess_test_text_tag(cv::Mat testImg,int feature_number, int single_or_combination);
 
 		void help();
 
