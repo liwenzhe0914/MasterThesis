@@ -34,12 +34,13 @@ public:
 	void resize_templates(TokenTemplates& token_templates);
 
 	// divide a tag into single regions (letter pairs, number pairs) and read from them using template matching
-	void read_tag(const cv::Mat& tag_image, std::string& tag_label);
+	void read_tag(const cv::Mat& tag_image, std::string& tag_label,int match_method);
 
 	// matches a set of templates to image
 	// it is assumed that there is only one valid match within image
 	// low matching scores are best, matching_scores.begin() has the lowest score
-	void match_token_templates(const cv::Mat& image, const TokenTemplates& token_templates, std::multimap<double, std::string>& matching_scores);
+	void match_token_templates(const cv::Mat& image, const TokenTemplates& token_templates,
+								std::multimap<double, std::string>& matching_scores,int match_method);
 
 private:
 

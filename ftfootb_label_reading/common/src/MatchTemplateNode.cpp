@@ -11,7 +11,7 @@ int main(int argc, char** argv)
 
 	std::string image_filename = argv[1];
 	std::string path = argv[2];
-
+	int match_method = 5;
 	MatchTemplate mt(path);
 	cv::Mat img = cv::imread(image_filename, 1);
 	//std::cout << "source imagename: " << image_filename << std::endl;
@@ -22,7 +22,7 @@ int main(int argc, char** argv)
 	start_time = clock();
 
 	std::string tag_label;
-	mt.read_tag(img, tag_label);
+	mt.read_tag(img, tag_label,match_method);
 	std::cout << "The text tag reads: " << tag_label << "." << std::endl;
 
 	time_in_seconds = (clock() - start_time) / (double) CLOCKS_PER_SEC;

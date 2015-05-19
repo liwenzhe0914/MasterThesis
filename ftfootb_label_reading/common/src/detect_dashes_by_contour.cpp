@@ -175,9 +175,9 @@ std::vector<cv::Rect>detect_dashes (cv::Mat src)
 		double resize_fx = 600. / src.cols;
 		double resize_fy = 150. / src.rows;
 		cv::resize(src,src,cv::Size(),resize_fx,resize_fy);
-
-		cv::Mat gray1,gray2,gray3,gray4;
-		cv::Mat bw1,bw2,bw3,bw4;
+		cv::resize(src0,src0,cv::Size(),resize_fx,resize_fy);
+		cv::Mat gray1,gray2,gray3,gray4,gray0;
+		cv::Mat bw1,bw2,bw3,bw4,bw0;
 		cv::Mat src1,src2,src3,src4;
 		//check if the image is empty
 		if (src.empty())
@@ -189,15 +189,20 @@ std::vector<cv::Rect>detect_dashes (cv::Mat src)
 
 		//1. normal image 2. Gaussian blur 3. sharpen image 4. very bright image
 		src.convertTo(src1, -1, 1.45, 0);
-		cv::GaussianBlur(src, src2, cv::Size(3,3),0);
-		src3=src.clone();
+
+		cv::GaussianBlur(src0, src2, cv::Size(3,3),0);
+		src3=src0.clone();
 		unsharpMask(src3);
 		src.convertTo(src4, -1, 2.85, 0);
 		cv::cvtColor(src3, src3, CV_BGR2GRAY);
 		cv::cvtColor(src2, src2, CV_BGR2GRAY);
 		cv::cvtColor(src1, src1, CV_BGR2GRAY);
 		cv::cvtColor(src4, src4, CV_BGR2GRAY);
-
+		cv::cvtColor(src0, src0, CV_BGR2GRAY);
+		cv::imshow("src0", src0);
+		cv::imshow("src1", src1);
+		cv::imshow("src2", src2);
+		cv::imshow("src3", src3);
 		// Use Canny instead of threshold to catch squares with gradient shading on 3 conditions
 
 		double CannyAccThresh = cv::threshold(src1,gray1,0,255,CV_THRESH_BINARY|CV_THRESH_OTSU);
@@ -212,6 +217,13 @@ std::vector<cv::Rect>detect_dashes (cv::Mat src)
 		CannyAccThresh = cv::threshold(src4,gray4,0,255,CV_THRESH_BINARY|CV_THRESH_OTSU);
 		cv::Canny(src4,bw4,0,CannyAccThresh*1);
 
+		CannyAccThresh = cv::threshold(src1,gray0,0,255,CV_THRESH_BINARY|CV_THRESH_OTSU);
+		cv::Canny(src0,bw0,0,CannyAccThresh*1);
+
+		cv::imshow("bw0", bw0);
+		cv::imshow("bw1", bw1);
+		cv::imshow("bw2", bw2);
+		cv::imshow("bw3", bw3);
 		// Find contours on 3 conditions and combine them
 		std::vector<std::vector<cv::Point> > contours,contours1,contours2,contours3,contours4;
 		cv::findContours(bw1, contours1, CV_RETR_EXTERNAL , CV_CHAIN_APPROX_SIMPLE);

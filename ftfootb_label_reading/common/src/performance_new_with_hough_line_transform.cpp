@@ -209,7 +209,7 @@ cv::Rect restore_text_tag_by_three_detected_dashes(std::vector<cv::Rect> detecte
 
 	//cv::Mat roi=img(text_tag);
 	cv::Rect text_tag_original=text_tag;
-	cout<<"cj"<<endl;
+
 	cv::Point center0 = (detected_dashes_list[0].tl()+detected_dashes_list[0].br())*0.5;
 	cv::Point center1 = (detected_dashes_list[1].tl()+detected_dashes_list[1].br())*0.5;
 	cv::Point center2 = (detected_dashes_list[2].tl()+detected_dashes_list[2].br())*0.5;
@@ -220,10 +220,10 @@ cv::Rect restore_text_tag_by_three_detected_dashes(std::vector<cv::Rect> detecte
 	tag_center.y=ceil((97./53.*double(center1.y-text_tag.y)*0.5)+text_tag.y);
 
 	text_tag.width = ceil(690./179.5*two_near_dashes_gap);//two_near_dashes_gap*2 + 127* two_near_dashes_gap/140+ 123* two_near_dashes_gap/140;
-	text_tag.height = ceil(129./640.*text_tag.width);
+	text_tag.height = ceil(115./640.*text_tag.width);
 	text_tag.x= center1.x-0.5*text_tag.width;
 	text_tag.y= center1.y-6.5/129.*text_tag.height-0.5*text_tag.height;
-	std::cout<<"text_tag: "<<text_tag.x<<" "<<text_tag.y<<" "<<text_tag.width<<" "<<text_tag.height<<std::endl;
+//	std::cout<<"text_tag: "<<text_tag.x<<" "<<text_tag.y<<" "<<text_tag.width<<" "<<text_tag.height<<std::endl;
 	if(text_tag.x<0 || text_tag.y<0 || (text_tag.x+text_tag.width)>img.cols || (text_tag.y+text_tag.height)>img.rows )
 	{
 		text_tag.x =0;
@@ -307,7 +307,7 @@ cv::Rect select_best_match_from_three_estimated_dashes(cv::Rect text_tag_l,cv::R
 		score_r=10;
 
 
-cout<<"l "<<score_l<<" m "<<score_m<<" r "<<score_r<<" "<<endl;
+	//cout<<"l "<<score_l<<" m "<<score_m<<" r "<<score_r<<" "<<endl;
 
 std::map<double,string> map;
 map[score_l]="l";
@@ -342,7 +342,7 @@ cout<<"best:"<<best<<endl;
 			best_text_tag=text_tag_m;
 	else if (best=='r')
 			best_text_tag=text_tag_r;*/
-	std::cout<<"best_text_tag: "<<best_text_tag.x<<" "<<best_text_tag.y<<" "<<best_text_tag.width<<" "<<best_text_tag.height<<std::endl;
+	//std::cout<<"best_text_tag: "<<best_text_tag.x<<" "<<best_text_tag.y<<" "<<best_text_tag.width<<" "<<best_text_tag.height<<std::endl;
 	return best_text_tag;
 }
 
@@ -364,7 +364,7 @@ cv::Rect restore_tag_by_estimated_dashes(cv::Point estimated_dash_center,cv::Rec
 	detected_dashes_list.push_back(rect_temp);
 
 	std::sort(detected_dashes_list.begin(), detected_dashes_list.end(), byCenterX());
-cout<<"detected_dashes_list: "<<detected_dashes_list[0].x<<detected_dashes_list[1].x<<detected_dashes_list[2].x<<endl;
+	//cout<<"detected_dashes_list: "<<detected_dashes_list[0].x<<detected_dashes_list[1].x<<detected_dashes_list[2].x<<endl;
 	cv:: Rect text_tag_candidate=restore_text_tag_by_three_detected_dashes(detected_dashes_list,text_tag,img);
 
 
@@ -397,9 +397,9 @@ cv::Rect restore_text_tag_by_detected_dashes(std::vector<cv::Rect> detected_dash
 		text_tag_m=restore_tag_by_estimated_dashes(center_m,text_tag,img,detected_dashes_list);
 		text_tag_r=restore_tag_by_estimated_dashes(center_r,text_tag,img,detected_dashes_list);
 
-		std::cout<<"text_tag l: "<<text_tag_l.x<<" "<<text_tag_l.y<<" "<<text_tag_l.width<<" "<<text_tag_l.height<<std::endl;
-		std::cout<<"text_tag r: "<<text_tag_r.x<<" "<<text_tag_r.y<<" "<<text_tag_r.width<<" "<<text_tag_r.height<<std::endl;
-		std::cout<<"text_tag m: "<<text_tag_m.x<<" "<<text_tag_m.y<<" "<<text_tag_m.width<<" "<<text_tag_m.height<<std::endl;
+		//	std::cout<<"text_tag l: "<<text_tag_l.x<<" "<<text_tag_l.y<<" "<<text_tag_l.width<<" "<<text_tag_l.height<<std::endl;
+		//	std::cout<<"text_tag r: "<<text_tag_r.x<<" "<<text_tag_r.y<<" "<<text_tag_r.width<<" "<<text_tag_r.height<<std::endl;
+		//	std::cout<<"text_tag m: "<<text_tag_m.x<<" "<<text_tag_m.y<<" "<<text_tag_m.width<<" "<<text_tag_m.height<<std::endl;
 		text_tag=select_best_match_from_three_estimated_dashes(text_tag_l,text_tag_m,text_tag_r,text_tag,img);
 	}
 	return text_tag;
@@ -502,7 +502,6 @@ std::vector<cv::Rect>detect_dashes (cv::Rect rect,cv::Mat img)
 	//		std::cout<<contours.size()<<" "<<contours1.size()<<" "<<contours2.size()<<" "<<contours3.size()<<std::endl;
 		std::vector<cv::Point> approx;
 
-
 		for (unsigned int i = 0; i < contours.size(); i++)
 		{
 			// Approximate contour with accuracy proportional
@@ -559,7 +558,7 @@ std::vector<cv::Rect>detect_dashes (cv::Rect rect,cv::Mat img)
 			}
 		detected_dashes_list=find_right_dashes(detected_dashes_list_temp,img,rect);
 
-		std::cout<<"detected_dashes_list size 0000=" <<detected_dashes_list.size() <<std::endl;
+		//		std::cout<<"detected_dashes_list size 0000=" <<detected_dashes_list.size() <<std::endl;
 
 		return detected_dashes_list;
 
@@ -664,7 +663,7 @@ Rect get_rect_with_hough_line_transform(Mat src)
 		rectangle.width=best_right_vertical/resize_fx-best_left_vertical/resize_fx;
 		rectangle.height=best_lower_horizontal/resize_fy-best_upper_horizontal/resize_fy;
 //		cout<<best_left_vertical<<" "<<best_right_vertical<<" "<<best_upper_horizontal<<" "<<best_lower_horizontal<<endl;
-		cout<<rectangle.x<<" "<<rectangle.y<<" "<<rectangle.width<<" "<<rectangle.height<<endl;
+//		cout<<rectangle.x<<" "<<rectangle.y<<" "<<rectangle.width<<" "<<rectangle.height<<endl;
 
 //		waitKey(0);
 return rectangle;
@@ -693,6 +692,7 @@ using namespace std;
 using namespace cv;
 
 int main(int argc, char* argv[]) {
+	double time2,time3,time4,time5,time6;
     int i, j;
     char* classifierdir = NULL;
     //char* samplesdir    = NULL;
@@ -707,7 +707,7 @@ int main(int argc, char* argv[]) {
     //int nos = -1, nos0;
     int width = 125;
     int height = 18;
-
+    cv::Mat text_tag;
     int rocsize;
 
     FILE* info;
@@ -883,6 +883,8 @@ int main(int argc, char* argv[]) {
             std::vector<cv::Rect> rectangles_list;
             if (!error) {
                 totaltime -= time(0);
+        		double start_time,time_in_seconds;
+        		start_time=clock();
 //                cascade.detectMultiScale( img, obj_detectados, reject_levels, level_weights,scale_factor,1 ,0, cv::Size(),cv::Size(), true );
                 cascade.detectMultiScale(img, obj_detectados, scale_factor, 6 , 0
                 //|CV_HAAR_FIND_BIGGEST_OBJECT
@@ -901,7 +903,8 @@ int main(int argc, char* argv[]) {
                             //| CV_HAAR_SCALE_IMAGE
                     		,cv::Size());
                 }
-
+            	time_in_seconds = (clock() - start_time) / (double)CLOCKS_PER_SEC;
+            			time2=time_in_seconds+time2;
                 if (obj_detectados.size() == 0)
 
                 {
@@ -920,7 +923,8 @@ int main(int argc, char* argv[]) {
                 {
                     detcount = obj_detectados.size();
                 }
-
+            	time_in_seconds = (clock() - start_time) / (double)CLOCKS_PER_SEC;
+            			time3=time_in_seconds+time3;
 
 
 //                if (obj_detectados.size() > 1)
@@ -939,9 +943,20 @@ int main(int argc, char* argv[]) {
 		fprintf (detected_text_tags,"%s", filename);
 		fprintf (detected_text_tags,"</imageName>\n");
 		fprintf (detected_text_tags,"    <taggedRectangles>\n");
-		//fprintf (detected_text_tags,"%s \n", filename);
+		cout<<"filename: "<<filename<<endl;
+		string str = filename;
 		for (vector<Rect>::const_iterator r = obj_detectados.begin(); r != obj_detectados.end(); r++, i++)
 		{
+			stringstream ss;
+			ss << i;
+			string str_i = ss.str();
+			ss.str("");
+			string text_tag_name;
+			text_tag_name.append(str);
+			text_tag_name.append("_");
+			text_tag_name.append(str_i);
+			text_tag_name.append(".png");
+			cout<<"text_tag_name: "<<text_tag_name<<endl<<endl;
 			Point r1, r2;
 			r1.x = (r->x);
 			r1.y = (r->y);
@@ -967,12 +982,13 @@ int main(int argc, char* argv[]) {
 				{
 
 					cv::Rect r = detected_dashes_list[p];
-					cv::rectangle(img_copy, cv::Point(r.x,r.y),cv::Point(r.x+r.width,r.y+r.height), CV_RGB(191,62,255),1.5);
+//					cv::rectangle(img_copy, cv::Point(r.x,r.y),cv::Point(r.x+r.width,r.y+r.height), CV_RGB(191,62,255),1.5);
 				}
 
 			cv::Rect rectangle_updated_by_dashes_detection = restore_text_tag_by_detected_dashes(detected_dashes_list,rectangle_updated_by_hough_line,img);
+			text_tag=img_copy(rectangle_updated_by_dashes_detection);
 
-
+			imwrite(text_tag_name,text_tag);
 
 		    //write the geometry infomation of detected text tags into xml file.
 
@@ -985,9 +1001,9 @@ int main(int argc, char* argv[]) {
 		    fprintf (detected_text_tags, "\" height=\"");
 		    fprintf (detected_text_tags, "%d", rectangle_updated_by_dashes_detection.height);
 		    fprintf (detected_text_tags, "\" modelType=\"1\"  />\n");
-		    rectangle(img_copy, rectangle_updated_by_dashes_detection, cv::Scalar(0, 0, 255), 2, CV_AA);
-		    rectangle(img_copy, retang, cv::Scalar(121, 150, 233), 1, CV_AA);
-		    rectangle(img_copy, rectangle_updated_by_hough_line, cv::Scalar(0, 238, 0), 2, CV_AA);
+//		    rectangle(img_copy, rectangle_updated_by_dashes_detection, cv::Scalar(0, 238, 0), 2, CV_AA);
+		    //rectangle(img_copy, retang, cv::Scalar(121, 150, 233), 1, CV_AA);
+//		    rectangle(img_copy, rectangle_updated_by_hough_line, cv::Scalar(0, 238, 0), 2, CV_AA);
 
 		    //fprintf (detected_text_tags, "%d \n", retang.x);
 		    //fprintf (detected_text_tags, "%d \n", retang.y);
@@ -1069,6 +1085,8 @@ int main(int argc, char* argv[]) {
 					//neg[MIN(0, rocsize - 1)]++;
 				}
 		}
+    			time_in_seconds = (clock() - start_time) / (double)CLOCKS_PER_SEC;
+    			time2=time_in_seconds+time2;
                 //imshow("teste", img);
                 fprintf (detected_text_tags,"    </taggedRectangles>\n");
                 fprintf (detected_text_tags,"  </image>\n");
@@ -1078,6 +1096,7 @@ int main(int argc, char* argv[]) {
                     strcat(detfilename, filename);
                     strcpy(filename, detfilename);
                     imwrite(fullname, img_copy);
+
                     //cvvSaveImage(fullname, img);
                 }
 
@@ -1115,6 +1134,7 @@ int main(int argc, char* argv[]) {
             //                  exit(0);
 
             cvFree( &ref);
+
         }
         fclose(info);
 
@@ -1148,6 +1168,6 @@ int main(int argc, char* argv[]) {
         cvFree( &pos);
         cvFree( &neg);
     }
-
+    cout<<"total time2: "<<time2/99<<endl;
     return 0;
 }

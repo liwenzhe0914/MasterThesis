@@ -76,7 +76,7 @@ void MatchTemplate::load_templates(const std::string& templates_storage_path, To
 void MatchTemplate::resize_templates(TokenTemplates& token_templates)
 {
 	// todo: make this a parameter
-	double letter_height_tag_image_height_ratio = 16./38.;		// 15./23.
+	double letter_height_tag_image_height_ratio = 78./129.;		// 77.5/129.
 
 	for (TokenTemplatesIterator it=token_templates.begin(); it!=token_templates.end(); ++it)
 	{
@@ -93,17 +93,17 @@ void MatchTemplate::resize_templates(TokenTemplates& token_templates)
 }
 
 
-void MatchTemplate::read_tag(const cv::Mat& tag_image, std::string& tag_label)
+void MatchTemplate::read_tag(const cv::Mat& tag_image, std::string& tag_label,int match_method)
 {
 	// todo: make this a parameter
-	double token_threshold = 0.45;
+	double token_threshold = 10.;
 
 	tag_label.clear();
 	std::multimap<double, std::string> matching_scores;
 
 	// 1. read letter pair
 	cv::Mat tag_roi = tag_image(cv::Rect(0,0, tag_image.cols*0.25, tag_image.rows));
-	match_token_templates(tag_roi, letter_pair_templates, matching_scores);
+	match_token_templates(tag_roi, letter_pair_templates, matching_scores,match_method);
 	if (matching_scores.begin()->first < token_threshold)
 		tag_label.append(matching_scores.begin()->second);
 	else
@@ -118,7 +118,7 @@ void MatchTemplate::read_tag(const cv::Mat& tag_image, std::string& tag_label)
 	for (double x_min_ratio = 0.25; x_min_ratio < 1.0; x_min_ratio += 0.25)
 	{
 		cv::Mat tag_roi = tag_image(cv::Rect(tag_image.cols*x_min_ratio,0, tag_image.cols*0.25, tag_image.rows));
-		match_token_templates(tag_roi, number_pair_templates, matching_scores);
+		match_token_templates(tag_roi, number_pair_templates, matching_scores,match_method);
 		tag_label.append("-");
 		if (matching_scores.begin()->first < token_threshold)
 			tag_label.append(matching_scores.begin()->second);
@@ -133,15 +133,16 @@ void MatchTemplate::read_tag(const cv::Mat& tag_image, std::string& tag_label)
 }
 
 
-void MatchTemplate::match_token_templates(const cv::Mat& image, const TokenTemplates& token_templates, std::multimap<double, std::string>& matching_scores)
+void MatchTemplate::match_token_templates
+(const cv::Mat& image, const TokenTemplates& token_templates, std::multimap<double, std::string>& matching_scores,int match_method)
 {
 	// todo: make this a parameter
-	int match_method = cv::TM_CCOEFF_NORMED;
+	//int match_method = cv::TM_CCOEFF_NORMED;
 //	double letter_height_tag_image_height_ratio = 16./38.;		// 15./23.
 
 	// binarization
 	cv::Mat image_binarized = image;
-	//cv::adaptiveThreshold(image, image_binarized, 255, cv::ADAPTIVE_THRESH_MEAN_C, cv::THRESH_BINARY, 15, -5);
+//	cv::adaptiveThreshold(image, image_binarized, 255, cv::ADAPTIVE_THRESH_MEAN_C, cv::THRESH_BINARY, 15, -5);
 //	cv::imshow("bin_image", image_binarized);
 
 	// resize image
@@ -171,7 +172,6 @@ void MatchTemplate::match_token_templates(const cv::Mat& image, const TokenTempl
 		cv::matchTemplate(image_resized, template_resized, match_matrix, match_method);
 		//cv::imshow("region of interest", image);
 		//cv::waitKey();
-
 		/// determine the best matching score
 		double minVal, maxVal, score = 0;
 		cv::Point minLoc, maxLoc;

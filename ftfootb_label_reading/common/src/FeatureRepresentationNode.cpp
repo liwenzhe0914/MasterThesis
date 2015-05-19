@@ -37,6 +37,7 @@ int main(int argc, char** argv)
 	cv::Mat text_tag_img = cv::imread(image_filename, 1);
 
 	std::string text_tag=FR.read_text_tag(text_tag_img,load,classifier,feature_name,single_or_combination);
+
 }
 
 

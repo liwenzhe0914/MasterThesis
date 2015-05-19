@@ -47,7 +47,7 @@ rosbuild_add_executable(extract_features_and_reconition common/src/ExtractFeatur
                                    common/src/MatchTemplate.cpp
                                    common/src/LBPandHistogram.cpp)
 #rosbuild_add_executable(CutTagFromBackground2 common/src/CutTagFromBackground2.cpp)
-#rosbuild_add_executable(detect_dashes_by_contour common/src/detect_dashes_by_contour.cpp)
+rosbuild_add_executable(detect_dashes_by_contour common/src/detect_dashes_by_contour.cpp)
 
 #rosbuild_add_executable(resize common/src/resize.cpp)
 #rosbuild_link_boost(resize filesystem system)
@@ -72,8 +72,6 @@ rosbuild_add_executable(opencv_performance_new_with_hough_line_transform common/
 
 #rosbuild_add_executable(create_template common/src/CreateTemplate.cpp)
 
-#rosbuild_add_executable(create_text common/src/CreateText.cpp)
-
 #rosbuild_add_executable(CutTagFromBackground2 common/src/CutTagFromBackground2.cpp)
 
 #rosbuild_add_executable(ExtractLBP common/src/ExtractLBP.cpp
@@ -84,6 +82,11 @@ rosbuild_add_executable(feature_representation_node common/src/FeatureRepresenta
 											common/src/LBPandHistogram.cpp
 											common/src/FeatureRepresentation.cpp)
 											
-#rosbuild_add_executable(CreateSamplesForSingleCharacters common/src/CreateSamplesForSingleCharacters.cpp)
+rosbuild_add_executable(text_tag_recogntion_test common/src/text_tag_recogntion_test.cpp 
+											common/src/LBPandHistogram.cpp
+											common/src/FeatureRepresentation.cpp
+											common/src/MatchTemplate.cpp)										
+											
+rosbuild_add_executable(CreateSamplesForSingleCharacters common/src/CreateSamplesForSingleCharacters.cpp)
 
-									
+	rosbuild_add_executable(RenameTrainingSamplesForSVM common/src/RenameTrainingSamplesForSVM.cpp)								

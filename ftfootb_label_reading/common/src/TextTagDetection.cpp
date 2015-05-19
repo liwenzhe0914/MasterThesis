@@ -72,7 +72,7 @@ return count;
 cv::Rect TextTagDetection::get_rect_with_hough_line_transform(cv::Mat src)
 {
 	// preprocessing the input text tag
-	cv::cvtColor(src, src, CV_RGB2GRAY);
+//	cv::cvtColor(src, src, CV_RGB2GRAY);
 	double resize_fx = 400. / src.cols;
 	double resize_fy = 100. / src.rows;
 	cv::Rect rectangle;
@@ -286,10 +286,10 @@ std::vector<cv::Rect> TextTagDetection::detect_dashes (cv::Rect rect,cv::Mat img
 		src3=src.clone();
 		unsharpMask(src3);
 		src.convertTo(src4, -1, 2.85, 0);
-		cv::cvtColor(src3, src3, CV_BGR2GRAY);
-		cv::cvtColor(src2, src2, CV_BGR2GRAY);
-		cv::cvtColor(src1, src1, CV_BGR2GRAY);
-		cv::cvtColor(src4, src4, CV_BGR2GRAY);
+//		cv::cvtColor(src3, src3, CV_BGR2GRAY);
+//		cv::cvtColor(src2, src2, CV_BGR2GRAY);
+//		cv::cvtColor(src1, src1, CV_BGR2GRAY);
+//		cv::cvtColor(src4, src4, CV_BGR2GRAY);
 
 		// Use Canny instead of threshold to catch squares with gradient shading on 3 conditions
 
@@ -414,7 +414,7 @@ cv::Rect TextTagDetection::select_best_match_from_three_estimated_dashes(cv::Rec
 	int match_method=CV_TM_CCOEFF_NORMED;//CV_TM_CCOEFF_NORMED
 	cv::Rect best_text_tag;
 	cv::Mat result_r,result_l,result_m;
-	cv::Mat template_image = cv::imread("/home/rmb-om/damon_backup/git/care-o-bot/ftfootb/ftfootb_label_reading/common/files/template.png",CV_LOAD_IMAGE_GRAYSCALE);
+	cv::Mat template_image = cv::imread("/home/damon/git/care-o-bot/ftfootb/ftfootb_label_reading/common/files/template.png",CV_LOAD_IMAGE_GRAYSCALE);
 	cv::cvtColor(img, img, CV_BGR2GRAY);
 
 	bool left=true,middle=true,right=true;
@@ -573,12 +573,12 @@ cv::Rect TextTagDetection::restore_text_tag_by_three_detected_dashes(std::vector
 std::vector<cv::Rect> TextTagDetection::text_tag_detection_with_VJ(cv::Mat image)
 {
 	std::vector<cv::Rect> rectangle_list;
-	cv::cvtColor(image, image, CV_RGB2GRAY);
-	cv::equalizeHist(image, image);
+//	cv::cvtColor(image, image, CV_RGB2GRAY);
+//	cv::equalizeHist(image, image);
 
 	// Load Text cascade (.xml file)
 	cv::CascadeClassifier text_tags_cascade;
-	text_tags_cascade.load( "/home/rmb-om/git/care-o-bot/ftfootb/ftfootb_label_reading/common/files/TextLabelClassifier/haarclassifier_new/cascade.xml" );
+	text_tags_cascade.load( "/home/damon/git/care-o-bot/ftfootb/ftfootb_label_reading/common/files/TextLabelClassifier/haarclassifier_new/cascade.xml" );
 
 	text_tags_cascade.detectMultiScale( image, rectangle_list,1.03 ,2,0, cv::Size(35, 9),cv::Size());
     if (rectangle_list.size() == 0)
@@ -600,6 +600,7 @@ std::vector<cv::Rect> TextTagDetection::text_tag_detection_with_VJ(cv::Mat image
 
 std::vector<cv::Rect> TextTagDetection::text_tag_detection_fine_detection(cv::Mat image)
 {
+
 	std::vector<cv::Rect> rectangle_list,final_rectangle_list;
 	cv::Rect retang;
 	rectangle_list=text_tag_detection_with_VJ(image);
@@ -632,6 +633,7 @@ std::vector<cv::Rect> TextTagDetection::text_tag_detection_fine_detection(cv::Ma
 		std::vector<cv::Rect> detected_dashes_list=detect_dashes(rectangle_updated_by_hough_line,image);
 
 		cv::Rect rectangle_updated_by_dashes_detection = restore_text_tag_by_detected_dashes(detected_dashes_list,rectangle_updated_by_hough_line,image);
+
 		final_rectangle_list.push_back(rectangle_updated_by_dashes_detection);
 
 	}

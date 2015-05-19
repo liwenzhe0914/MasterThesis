@@ -60,8 +60,8 @@
 
 LabelReader::LabelReader(ros::NodeHandle nh)
 : match_template_("/home/damon/git/care-o-bot/ftfootb/ftfootb_label_reading/common/files/"),
-  feature_reprenstation_(),
-  text_tag_detection_()
+  text_tag_detection_(),
+  feature_reprenstation_()
 {
 
 	node_handle_ = nh;
@@ -117,12 +117,17 @@ unsigned long LabelReader::convertColorImageMessageToMat(const sensor_msgs::Imag
 {
 	try
 	{
-		color_image_ptr = cv_bridge::toCvShare(color_image_msg, sensor_msgs::image_encodings::BGR8);
-	} catch (cv_bridge::Exception& e)
+		color_image_ptr = cv_bridge::toCvShare(color_image_msg, sensor_msgs::image_encodings::MONO8);
+	}
+
+	catch (cv_bridge::Exception& e)
 	{
-		ROS_ERROR("PeopleDetection: cv_bridge exception: %s", e.what());
+		ROS_ERROR("text tag reading: cv_bridge exception: %s", e.what());
 		return 1;
 	}
+
+	cv::imshow("OPENCV_WINDOW", color_image_ptr->image);
+	cv::waitKey(3);
 	color_image = color_image_ptr->image;
 
 	return 0;
@@ -133,24 +138,26 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& color_image_ms
 	cv_bridge::CvImageConstPtr color_image_ptr;
 	cv::Mat color_image;
 	convertColorImageMessageToMat(color_image_msg, color_image_ptr, color_image);
-
 	// mark segment of original image
 	std::vector<cv::Rect> detection_list = text_tag_detection_.text_tag_detection_fine_detection(color_image);
+
 //	double roi_height,roi_width;
+	std::cout<<detection_list.size()<<" text tags detected!"<<std::endl;
 	std::string tag_label_template_matching;
 	double start_time, time_in_seconds;
-
 	start_time = clock();
 	for (unsigned int i = 0; i< detection_list.size();i++)
 	{
+		cvtColor(color_image, color_image, CV_GRAY2BGR);
 		cv::rectangle(color_image,detection_list[i],cv::Scalar(0,0,255), 3, 8, 0);
 		cv::Mat gray_image;
 		cv::cvtColor(color_image, gray_image, CV_BGR2GRAY);
 		cv::Mat roi = gray_image(detection_list[i]);
 
-		match_template_.read_tag(roi, tag_label_template_matching);
+		match_template_.read_tag(roi, tag_label_template_matching,5);
+		std::cout<<"im here....tm..finsihed"<<std::endl;
 		std::string tag_label_features=feature_reprenstation_.read_text_tag(roi,0,1,1,2);
-
+		std::cout<<"im here....FR..finsihed"<<std::endl;
 		time_in_seconds = (clock() - start_time) / (double)CLOCKS_PER_SEC;
 		std::cout << "[" << time_in_seconds << " s] processing time" << std::endl;
 
@@ -160,8 +167,10 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& color_image_ms
 		cv::putText(color_image, tag_label_features, cv::Point(detection_list[i].x+100, detection_list[i].y+detection_list[i].height+5), cv::FONT_HERSHEY_PLAIN, 3, CV_RGB(0,0,255), 2);
 		std::stringstream ss;
 
-		cv::imshow("image", color_image);
+
 	}
+	cv::imshow("image", color_image);
+	cv::waitKey(3);
 //	cv::Rect roi_rect((color_image.cols-roi_width)/2,(color_image.rows-roi_height)/2,roi_width,roi_height);
 //	cv::rectangle(color_image, cv::Point(roi_rect.x-2, roi_rect.y-2), cv::Point(roi_rect.x+roi_rect.width+2, roi_rect.y+roi_rect.height+2), CV_RGB(0,0,255), 2);
 //	cv::Mat gray_image;

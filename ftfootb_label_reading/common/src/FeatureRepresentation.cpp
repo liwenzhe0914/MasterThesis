@@ -1,5 +1,263 @@
 #include "ftfootb_label_reading/FeatureRepresentation.h"
 
+//-------------------------- Wolf Thresholding ---------------------------------------------------
+/**************************************************************
+ * Binarization with several methods
+ * (0) Niblacks method
+ * (1) Sauvola & Co.
+ *     ICDAR 1997, pp 147-152
+ * (2) by myself - Christian Wolf
+ *     Research notebook 19.4.2001, page 129
+ * (3) by myself - Christian Wolf
+ *     20.4.2007
+ *
+ * See also:
+ * Research notebook 24.4.2001, page 132 (Calculation of s)
+ **************************************************************/
+
+#include <stdio.h>
+#include <unistd.h>
+#include <getopt.h>
+#include <iostream>
+#include <cv.h>
+#include <highgui.h>
+
+using namespace std;
+using namespace cv;
+
+enum NiblackVersion
+{
+	NIBLACK=0,
+    SAUVOLA,
+    WOLFJOLION,
+};
+
+#define BINARIZEWOLF_VERSION	"2.4 (August 1st, 2014)"
+
+#define uget(x,y)    at<unsigned char>(y,x)
+#define uset(x,y,v)  at<unsigned char>(y,x)=v;
+#define fget(x,y)    at<float>(y,x)
+#define fset(x,y,v)  at<float>(y,x)=v;
+
+/**********************************************************
+ * Usage
+ **********************************************************/
+
+
+// *************************************************************
+// glide a window across the image and
+// create two maps: mean and standard deviation.
+//
+// Version patched by Thibault Yohan (using opencv integral images)
+// *************************************************************
+
+
+double calcLocalStats (Mat &im, Mat &map_m, Mat &map_s, int winx, int winy) {
+    Mat im_sum, im_sum_sq;
+    cv::integral(im,im_sum,im_sum_sq,CV_64F);
+
+	double m,s,max_s,sum,sum_sq;
+	int wxh	= winx/2;
+	int wyh	= winy/2;
+	int x_firstth= wxh;
+	int y_lastth = im.rows-wyh-1;
+	int y_firstth= wyh;
+	double winarea = winx*winy;
+
+	max_s = 0;
+	for	(int j = y_firstth ; j<=y_lastth; j++){
+		sum = sum_sq = 0;
+
+        sum = im_sum.at<double>(j-wyh+winy,winx) - im_sum.at<double>(j-wyh,winx) - im_sum.at<double>(j-wyh+winy,0) + im_sum.at<double>(j-wyh,0);
+        sum_sq = im_sum_sq.at<double>(j-wyh+winy,winx) - im_sum_sq.at<double>(j-wyh,winx) - im_sum_sq.at<double>(j-wyh+winy,0) + im_sum_sq.at<double>(j-wyh,0);
+
+		m  = sum / winarea;
+		s  = sqrt ((sum_sq - m*sum)/winarea);
+		if (s > max_s) max_s = s;
+
+		map_m.fset(x_firstth, j, m);
+		map_s.fset(x_firstth, j, s);
+
+		// Shift the window, add and remove	new/old values to the histogram
+		for	(int i=1 ; i <= im.cols-winx; i++) {
+
+			// Remove the left old column and add the right new column
+			sum -= im_sum.at<double>(j-wyh+winy,i) - im_sum.at<double>(j-wyh,i) - im_sum.at<double>(j-wyh+winy,i-1) + im_sum.at<double>(j-wyh,i-1);
+			sum += im_sum.at<double>(j-wyh+winy,i+winx) - im_sum.at<double>(j-wyh,i+winx) - im_sum.at<double>(j-wyh+winy,i+winx-1) + im_sum.at<double>(j-wyh,i+winx-1);
+
+			sum_sq -= im_sum_sq.at<double>(j-wyh+winy,i) - im_sum_sq.at<double>(j-wyh,i) - im_sum_sq.at<double>(j-wyh+winy,i-1) + im_sum_sq.at<double>(j-wyh,i-1);
+			sum_sq += im_sum_sq.at<double>(j-wyh+winy,i+winx) - im_sum_sq.at<double>(j-wyh,i+winx) - im_sum_sq.at<double>(j-wyh+winy,i+winx-1) + im_sum_sq.at<double>(j-wyh,i+winx-1);
+
+			m  = sum / winarea;
+			s  = sqrt ((sum_sq - m*sum)/winarea);
+			if (s > max_s) max_s = s;
+
+			map_m.fset(i+wxh, j, m);
+			map_s.fset(i+wxh, j, s);
+		}
+	}
+
+	return max_s;
+}
+
+
+
+/**********************************************************
+ * The binarization routine
+ **********************************************************/
+
+
+void NiblackSauvolaWolfJolion (Mat im, Mat output, NiblackVersion version,
+	int winx, int winy, double k, double dR) {
+
+
+	double m, s, max_s;
+	double th=0;
+	double min_I, max_I;
+	int wxh	= winx/2;
+	int wyh	= winy/2;
+	int x_firstth= wxh;
+	int x_lastth = im.cols-wxh-1;
+	int y_lastth = im.rows-wyh-1;
+	int y_firstth= wyh;
+	int mx, my;
+
+	// Create local statistics and store them in a double matrices
+	Mat map_m = Mat::zeros (im.rows, im.cols, CV_32F);
+	Mat map_s = Mat::zeros (im.rows, im.cols, CV_32F);
+	max_s = calcLocalStats (im, map_m, map_s, winx, winy);
+
+	minMaxLoc(im, &min_I, &max_I);
+
+	Mat thsurf (im.rows, im.cols, CV_32F);
+
+	// Create the threshold surface, including border processing
+	// ----------------------------------------------------
+
+	for	(int j = y_firstth ; j<=y_lastth; j++) {
+
+		// NORMAL, NON-BORDER AREA IN THE MIDDLE OF THE WINDOW:
+		for	(int i=0 ; i <= im.cols-winx; i++) {
+
+			m  = map_m.fget(i+wxh, j);
+    		s  = map_s.fget(i+wxh, j);
+
+    		// Calculate the threshold
+    		switch (version) {
+
+    			case NIBLACK:
+    				th = m + k*s;
+    				break;
+
+    			case SAUVOLA:
+	    			th = m * (1 + k*(s/dR-1));
+	    			break;
+
+    			case WOLFJOLION:
+    				th = m + k * (s/max_s-1) * (m-min_I);
+    				break;
+
+    			default:
+    				cerr << "Unknown threshold type in ImageThresholder::surfaceNiblackImproved()\n";
+    				exit (1);
+    		}
+
+    		thsurf.fset(i+wxh,j,th);
+
+    		if (i==0) {
+        		// LEFT BORDER
+        		for (int i=0; i<=x_firstth; ++i)
+                	thsurf.fset(i,j,th);
+
+        		// LEFT-UPPER CORNER
+        		if (j==y_firstth)
+        			for (int u=0; u<y_firstth; ++u)
+        			for (int i=0; i<=x_firstth; ++i)
+        				thsurf.fset(i,u,th);
+
+        		// LEFT-LOWER CORNER
+        		if (j==y_lastth)
+        			for (int u=y_lastth+1; u<im.rows; ++u)
+        			for (int i=0; i<=x_firstth; ++i)
+        				thsurf.fset(i,u,th);
+    		}
+
+			// UPPER BORDER
+			if (j==y_firstth)
+				for (int u=0; u<y_firstth; ++u)
+					thsurf.fset(i+wxh,u,th);
+
+			// LOWER BORDER
+			if (j==y_lastth)
+				for (int u=y_lastth+1; u<im.rows; ++u)
+					thsurf.fset(i+wxh,u,th);
+		}
+
+		// RIGHT BORDER
+		for (int i=x_lastth; i<im.cols; ++i)
+        	thsurf.fset(i,j,th);
+
+  		// RIGHT-UPPER CORNER
+		if (j==y_firstth)
+			for (int u=0; u<y_firstth; ++u)
+			for (int i=x_lastth; i<im.cols; ++i)
+				thsurf.fset(i,u,th);
+
+		// RIGHT-LOWER CORNER
+		if (j==y_lastth)
+			for (int u=y_lastth+1; u<im.rows; ++u)
+			for (int i=x_lastth; i<im.cols; ++i)
+				thsurf.fset(i,u,th);
+	}
+	//cerr << "surface created" << endl;
+
+
+	for	(int y=0; y<im.rows; ++y)
+	for	(int x=0; x<im.cols; ++x)
+	{
+    	if (im.uget(x,y) >= thsurf.fget(x,y))
+    	{
+    		output.uset(x,y,255);
+    	}
+    	else
+    	{
+    	    output.uset(x,y,0);
+    	}
+    }
+}
+
+Mat FeatureReprenstation::wolf_thresholding(Mat img_gray)
+{
+
+	cv::Size dsize = cv::Size(img_gray.cols,img_gray.rows);
+	char version;
+		int c;
+		int winx=0, winy=0;
+		float optK=0.5;
+		NiblackVersion versionCode;
+		versionCode = WOLFJOLION;
+
+	    // Treat the window size
+	    if (winx==0||winy==0) {
+	        winy = (int) (2.0 * img_gray.rows-1)/3;
+	        winx = (int) img_gray.cols-1 < winy ? img_gray.cols-1 : winy;
+	        // if the window is too big, than we asume that the image
+	        // is not a single text box, but a document page: set
+	        // the window size to a fixed constant.
+	        if (winx > 100)
+	            winx = winy = 40;
+	        //cerr << "Setting window size to [" << winx
+	        //   << "," << winy << "].\n";
+	    }
+
+	    // Threshold
+	    Mat image_binarized (img_gray.rows, img_gray.cols, CV_8U);
+	    NiblackSauvolaWolfJolion (img_gray, image_binarized, versionCode, winx, winy, optK, 128);
+
+	    resize(image_binarized,image_binarized,dsize);
+	return image_binarized;
+}
+
 std::vector<std::string> FeatureReprenstation::folder_list(std::string path)
 {
 	std::vector<std::string> FolderNames;
@@ -17,6 +275,7 @@ std::vector<std::string> FeatureReprenstation::folder_list(std::string path)
 				{
 					s.append(completeName);
 					FolderNames.push_back(s);
+					cout<<"folder list: "<<s<<endl;
 				}
 		}
 	}
@@ -60,7 +319,7 @@ std::vector<std::string> FeatureReprenstation::load_folder_of_image(std::string 
 	}
 	else
 	{
-		std::cout << "Error: Could not open path." << std::endl;
+		std::cout << "Error: Could not open path!" << std::endl;
 	}
 return ImageNames;
 }
@@ -85,16 +344,17 @@ cv::Mat FeatureReprenstation::get_feature_descriptor(cv::Mat img,int feature_num
 	}
 	if(feature_number==1)
 	{
+
 		//resizing
 		cv::resize(img, img, dsize_HOG_LBP ); //Size(64,48) ); //Size(32*2,16*2)); //Size(80,72) );
 		//gray
 		cvtColor(img, img_gray, CV_RGB2GRAY,CV_32FC1);
+		Mat img_bw=wolf_thresholding(img_gray);
 		cv::HOGDescriptor d( dsize_HOG_LBP, cv::Size(dsize_HOG_LBP.width/4,dsize_HOG_LBP.height/4),
 				cv::Size(dsize_HOG_LBP.width/8,dsize_HOG_LBP.height/8), cv::Size(dsize_HOG_LBP.width/8,dsize_HOG_LBP.height/8), 9);
 		cv::vector< float> descriptorsValues_vector;
 		cv::vector< cv::Point> locations;
 		d.compute( img_gray, descriptorsValues_vector, cv::Size(0,0), cv::Size(0,0), locations);
-
 		cv::Mat descriptorsValues_temp(1, descriptorsValues_vector.size(),CV_32FC1);
 		//convert descriptorsValues(type vector) to row matrix
 		memcpy(descriptorsValues_temp.data,descriptorsValues_vector.data(),descriptorsValues_vector.size()*sizeof(float));
@@ -110,7 +370,7 @@ cv::Mat FeatureReprenstation::get_feature_descriptor(cv::Mat img,int feature_num
 		lbp::OLBP(img_gray,lbp_image);
 		cv::normalize(lbp_image, lbp_image, 0, 255, cv::NORM_MINMAX, CV_8UC1);
 
-		descriptorsValues=lbp::spatial_histogram(lbp_image, 9 , dsize_HOG_LBP.width/8, dsize_HOG_LBP.height/8, true);
+		descriptorsValues=lbp::spatial_histogram(lbp_image, 59, dsize_HOG_LBP.width/8, dsize_HOG_LBP.height/8, true);
 	}
 	else if (feature_number==3)
 	{
@@ -128,7 +388,7 @@ cv::Mat FeatureReprenstation::get_feature_descriptor(cv::Mat img,int feature_num
 	//	detector.detect(img_gray,keyPoints);
 		extractor.compute(img_gray,keyPoints,descriptorsValues_Mat);
 		std::vector<float> descriptorsValues_vector;
-		;
+
 		descriptorsValues_vector.assign(descriptorsValues_Mat.datastart, descriptorsValues_Mat.dataend);
 
 		cv::Mat descriptorsValues_temp(1, descriptorsValues_vector.size(),CV_32FC1);
@@ -167,18 +427,18 @@ cv::Mat FeatureReprenstation::get_feature_descriptor_from_training_data
 		ss1.str("");
 		cstr = new char[FirstFileName.length() + 1];
 		strcpy(cstr, FirstFileName.c_str());
-//		std::cout<<foldername_temp<<std::endl;
+		std::cout<<foldername_temp<<std::endl;
 		ImageNames = load_folder_of_image(foldername_temp);
 
 		unsigned int FileNum = ImageNames.size();
 		for(unsigned int k=0; k< FileNum; ++k)
 		{
 			sprintf(FullFileName, "%s%d.png", cstr, k+1);
-//			std::cout<<"FullFileName: "<<FullFileName<<std::endl;
+			std::cout<<"FullFileName: "<<FullFileName<<std::endl;
 			cv::Mat img = cv::imread(FullFileName);
 
 			descriptorsValues=get_feature_descriptor(img,feature_number,single_or_combination);
-//			std::cout << "descriptorsValues dimensions: " << descriptorsValues.cols << " width x " << descriptorsValues.rows << " height" << std::endl;
+			std::cout << "descriptorsValues dimensions: " << descriptorsValues.cols << " width x " << descriptorsValues.rows << " height" << std::endl;
 			trainData.push_back(descriptorsValues);
 			if (number_or_letter == 1)
 			{
@@ -274,7 +534,7 @@ cv::Mat FeatureReprenstation::load_all_training_data_with_feature_descriptors
 		ss_numbers<<training_path<<"numbers"<<"/";
 		path_numbers = ss_numbers.str();
 		ss_numbers.str("");
-
+		cout<<"path_numbers: "<<path_numbers<<endl;
 		ss_letters<<training_path<<"letters"<<"/";
 		path_letters = ss_letters.str();
 		ss_letters.str("");
@@ -339,7 +599,7 @@ cv::Mat FeatureReprenstation::load_all_training_data_with_feature_descriptors
 
 	if (load==0)
 	{
-		std::cout<<"computing trainData_and_trainClasses from training dataset..."<<std::endl;
+		//std::cout<<"computing trainData_and_trainClasses from training dataset..."<<std::endl;
 
 		trainData_and_trainClasses=get_feature_descriptor_from_training_data
 				(TrainingFoldersFullNames,number_or_letter,feature_number,single_or_combination);
@@ -351,7 +611,7 @@ cv::Mat FeatureReprenstation::load_all_training_data_with_feature_descriptors
 	}
 	else if (load==1)
 	{
-		std::cout<<"Reading trainData_and_trainClasses from feature description files."<<std::endl;
+		//std::cout<<"Reading trainData_and_trainClasses from feature description files."<<std::endl;
 
 		cv::FileStorage fs(yml_filename, cv::FileStorage::READ);
 		ss.str("");
@@ -367,7 +627,7 @@ cv::Mat FeatureReprenstation::preprocess_test_text_tag(cv::Mat testImg,int featu
 	//single_or_combination: 1-single, 2- combination
 	std::vector<cv::Mat> image_portions;
 	cv:: Mat test_descriptorsValues;
-	std::cout<<"single_or_combination: "<<single_or_combination<<std::endl;
+	//std::cout<<"single_or_combination: "<<single_or_combination<<std::endl;
 	if (single_or_combination==2)
 
 	{
@@ -416,6 +676,9 @@ cv::Mat FeatureReprenstation::preprocess_test_text_tag(cv::Mat testImg,int featu
 	{
 		test_descriptorsValues.push_back(get_feature_descriptor(image_portions[i],feature_number,single_or_combination));
 	}
+
+	//std::cout<<"test_descriptorsValues size: "<<test_descriptorsValues.cols<<" "<<test_descriptorsValues.rows<<std::endl;
+
 return test_descriptorsValues;
 }
 
@@ -446,7 +709,7 @@ std::string FeatureReprenstation::read_text_tag
 	if (classifier==1 || classifier==2)
 	{
 
-		std::cout<<"start processing training data..."<<std::endl;
+		//std::cout<<"start processing training data..."<<std::endl;
 
 		std::string training_path = "/home/damon/training_samples_for_SVM/";
 
@@ -462,7 +725,7 @@ std::string FeatureReprenstation::read_text_tag
 		numbers_trainClasses = numbers_trainData_and_trainClasses.col(numbers_trainData_and_trainClasses.cols-1);
 		letters_trainClasses = letters_trainData_and_trainClasses.col(letters_trainData_and_trainClasses.cols-1);
 
-		std::cout<<"finish processing training data..."<<std::endl;
+		//std::cout<<"finish processing training data..."<<std::endl;
 	}
 	// the result of letter combinations.(at first they were ASCII numbers)
 	std::vector<int> text_label_result_int;
@@ -500,19 +763,19 @@ std::string FeatureReprenstation::read_text_tag
 		cstr_letter = new char[letter_svm_model.length() + 1];
 		strcpy(cstr_number, number_svm_model.c_str());
 		strcpy(cstr_letter, letter_svm_model.c_str());
-		std::cout<<"letter_svm_model: "<<cstr_letter<<std::endl;
-		std::cout<<"number_svm_model: "<<cstr_number<<std::endl;
+		//std::cout<<"letter_svm_model: "<<cstr_letter<<std::endl;
+		//std::cout<<"number_svm_model: "<<cstr_number<<std::endl;
 
 
 		if(classifier==3)
 		{
-			std::cout<<"loading SVM classifiers"<<std::endl;
+			//std::cout<<"loading SVM classifiers"<<std::endl;
 			start_time=clock();
 
 			numbers_svm.load(cstr_number);
 			letters_svm.load(cstr_letter);
 			time_in_seconds = (clock() - start_time) / (double)CLOCKS_PER_SEC;
-			std::cout << "[" << time_in_seconds << " s] processing time for loading 2 SVMs." << std::endl;
+			//std::cout << "[" << time_in_seconds << " s] processing time for loading 2 SVMs." << std::endl;
 		}
 		else if (classifier==2)
 		{
@@ -530,12 +793,12 @@ std::string FeatureReprenstation::read_text_tag
 			letters_svm.train(letters_trainData,letters_trainClasses, cv::Mat(), cv::Mat(),params);
 
 			time_in_seconds = (clock() - start_time) / (double)CLOCKS_PER_SEC;
-			std::cout << "[" << time_in_seconds << " s] processing time for training SVM" << std::endl;
+			//std::cout << "[" << time_in_seconds << " s] processing time for training SVM" << std::endl;
 
 			numbers_svm.save(cstr_number);
 			letters_svm.save(cstr_letter);
 
-			std::cout << "SVM training model Saved" << std::endl;
+			//std::cout << "SVM training model Saved" << std::endl;
 		}
 		delete [] cstr_number;
 		delete [] cstr_letter;
@@ -579,12 +842,12 @@ std::string FeatureReprenstation::read_text_tag
 
 		//start training
 
-		std::cout<<"training KNN classifiers with"<<std::endl;
+		//std::cout<<"training KNN classifiers with"<<std::endl;
 		start_time = clock();
 		numbers_knn.train(numbers_trainData, numbers_trainClasses);
 		letters_knn.train(letters_trainData, letters_trainClasses);
 		time_in_seconds = (clock() - start_time) / (double)CLOCKS_PER_SEC;
-		std::cout << "[" << time_in_seconds << " s] processing time for training KNN" << std::endl;
+		//std::cout << "[" << time_in_seconds << " s] processing time for training KNN" << std::endl;
 
 		if (single_or_combination==2)
 		{

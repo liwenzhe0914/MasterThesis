@@ -2,7 +2,6 @@
 #include "ftfootb_label_reading/MatchTemplate.h"
 #include "ftfootb_label_reading/LBPandHistogram.h"
 
-
 using namespace cv;
 using namespace std;
 
@@ -717,12 +716,14 @@ int main(int argc, char** argv)
 
 		numbers_trainData_and_trainClasses=get_HOG_descriptor_from_training_data(numbersTrainingFoldersFullNames,1);
 		letters_trainData_and_trainClasses=get_HOG_descriptor_from_training_data(lettersTrainingFoldersFullNames,0);
+
+		std::cout<<"im here.."<<std::endl;
 		//letters_trainData_and_trainClasses_BRIEF=get_BRIEF_descriptor_from_training_data(lettersTrainingFoldersFullNames,0);
 		//numbers_trainData_and_trainClasses_BRIEF=get_BRIEF_descriptor_from_training_data(numbersTrainingFoldersFullNames,1);
 		numbers_trainData_and_trainClasses_LBP=get_LBP_descriptor_from_training_data(numbersTrainingFoldersFullNames,1);
 		letters_trainData_and_trainClasses_LBP=get_LBP_descriptor_from_training_data(lettersTrainingFoldersFullNames,0);
 
-		FileStorage fs1("common/files/numbers_trainData_and_trainClasses.yml", FileStorage::WRITE);
+/*		FileStorage fs1("common/files/numbers_trainData_and_trainClasses.yml", FileStorage::WRITE);
 		fs1 << "numbers_trainData_and_trainClasses" << numbers_trainData_and_trainClasses;
 		FileStorage fs2("common/files/letters_trainData_and_trainClasses.yml", FileStorage::WRITE);
 		fs2 << "letters_trainData_and_trainClasses" << letters_trainData_and_trainClasses;
@@ -742,25 +743,25 @@ int main(int argc, char** argv)
 		//fs3.release();
 		//fs4.release();
 		fs5.release();
-		fs6.release();
+		fs6.release();*/
 	}
 	else
 	{
 		//read features from files
 		cout<<"Reading trainData_and_trainClasses from feature description files."<<endl;
-		FileStorage fs1("common/files/numbers_trainData_and_trainClasses.yml", FileStorage::READ);
-		fs1["numbers_trainData_and_trainClasses"] >> numbers_trainData_and_trainClasses;
-		FileStorage fs2("common/files/letters_trainData_and_trainClasses.yml", FileStorage::READ);
-		fs2["letters_trainData_and_trainClasses"] >> letters_trainData_and_trainClasses;
+		FileStorage fs1("common/files/TrainingDataYML/numbers_trainData_and_trainClasses_HOG.yml", FileStorage::READ);
+		fs1["numbers_trainData_and_trainClasses_HOG"] >> numbers_trainData_and_trainClasses;
+		FileStorage fs2("common/files/TrainingDataYML/letters_trainData_and_trainClasses_HOG.yml", FileStorage::READ);
+		fs2["letters_trainData_and_trainClasses_HOG"] >> letters_trainData_and_trainClasses;
 
-		FileStorage fs3("common/files/numbers_trainData_and_trainClasses_BRIEF.yml", FileStorage::READ);
+		FileStorage fs3("common/files/TrainingDataYML/numbers_trainData_and_trainClasses_BRIEF.yml", FileStorage::READ);
 		fs3["numbers_trainData_and_trainClasses_BRIEF"] >> numbers_trainData_and_trainClasses_BRIEF;
-		FileStorage fs4("common/files/letters_trainData_and_trainClasses_BRIEF.yml", FileStorage::READ);
+		FileStorage fs4("common/files/TrainingDataYML/letters_trainData_and_trainClasses_BRIEF.yml", FileStorage::READ);
 		fs4["letters_trainData_and_trainClasses_BRIEF"] >> letters_trainData_and_trainClasses_BRIEF;
 
-		FileStorage fs5("common/files/numbers_trainData_and_trainClasses_LBP.yml", FileStorage::READ);
+		FileStorage fs5("common/files/TrainingDataYML/numbers_trainData_and_trainClasses_LBP.yml", FileStorage::READ);
 		fs5["numbers_trainData_and_trainClasses_BRIEF"] >> numbers_trainData_and_trainClasses_LBP;
-		FileStorage fs6("common/files/letters_trainData_and_trainClasses_LBP.yml", FileStorage::READ);
+		FileStorage fs6("common/files/TrainingDataYML/letters_trainData_and_trainClasses_LBP.yml", FileStorage::READ);
 		fs6["letters_trainData_and_trainClasses_BRIEF"] >> letters_trainData_and_trainClasses_LBP;
 
 		fs1.release();
@@ -770,7 +771,7 @@ int main(int argc, char** argv)
 		fs5.release();
 		fs6.release();
 	}
-	// get trainData and trainClasses from Matrix
+		// get trainData and trainClasses from Matrix
 	Mat numbers_trainData (numbers_trainData_and_trainClasses,Rect(0,0,numbers_trainData_and_trainClasses.cols-1,numbers_trainData_and_trainClasses.rows));
 	Mat letters_trainData (letters_trainData_and_trainClasses,Rect(0,0,letters_trainData_and_trainClasses.cols-1,letters_trainData_and_trainClasses.rows));
 	Mat numbers_trainClasses=numbers_trainData_and_trainClasses.col(numbers_trainData_and_trainClasses.cols-1);
@@ -805,14 +806,14 @@ int main(int argc, char** argv)
 		start_time=clock();
 		//numbers_svm_BRIEF.load("common/files/numbers_svm_model_BRIEF.xml");
 		//letters_svm_BRIEF.load("common/files/letters_svm_model_BRIEF.xml");
-		numbers_svm_HOG.load("common/files/numbers_svm_model_HOG.xml");
-		letters_svm_HOG.load("common/files/letters_svm_model_HOG.xml");
+		numbers_svm_HOG.load("common/files/TrainedSVMClassifiers/numbers_svm_model_HOG.xml");
+		letters_svm_HOG.load("common/files/TrainedSVMClassifiers/letters_svm_model_HOG.xml");
 		time_in_seconds = (clock() - start_time) / (double)CLOCKS_PER_SEC;
 		std::cout << "[" << time_in_seconds << " s] processing time for loading 2 HOG SVM." << std::endl;
 
 		start_time=clock();
-		numbers_svm_LBP.load("common/files/numbers_svm_model_LBP.xml");
-		letters_svm_LBP.load("common/files/letters_svm_model_LBP.xml");
+		numbers_svm_LBP.load("common/files/TrainedSVMClassifiers/numbers_svm_model_LBP.xml");
+		letters_svm_LBP.load("common/files/TrainedSVMClassifiers/letters_svm_model_LBP.xml");
 		time_in_seconds = (clock() - start_time) / (double)CLOCKS_PER_SEC;
 		std::cout << "[" << time_in_seconds << " s] processing time for loading 2 LBP SVM." << std::endl;
 
@@ -1257,7 +1258,7 @@ int main(int argc, char** argv)
 		std::string tag_label;
 		cv::Mat gray_image;
 		cv::cvtColor(testImg, gray_image, CV_BGR2GRAY);
-		mt.read_tag(gray_image, tag_label);
+		mt.read_tag(gray_image, tag_label,5);
 //		time_in_seconds = (clock() - start_time) / (double)CLOCKS_PER_SEC;
 //		std::cout << "Template matching : [" << time_in_seconds << " s] processing time" << std::endl;
 
