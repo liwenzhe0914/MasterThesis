@@ -118,7 +118,7 @@ public:
 
 	unsigned long init();
 
-	unsigned long convertColorImageMessageToMat(const sensor_msgs::Image::ConstPtr& color_image_msg, cv_bridge::CvImageConstPtr& color_image_ptr, cv::Mat& color_image);
+	unsigned long convertImageMessageToMat(const sensor_msgs::Image::ConstPtr& color_image_msg, cv_bridge::CvImageConstPtr& color_image_ptr, cv::Mat& color_image);
 
 //	template <typename T>
 //	void inputCallback(const sensor_msgs::PointCloud2::ConstPtr& point_cloud_msg);

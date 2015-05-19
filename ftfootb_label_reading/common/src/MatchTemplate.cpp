@@ -75,8 +75,7 @@ void MatchTemplate::load_templates(const std::string& templates_storage_path, To
 
 void MatchTemplate::resize_templates(TokenTemplates& token_templates)
 {
-	// todo: make this a parameter
-	double letter_height_tag_image_height_ratio = 78./129.;		// 77.5/129.
+	double letter_height_tag_image_height_ratio = 77.5/129.;		// 77.5/129.
 
 	for (TokenTemplatesIterator it=token_templates.begin(); it!=token_templates.end(); ++it)
 	{
@@ -95,7 +94,6 @@ void MatchTemplate::resize_templates(TokenTemplates& token_templates)
 
 void MatchTemplate::read_tag(const cv::Mat& tag_image, std::string& tag_label,int match_method)
 {
-	// todo: make this a parameter
 	double token_threshold = 10.;
 
 	tag_label.clear();

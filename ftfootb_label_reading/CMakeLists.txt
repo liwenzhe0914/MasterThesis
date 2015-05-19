@@ -46,8 +46,21 @@ rosbuild_link_boost(match_template_node filesystem system)
 rosbuild_add_executable(extract_features_and_reconition common/src/ExtractFeaturesAndReconition.cpp
                                    common/src/MatchTemplate.cpp
                                    common/src/LBPandHistogram.cpp)
+                                   
+rosbuild_add_executable(feature_representation_node common/src/FeatureRepresentationNode.cpp 
+											common/src/LBPandHistogram.cpp
+											common/src/FeatureRepresentation.cpp)
+
+rosbuild_add_executable(text_tag_detection_node common/src/TextTagDetectionNode.cpp
+											common/src/TextTagDetection.cpp)
+
+#rosbuild_add_executable(text_tag_recogntion_test common/src/text_tag_recogntion_test.cpp 
+#											common/src/LBPandHistogram.cpp
+#											common/src/FeatureRepresentation.cpp
+#											common/src/MatchTemplate.cpp)	
+											
 #rosbuild_add_executable(CutTagFromBackground2 common/src/CutTagFromBackground2.cpp)
-rosbuild_add_executable(detect_dashes_by_contour common/src/detect_dashes_by_contour.cpp)
+#rosbuild_add_executable(detect_dashes_by_contour common/src/detect_dashes_by_contour.cpp)
 
 #rosbuild_add_executable(resize common/src/resize.cpp)
 #rosbuild_link_boost(resize filesystem system)
@@ -65,10 +78,7 @@ rosbuild_add_executable(detect_dashes_by_contour common/src/detect_dashes_by_con
 #rosbuild_add_executable(capture_image common/src/CaptureImage.cpp)
 #rosbuild_link_boost(capture_image filesystem system)
 
-rosbuild_add_executable(text_tag_detection_node common/src/TextTagDetectionNode.cpp
-											common/src/TextTagDetection.cpp)
-
-rosbuild_add_executable(opencv_performance_new_with_hough_line_transform common/src/performance_new_with_hough_line_transform.cpp)
+#rosbuild_add_executable(opencv_performance_new_with_hough_line_transform common/src/performance_new_with_hough_line_transform.cpp)
 
 #rosbuild_add_executable(create_template common/src/CreateTemplate.cpp)
 
@@ -78,15 +88,8 @@ rosbuild_add_executable(opencv_performance_new_with_hough_line_transform common/
 #									common/src/lbp.cpp
 #									common/src/histogram.cpp)
 			
-rosbuild_add_executable(feature_representation_node common/src/FeatureRepresentationNode.cpp 
-											common/src/LBPandHistogram.cpp
-											common/src/FeatureRepresentation.cpp)
+									
 											
-rosbuild_add_executable(text_tag_recogntion_test common/src/text_tag_recogntion_test.cpp 
-											common/src/LBPandHistogram.cpp
-											common/src/FeatureRepresentation.cpp
-											common/src/MatchTemplate.cpp)										
-											
-rosbuild_add_executable(CreateSamplesForSingleCharacters common/src/CreateSamplesForSingleCharacters.cpp)
+#rosbuild_add_executable(CreateSamplesForSingleCharacters common/src/CreateSamplesForSingleCharacters.cpp)
 
-	rosbuild_add_executable(RenameTrainingSamplesForSVM common/src/RenameTrainingSamplesForSVM.cpp)								
+#	rosbuild_add_executable(RenameTrainingSamplesForSVM common/src/RenameTrainingSamplesForSVM.cpp)								

@@ -275,7 +275,6 @@ std::vector<std::string> FeatureReprenstation::folder_list(std::string path)
 				{
 					s.append(completeName);
 					FolderNames.push_back(s);
-					cout<<"folder list: "<<s<<endl;
 				}
 		}
 	}
@@ -348,8 +347,10 @@ cv::Mat FeatureReprenstation::get_feature_descriptor(cv::Mat img,int feature_num
 		//resizing
 		cv::resize(img, img, dsize_HOG_LBP ); //Size(64,48) ); //Size(32*2,16*2)); //Size(80,72) );
 		//gray
-		cvtColor(img, img_gray, CV_RGB2GRAY,CV_32FC1);
-		Mat img_bw=wolf_thresholding(img_gray);
+		img_gray=img;
+//		cvtColor(img, img_gray, CV_RGB2GRAY,CV_8UC1);
+
+//		Mat img_bw=wolf_thresholding(img_gray);
 		cv::HOGDescriptor d( dsize_HOG_LBP, cv::Size(dsize_HOG_LBP.width/4,dsize_HOG_LBP.height/4),
 				cv::Size(dsize_HOG_LBP.width/8,dsize_HOG_LBP.height/8), cv::Size(dsize_HOG_LBP.width/8,dsize_HOG_LBP.height/8), 9);
 		cv::vector< float> descriptorsValues_vector;
@@ -427,18 +428,18 @@ cv::Mat FeatureReprenstation::get_feature_descriptor_from_training_data
 		ss1.str("");
 		cstr = new char[FirstFileName.length() + 1];
 		strcpy(cstr, FirstFileName.c_str());
-		std::cout<<foldername_temp<<std::endl;
+//		std::cout<<foldername_temp<<std::endl;
 		ImageNames = load_folder_of_image(foldername_temp);
 
 		unsigned int FileNum = ImageNames.size();
 		for(unsigned int k=0; k< FileNum; ++k)
 		{
 			sprintf(FullFileName, "%s%d.png", cstr, k+1);
-			std::cout<<"FullFileName: "<<FullFileName<<std::endl;
+//			std::cout<<"FullFileName: "<<FullFileName<<std::endl;
 			cv::Mat img = cv::imread(FullFileName);
 
 			descriptorsValues=get_feature_descriptor(img,feature_number,single_or_combination);
-			std::cout << "descriptorsValues dimensions: " << descriptorsValues.cols << " width x " << descriptorsValues.rows << " height" << std::endl;
+//			std::cout << "descriptorsValues dimensions: " << descriptorsValues.cols << " width x " << descriptorsValues.rows << " height" << std::endl;
 			trainData.push_back(descriptorsValues);
 			if (number_or_letter == 1)
 			{
@@ -534,7 +535,7 @@ cv::Mat FeatureReprenstation::load_all_training_data_with_feature_descriptors
 		ss_numbers<<training_path<<"numbers"<<"/";
 		path_numbers = ss_numbers.str();
 		ss_numbers.str("");
-		cout<<"path_numbers: "<<path_numbers<<endl;
+//		cout<<"path_numbers: "<<path_numbers<<endl;
 		ss_letters<<training_path<<"letters"<<"/";
 		path_letters = ss_letters.str();
 		ss_letters.str("");
@@ -685,7 +686,6 @@ return test_descriptorsValues;
 std::string FeatureReprenstation::read_text_tag
 (cv::Mat testImg,int load,int classifier,int feature_number,int single_or_combination)
 {
-
 	//classifier: 1. KNN 2. train SVM 3. load SVM
 	double start_time,time_in_seconds;
 	std::string suffix,classifier_name;
@@ -711,7 +711,7 @@ std::string FeatureReprenstation::read_text_tag
 
 		//std::cout<<"start processing training data..."<<std::endl;
 
-		std::string training_path = "/home/damon/training_samples_for_SVM/";
+		std::string training_path = "/home/rmb-om/training_samples_for_SVM/";
 
 		cv::Mat numbers_trainData_and_trainClasses = load_all_training_data_with_feature_descriptors
 													(training_path,1,feature_number,load,single_or_combination);

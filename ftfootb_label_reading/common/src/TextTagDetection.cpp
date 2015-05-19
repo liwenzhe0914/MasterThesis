@@ -414,8 +414,8 @@ cv::Rect TextTagDetection::select_best_match_from_three_estimated_dashes(cv::Rec
 	int match_method=CV_TM_CCOEFF_NORMED;//CV_TM_CCOEFF_NORMED
 	cv::Rect best_text_tag;
 	cv::Mat result_r,result_l,result_m;
-	cv::Mat template_image = cv::imread("/home/damon/git/care-o-bot/ftfootb/ftfootb_label_reading/common/files/template.png",CV_LOAD_IMAGE_GRAYSCALE);
-	cv::cvtColor(img, img, CV_BGR2GRAY);
+	cv::Mat template_image = cv::imread("/home/rmb-om/git/care-o-bot/ftfootb/ftfootb_label_reading/common/files/template.png",CV_LOAD_IMAGE_GRAYSCALE);
+//	cv::cvtColor(img, img, CV_BGR2GRAY);
 
 	bool left=true,middle=true,right=true;
 	if (text_tag_l.width*text_tag_l.height<5)
@@ -578,7 +578,7 @@ std::vector<cv::Rect> TextTagDetection::text_tag_detection_with_VJ(cv::Mat image
 
 	// Load Text cascade (.xml file)
 	cv::CascadeClassifier text_tags_cascade;
-	text_tags_cascade.load( "/home/damon/git/care-o-bot/ftfootb/ftfootb_label_reading/common/files/TextLabelClassifier/haarclassifier_new/cascade.xml" );
+	text_tags_cascade.load( "/home/rmb-om/git/care-o-bot/ftfootb/ftfootb_label_reading/common/files/TextLabelClassifier/haarclassifier_new/cascade.xml" );
 
 	text_tags_cascade.detectMultiScale( image, rectangle_list,1.03 ,2,0, cv::Size(35, 9),cv::Size());
     if (rectangle_list.size() == 0)
