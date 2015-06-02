@@ -12,6 +12,7 @@
 //ros includes
 #include <ros/ros.h>
 #include <ros/package.h>
+#include <set>
 
 // Different includes
 #include <iostream>
@@ -24,6 +25,7 @@
 class MatchTemplate
 {
 public:
+
 	typedef std::map<std::string, cv::Mat> TokenTemplates;
 	typedef TokenTemplates::iterator TokenTemplatesIterator;
 
@@ -49,4 +51,6 @@ private:
 
 	// parameters
 	double standard_tag_image_height_;
+
+
 };

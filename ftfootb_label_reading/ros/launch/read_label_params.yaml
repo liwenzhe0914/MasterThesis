@@ -1,3 +1,29 @@
 # flip color image
 # bool
 flip_color_image: true
+
+# 1 - load training data from file; 0 - load traning data from raw images
+# int
+load: 1 
+
+# 1-KNN, 2-train svm, 3 load svm
+# int
+classifier: 3
+
+# feature number:1. HOG 2. LBP. 3 BRIEF
+# int
+feature_number: 1
+
+# single or combinations :1. single 2. combinations
+# int
+single_or_combination: 2
+
+# template matching OR feature representation: 1. TM, 2. FR, 3. both.
+# int
+recognition_method: 2
+
+# template matching method: 0: SQDIFF \n 1: SQDIFF NORMED \n 2: CCORR \n 3: CCORR NORMED \n 4: COEFF \n 5: COEFF NORMED.
+# int
+template_matching_method: 5
+
+

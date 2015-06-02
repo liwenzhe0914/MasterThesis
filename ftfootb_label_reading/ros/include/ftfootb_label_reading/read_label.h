@@ -85,6 +85,8 @@
 #include "ftfootb_label_reading/MatchTemplate.h"
 #include "ftfootb_label_reading/FeatureRepresentation.h"
 #include "ftfootb_label_reading/TextTagDetection.h"
+#include "ros/package.h"
+#include <set>
 
 class LabelReader
 {
@@ -132,4 +134,10 @@ public:
 	void pcConnectCB(const ros::SingleSubscriberPublisher& pub);
 
 	void pcDisconnectCB(const ros::SingleSubscriberPublisher& pub);
+
+	void setParams(ros::NodeHandle & nh);
+
+private:
+
+	int load, classifier,feature_number,single_or_combination,recognition_method,template_matching_method;
 };

@@ -18,6 +18,8 @@
 #include <stdio.h>
 #include <string>
 #include <sstream>
+#include <unistd.h>
+#include <getopt.h>
 
 //LBP
 #include "ftfootb_label_reading/LBPandHistogram.h"
@@ -37,18 +39,29 @@ public:
 
 		std::vector<std::string> load_folder_of_image(std::string path);
 
-		cv::Mat get_feature_descriptor_from_training_data(std::vector<std::string> FoldersFullNames,int number_or_letter,
-																int feature_number,int single_or_combination);
+		cv::Mat get_feature_descriptor_from_training_data(std::vector<std::string> FoldersFullNames,
+																int number_or_letter,int feature_number,int single_or_combination);
 
 		cv::Mat load_all_training_data_with_feature_descriptors(std::string training_path,int number_or_letter,
 																int feature_number,int load,int single_or_combination);
 
-		std::string read_text_tag(cv::Mat image,int load,int classifier,int feature_number,int single_or_combination);
-
 		cv::Mat preprocess_test_text_tag(cv::Mat testImg,int feature_number, int single_or_combination);
 
+		std::string read_text_tag_SVM(cv::SVM& numbers_svm,cv::SVM& letters_svm,cv::Mat image,int classifier,int feature_number,int single_or_combination);
+		std::string read_text_tag_KNN(cv::KNearest& numbers_knn,cv::KNearest& letters_knn,cv::Mat testImg,int classifier,int feature_number,int single_or_combination);
 		cv::Mat wolf_thresholding(cv::Mat img_gray);
 
 		void help();
 
+		void load_or_train_SVM_classifiers(cv::SVM& numbers_svm,cv::SVM& letters_svm,
+											int load,int classifier,int feature_number,int single_or_combination,
+											std::string package_path);
+
+		void load_or_train_KNN_classifiers(cv::KNearest& numbers_knn,cv::KNearest& letters_knn,
+											int load,int classifier,int feature_number,int single_or_combination,
+											std::string package_path);
+
+		cv::SVM numbers_svm;
+		cv::SVM letters_svm;
+		cv::KNearest numbers_knn,letters_knn;
 };

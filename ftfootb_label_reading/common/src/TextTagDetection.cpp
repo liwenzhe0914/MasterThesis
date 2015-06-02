@@ -171,7 +171,7 @@ cv::Rect TextTagDetection::get_rect_with_hough_line_transform(cv::Mat src)
 	rectangle.width=best_right_vertical/resize_fx-best_left_vertical/resize_fx;
 	rectangle.height=best_lower_horizontal/resize_fy-best_upper_horizontal/resize_fy;
 
-	std::cout<<rectangle.x<<" "<<rectangle.y<<" "<<rectangle.width<<" "<<rectangle.height<<std::endl;
+//	std::cout<<rectangle.x<<" "<<rectangle.y<<" "<<rectangle.width<<" "<<rectangle.height<<std::endl;
 
 return rectangle;
 }
@@ -205,9 +205,9 @@ cv::Rect TextTagDetection::restore_text_tag_by_detected_dashes(std::vector<cv::R
 		text_tag_m=restore_tag_by_estimated_dashes(center_m,text_tag,img,detected_dashes_list);
 		text_tag_r=restore_tag_by_estimated_dashes(center_r,text_tag,img,detected_dashes_list);
 
-		std::cout<<"text_tag l: "<<text_tag_l.x<<" "<<text_tag_l.y<<" "<<text_tag_l.width<<" "<<text_tag_l.height<<std::endl;
-		std::cout<<"text_tag r: "<<text_tag_r.x<<" "<<text_tag_r.y<<" "<<text_tag_r.width<<" "<<text_tag_r.height<<std::endl;
-		std::cout<<"text_tag m: "<<text_tag_m.x<<" "<<text_tag_m.y<<" "<<text_tag_m.width<<" "<<text_tag_m.height<<std::endl;
+//		std::cout<<"text_tag l: "<<text_tag_l.x<<" "<<text_tag_l.y<<" "<<text_tag_l.width<<" "<<text_tag_l.height<<std::endl;
+//		std::cout<<"text_tag r: "<<text_tag_r.x<<" "<<text_tag_r.y<<" "<<text_tag_r.width<<" "<<text_tag_r.height<<std::endl;
+//		std::cout<<"text_tag m: "<<text_tag_m.x<<" "<<text_tag_m.y<<" "<<text_tag_m.width<<" "<<text_tag_m.height<<std::endl;
 		text_tag=select_best_match_from_three_estimated_dashes(text_tag_l,text_tag_m,text_tag_r,text_tag,img);
 	}
 	return text_tag;
@@ -401,7 +401,7 @@ cv::Rect TextTagDetection::restore_tag_by_estimated_dashes(cv::Point estimated_d
 	detected_dashes_list.push_back(rect_temp);
 
 	std::sort(detected_dashes_list.begin(), detected_dashes_list.end(), byCenterX());
-	std::cout<<"detected_dashes_list: "<<detected_dashes_list[0].x<<detected_dashes_list[1].x<<detected_dashes_list[2].x<<std::endl;
+//	std::cout<<"detected_dashes_list: "<<detected_dashes_list[0].x<<detected_dashes_list[1].x<<detected_dashes_list[2].x<<std::endl;
 	cv:: Rect text_tag_candidate=restore_text_tag_by_three_detected_dashes(detected_dashes_list,text_tag,img);
 
 
@@ -486,7 +486,7 @@ cv::Rect TextTagDetection::select_best_match_from_three_estimated_dashes(cv::Rec
 	double min1 = std::min(score_m,score_r);
 	double minn = std::min(min1,score_l);
 	std::string best=map.find(minn) -> second;
-	std::cout<<"best:"<<best<<std::endl;
+//	std::cout<<"best:"<<best<<std::endl;
 	if (best=="l")
 		best_text_tag=text_tag_l;
 	else if (best=="m")
@@ -555,7 +555,7 @@ cv::Rect TextTagDetection::restore_text_tag_by_three_detected_dashes(std::vector
 	text_tag.height = ceil(129./640.*text_tag.width);
 	text_tag.x= center1.x-0.5*text_tag.width;
 	text_tag.y= center1.y-6.5/129.*text_tag.height-0.5*text_tag.height;
-	std::cout<<"text_tag: "<<text_tag.x<<" "<<text_tag.y<<" "<<text_tag.width<<" "<<text_tag.height<<std::endl;
+//	std::cout<<"text_tag: "<<text_tag.x<<" "<<text_tag.y<<" "<<text_tag.width<<" "<<text_tag.height<<std::endl;
 	if(text_tag.x<0 || text_tag.y<0 || (text_tag.x+text_tag.width)>img.cols || (text_tag.y+text_tag.height)>img.rows )
 	{
 		text_tag.x =0;
@@ -580,19 +580,19 @@ std::vector<cv::Rect> TextTagDetection::text_tag_detection_with_VJ(cv::Mat image
 	cv::CascadeClassifier text_tags_cascade;
 	text_tags_cascade.load( "/home/rmb-om/git/care-o-bot/ftfootb/ftfootb_label_reading/common/files/TextLabelClassifier/haarclassifier_new/cascade.xml" );
 
-	text_tags_cascade.detectMultiScale( image, rectangle_list,1.03 ,2,0, cv::Size(35, 9),cv::Size());
-    if (rectangle_list.size() == 0)
-    {
-
-    	text_tags_cascade.detectMultiScale(image, rectangle_list, 1.05, 1 , 0,cv::Size());
-    }
-
-    if (rectangle_list.size() == 0)
-
-    {
-    	text_tags_cascade.detectMultiScale(image, rectangle_list, 1.03, 1 , 0,cv::Size());
-    }
-
+	text_tags_cascade.detectMultiScale( image, rectangle_list,1.1 ,8,0, cv::Size(35, 9),cv::Size());
+//    if (rectangle_list.size() == 0)
+//    {
+//
+//    	text_tags_cascade.detectMultiScale(image, rectangle_list, 1.07, 1 , 0 ,cv::Size());
+//    }
+//
+//    if (rectangle_list.size() == 0)
+//
+//    {
+//    	text_tags_cascade.detectMultiScale(image, rectangle_list, 1.03, 1 , 0,cv::Size());
+//    }
+//
 	return rectangle_list;
 }
 

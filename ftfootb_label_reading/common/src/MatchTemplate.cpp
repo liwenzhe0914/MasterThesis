@@ -3,7 +3,6 @@
 
 MatchTemplate::MatchTemplate(const std::string& templates_storage_path)
 {
-	// todo: set parameters
 	standard_tag_image_height_ = 38.;
 
 	// load templates for letter pairs and number pairs
@@ -66,7 +65,7 @@ void MatchTemplate::load_templates(const std::string& templates_storage_path, To
 		int lastindex = templateImageNames[i].find_last_of(".");
 		int lastindex2 = templateImageNames[i].find_last_of("/");
 		std::string rawname = templateImageNames[i].substr(lastindex2+1, lastindex-lastindex2-1);
-		token_templates[rawname] = cv::imread(templateImageNames[i], CV_LOAD_IMAGE_GRAYSCALE);			// todo: check whether color image is needed
+		token_templates[rawname] = cv::imread(templateImageNames[i], CV_LOAD_IMAGE_GRAYSCALE);
 	}
 
 	std::cout << "Template images loaded: " << templateImageNames.size() << std::endl;
@@ -75,7 +74,7 @@ void MatchTemplate::load_templates(const std::string& templates_storage_path, To
 
 void MatchTemplate::resize_templates(TokenTemplates& token_templates)
 {
-	double letter_height_tag_image_height_ratio = 77.5/129.;		// 77.5/129.
+	double letter_height_tag_image_height_ratio = 0.49;		// 77.5/129.
 
 	for (TokenTemplatesIterator it=token_templates.begin(); it!=token_templates.end(); ++it)
 	{
@@ -94,7 +93,7 @@ void MatchTemplate::resize_templates(TokenTemplates& token_templates)
 
 void MatchTemplate::read_tag(const cv::Mat& tag_image, std::string& tag_label,int match_method)
 {
-	double token_threshold = 10.;
+	double token_threshold = 0.4;
 
 	tag_label.clear();
 	std::multimap<double, std::string> matching_scores;
@@ -134,7 +133,6 @@ void MatchTemplate::read_tag(const cv::Mat& tag_image, std::string& tag_label,in
 void MatchTemplate::match_token_templates
 (const cv::Mat& image, const TokenTemplates& token_templates, std::multimap<double, std::string>& matching_scores,int match_method)
 {
-	// todo: make this a parameter
 	//int match_method = cv::TM_CCOEFF_NORMED;
 //	double letter_height_tag_image_height_ratio = 16./38.;		// 15./23.
 

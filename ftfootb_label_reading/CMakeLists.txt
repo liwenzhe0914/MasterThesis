@@ -35,7 +35,7 @@ rosbuild_add_boost_directories()
 rosbuild_add_roslaunch_check(ros/launch)
 
 rosbuild_add_executable(read_label ros/src/read_label.cpp
-                                   common/src/MatchTemplate.cpp
+                                 common/src/MatchTemplate.cpp
  									common/src/FeatureRepresentation.cpp
  									common/src/TextTagDetection.cpp
  									common/src/LBPandHistogram.cpp)
