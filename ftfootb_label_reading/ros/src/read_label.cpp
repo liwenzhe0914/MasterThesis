@@ -70,6 +70,7 @@ void LabelReader::setParams(ros::NodeHandle & nh)
 	nh.getParam("recognition_method", recognition_method);
 	nh.getParam("template_matching_method", template_matching_method);
 }
+
 LabelReader::LabelReader(ros::NodeHandle nh)
 : match_template_(path_template)
 {
@@ -152,7 +153,7 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
 
 	// mark segment of original image
 
-	std::vector<cv::Rect> detection_list = text_tag_detection_.text_tag_detection_fine_detection(image);
+	std::vector<cv::Rect> detection_list = text_tag_detection_.text_tag_detection_fine_detection(image,path);
 
 //	double roi_height,roi_width;
 	std::cout<<detection_list.size()<<" text tags detected!"<<std::endl;

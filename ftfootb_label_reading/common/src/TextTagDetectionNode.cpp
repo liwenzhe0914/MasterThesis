@@ -7,7 +7,7 @@ int main(int argc, char** argv)
 		std::cout << "error: not enough input parameters!" << std::endl;
 		return -1;
 	}
-
+ std::string path = "/home/rmb-om/git/care-o-bot/ftfootb/ftfootb_label_reading/common/files";
 	std::string image_filename = argv[1];
 
 	TextTagDetection ttd;
@@ -18,7 +18,7 @@ int main(int argc, char** argv)
 	double start_time;
 	double time_in_seconds;
 	start_time = clock();
-	detection_list=ttd.text_tag_detection_fine_detection(img);
+	detection_list=ttd.text_tag_detection_fine_detection(img,path);
 
 	cv::Mat img_color = cv::imread(image_filename,CV_LOAD_IMAGE_COLOR);
 	for (unsigned int i = 0; i< detection_list.size();i++)
