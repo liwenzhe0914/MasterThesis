@@ -531,7 +531,7 @@ cv::Rect TextTagDetection::select_best_match_from_three_estimated_dashes(cv::Rec
 	return best_text_tag;
 }
 
-//Eliminate some dashes by their shapes or aspact ratio etc and merge intersecting dashes.
+//Eliminate some dashes by their shapes or aspect ratio etc and merge intersecting dashes.
 std::vector<cv::Rect> TextTagDetection::find_right_dashes(std::vector<cv::Rect> detected_dashes_list,cv::Mat img,cv::Rect rect)
 {
 	cv::Mat roi = img(rect);
@@ -601,17 +601,19 @@ cv::Rect TextTagDetection::restore_text_tag_by_three_detected_dashes(std::vector
 
 ////////////////////////////////////////    Viola-Jones Detector  /////////////////////////////////////////////
 
-std::vector<cv::Rect> TextTagDetection::text_tag_detection_with_VJ(cv::Mat image)
+std::vector<cv::Rect> TextTagDetection::text_tag_detection_with_VJ(cv::Mat image,std::string package_path)
 {
 	std::vector<cv::Rect> rectangle_list;
 //	cv::cvtColor(image, image, CV_RGB2GRAY);
 //	cv::equalizeHist(image, image);
 
 	// Load Text cascade (.xml file)
+	std::string package_path_temp=package_path;
+	std::string text_tags_cascade_xml_file=package_path_temp.append("TextLabelClassifier/haarclassifier_new/cascade.xml");
 	cv::CascadeClassifier text_tags_cascade;
-	text_tags_cascade.load( "/home/rmb-om/git/care-o-bot/ftfootb/ftfootb_label_reading/common/files/TextLabelClassifier/haarclassifier_new/cascade.xml" );
+	text_tags_cascade.load( text_tags_cascade_xml_file );
 
-	text_tags_cascade.detectMultiScale( image, rectangle_list,1.1 ,8,0, cv::Size(35, 9),cv::Size());
+	text_tags_cascade.detectMultiScale( image, rectangle_list,1.1,10,0, cv::Size(35, 9),cv::Size());
 //    if (rectangle_list.size() == 0)
 //    {
 //
@@ -633,7 +635,7 @@ std::vector<cv::Rect> TextTagDetection::text_tag_detection_fine_detection(cv::Ma
 {
 	std::vector<cv::Rect> rectangle_list,final_rectangle_list;
 	cv::Rect retang;
-	rectangle_list=text_tag_detection_with_VJ(image);
+	rectangle_list=text_tag_detection_with_VJ(image,package_path);
 
 	for (std::vector<cv::Rect>::const_iterator r = rectangle_list.begin(); r != rectangle_list.end(); r++)
 	{

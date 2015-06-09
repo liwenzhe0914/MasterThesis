@@ -18,7 +18,7 @@ class TextTagDetection
 {
 public:
 
-	std::vector<cv::Rect> text_tag_detection_with_VJ(cv::Mat img);
+	std::vector<cv::Rect> text_tag_detection_with_VJ(cv::Mat img,std::string package_path);
 
 	std::vector<cv::Rect> text_tag_detection_fine_detection(cv::Mat img,std::string package_path);
 

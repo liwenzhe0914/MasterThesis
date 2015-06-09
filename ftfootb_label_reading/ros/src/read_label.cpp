@@ -88,7 +88,7 @@ LabelReader::LabelReader(ros::NodeHandle nh)
 															load,classifier,feature_number,single_or_combination,path);
 	}
 	else
-		std::cout<<"[Read label ERROR] wrong *load* parameter given! "<<std::endl;
+		std::cout<<"[ROS Read label ERROR] wrong *load* parameter given! "<<std::endl;
 //	feature_reprenstation_.load_or_train_SVM_classifiers(feature_reprenstation_.numbers_svm,feature_reprenstation_.letters_svm,1,3,1,2,path);
 
 	node_handle_ = nh;
@@ -162,8 +162,11 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
 //	time_in_seconds = (clock() - start_time) / (double)CLOCKS_PER_SEC;
 //	std::cout << "Text Detection: [" << time_in_seconds << " s] processing time" << std::endl;
 	cvtColor(image, image, CV_GRAY2BGR);
+//	image.convertTo(image, -1, 1.35, 0);
 	cv::Mat gray_image;
 	cv::cvtColor(image, gray_image, CV_BGR2GRAY);
+	gray_image.convertTo(gray_image, -1, 1.35, 0);
+
 
 	for (unsigned int i = 0; i< detection_list.size();i++)
 	{
