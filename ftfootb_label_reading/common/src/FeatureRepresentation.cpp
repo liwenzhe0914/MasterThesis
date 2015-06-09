@@ -750,7 +750,8 @@ void FeatureReprenstation::load_or_train_SVM_classifiers(cv::SVM& numbers_svm,cv
 		{
 
 			//std::cout<<"start processing training data..."<<std::endl;
-			std::string training_path=package_path.append("TrainingDataRAW/");
+			std::string package_path_temp = package_path;
+			std::string training_path=package_path_temp.append("TrainingDataRAW/");
 //				std::string training_path = "/home/rmb-om/training_samples_for_SVM/";
 
 			numbers_trainData_and_trainClasses = load_all_training_data_with_feature_descriptors

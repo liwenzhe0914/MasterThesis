@@ -86,7 +86,6 @@
 #include "ftfootb_label_reading/FeatureRepresentation.h"
 #include "ftfootb_label_reading/TextTagDetection.h"
 #include "ros/package.h"
-#include <set>
 
 class LabelReader
 {
