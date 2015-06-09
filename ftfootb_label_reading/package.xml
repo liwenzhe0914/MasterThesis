@@ -1,0 +1,32 @@
+<package>
+	<name>ftfootb_label_reading</name>
+	<version>0.1.0</version>
+	<description>
+	
+		Software for detecting certain labels (on shelves) and reading their code (style: AB-12-34-56).
+	
+	</description>
+	<author email="li.wenzhe@ipa.fraunhofer.de, richard.bormann@ipa.fraunhofer.de">Wenzhe Li, Richard Bormann</author>
+	<maintainer email="richard.bormann@ipa.fraunhofer.de">Richard Bormann</maintainer>
+	<license>LGPL</license>
+	<url>http://ros.org/wiki/cob_texture_categorization</url>
+	
+	<buildtool_depend>catkin</buildtool_depend>
+
+	<build_depend>libopencv-dev</build_depend>
+	<build_depend>roscpp</build_depend>
+	<build_depend>roslib</build_depend>
+	<build_depend>cv_bridge</build_depend>
+	<build_depend>sensor_msgs</build_depend>
+	<build_depend>image_transport</build_depend>
+
+	<run_depend>libopencv-dev</run_depend>
+	<run_depend>roscpp</run_depend>
+	<run_depend>roslib</run_depend>
+	<run_depend>cv_bridge</run_depend>
+	<run_depend>sensor_msgs</run_depend>
+	<run_depend>image_transport</run_depend>
+
+</package>
+
+

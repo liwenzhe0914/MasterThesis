@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<package>
+
+	<name>ftfootb</name>
+
+	<description>
+		Software for detecting certain labels (on shelves) and reading their code (style: AB-12-34-56).
+	</description>
+
+	<version>0.1.0</version>
+	<license>LGPL</license>
+
+	<maintainer email="richard.bormann@ipa.fraunhofer.de">Richard Bormann</maintainer>
+  
+	<url>http://wiki.ros.org/ftfootb</url>
+  
+	<buildtool_depend>catkin</buildtool_depend>
+    
+	<run_depend>ftfootb_label_reading</run_depend>
+
+	<export>
+		<metapackage/>
+	</export>
+
+</package>
