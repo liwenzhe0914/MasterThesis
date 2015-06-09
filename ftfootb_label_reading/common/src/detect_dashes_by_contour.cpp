@@ -6,9 +6,9 @@
 #include <stdio.h>
 #include <string>
 #include <math.h>
-#include <boost/filesystem.hpp>
-#include "boost/filesystem/operations.hpp"
-#include "boost/filesystem/fstream.hpp"
+//#include <boost/filesystem.hpp>
+//#include "boost/filesystem/operations.hpp"
+//#include "boost/filesystem/fstream.hpp"
 
 //operator to find the Rect with larger area
 struct byArea

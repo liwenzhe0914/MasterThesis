@@ -1,8 +1,8 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
-#include <boost/filesystem.hpp>
-#include "boost/filesystem/operations.hpp"
-#include "boost/filesystem/fstream.hpp"
+//#include <boost/filesystem.hpp>
+//#include "boost/filesystem/operations.hpp"
+//#include "boost/filesystem/fstream.hpp"
 
 #include <iostream>
 #include <stdio.h>

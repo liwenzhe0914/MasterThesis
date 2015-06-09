@@ -334,16 +334,16 @@ std::vector<std::string> FeatureReprenstation::load_folder_of_image(std::string 
 	{
 		while ((entry = readdir(pDIR)) != NULL)
 		{
-			if (std::strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0)
+			if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0)
 			{
 				std::string completeName = entry->d_name;
 				std::string imgend = completeName.substr(completeName.find_last_of(".") + 1, completeName.length() - completeName.find_last_of("."));
-				if (std::strcmp(imgend.c_str(), "png") == 0 || std::strcmp(imgend.c_str(), "PNG") == 0
-						|| std::strcmp(imgend.c_str(), "JPG") == 0 || std::strcmp(imgend.c_str(), "jpg") == 0
-						|| std::strcmp(imgend.c_str(), "jpeg") == 0 || std::strcmp(imgend.c_str(), "Jpeg") == 0
-						|| std::strcmp(imgend.c_str(), "bmp") == 0 || std::strcmp(imgend.c_str(), "BMP") == 0
-						|| std::strcmp(imgend.c_str(), "TIFF") == 0 || std::strcmp(imgend.c_str(), "tiff") == 0
-						|| std::strcmp(imgend.c_str(), "tif") == 0 || std::strcmp(imgend.c_str(), "TIF") == 0)
+				if (strcmp(imgend.c_str(), "png") == 0 || strcmp(imgend.c_str(), "PNG") == 0
+						|| strcmp(imgend.c_str(), "JPG") == 0 || strcmp(imgend.c_str(), "jpg") == 0
+						|| strcmp(imgend.c_str(), "jpeg") == 0 || strcmp(imgend.c_str(), "Jpeg") == 0
+						|| strcmp(imgend.c_str(), "bmp") == 0 || strcmp(imgend.c_str(), "BMP") == 0
+						|| strcmp(imgend.c_str(), "TIFF") == 0 || strcmp(imgend.c_str(), "tiff") == 0
+						|| strcmp(imgend.c_str(), "tif") == 0 || strcmp(imgend.c_str(), "TIF") == 0)
 				{
 					std::string s = path;
 					if (s.at(s.length() - 1) != '/')
@@ -452,7 +452,6 @@ cv::Mat FeatureReprenstation::get_feature_descriptor_from_training_data
 	std::vector< cv::Point> locations;
 	cv::Mat descriptorsValues;
 	int Classes;
-	std::ofstream out_file;
 
 	for(unsigned int i=0; i< FoldersFullNames.size(); ++i)
 	{

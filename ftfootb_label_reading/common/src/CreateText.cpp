@@ -4,7 +4,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <string>
-#include <boost/bind.hpp>
+//#include <boost/bind.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
 using namespace std;

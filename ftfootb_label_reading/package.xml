@@ -6,7 +6,8 @@
 		Software for detecting certain labels (on shelves) and reading their code (style: AB-12-34-56).
 	
 	</description>
-	<author email="li.wenzhe@ipa.fraunhofer.de, richard.bormann@ipa.fraunhofer.de">Wenzhe Li, Richard Bormann</author>
+	<author email="li.wenzhe@ipa.fraunhofer.de">Wenzhe Li</author>
+	<author email="richard.bormann@ipa.fraunhofer.de">Richard Bormann</author>
 	<maintainer email="richard.bormann@ipa.fraunhofer.de">Richard Bormann</maintainer>
 	<license>LGPL</license>
 	<url>http://ros.org/wiki/cob_texture_categorization</url>
@@ -14,6 +15,7 @@
 	<buildtool_depend>catkin</buildtool_depend>
 
 	<build_depend>libopencv-dev</build_depend>
+	<build_depend>cmake_modules</build_depend>
 	<build_depend>roscpp</build_depend>
 	<build_depend>roslib</build_depend>
 	<build_depend>cv_bridge</build_depend>

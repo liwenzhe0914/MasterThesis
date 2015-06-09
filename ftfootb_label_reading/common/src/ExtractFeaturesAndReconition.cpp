@@ -2,6 +2,8 @@
 #include "ftfootb_label_reading/MatchTemplate.h"
 #include "ftfootb_label_reading/LBPandHistogram.h"
 
+#include <fstream>
+
 using namespace cv;
 using namespace std;
 
