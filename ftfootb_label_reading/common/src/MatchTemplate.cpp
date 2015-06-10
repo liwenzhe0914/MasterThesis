@@ -55,7 +55,7 @@ void MatchTemplate::load_templates(const std::string& templates_storage_path, To
 	}
 	else
 	{
-		std::cout << "MatchTemplate::load_templates: Error: Could not open path." << std::endl;
+		std::cout << "MatchTemplate::load_templates: Error: Could not open path: " << templates_storage_path << std::endl;
 		return;
 	}
 
@@ -68,7 +68,7 @@ void MatchTemplate::load_templates(const std::string& templates_storage_path, To
 		token_templates[rawname] = cv::imread(templateImageNames[i], CV_LOAD_IMAGE_GRAYSCALE);
 	}
 
-	std::cout << "Template images loaded: " << templateImageNames.size() << std::endl;
+	std::cout << templateImageNames.size() << " template images loaded from path " << templates_storage_path << std::endl;
 }
 
 

@@ -1,20 +1,21 @@
-# flip color image
-# bool
-flip_color_image: true
-
-# 1 - load training data from file; 0 - load traning data from raw images
+# target image size used for tag detection in the image with Viola-Jones classifier
 # int
-load: 1 
+tag_detection_target_image_width: 640
+tag_detection_target_image_height: 480
 
-# 1-KNN, 2-train svm, 3 load svm
+# 1 - load training data from yml file; 0 - load training data from raw images
+# int
+load: 1
+
+# 1-KNN, 2-train svm, 3-load svm
 # int
 classifier: 3
 
-# feature number:1. HOG 2. LBP. 3 BRIEF
+# feature number: 1. HOG 2. LBP 3. BRIEF
 # int
 feature_number: 1
 
-# single or combinations :1. single 2. combinations
+# single or combinations (pairs) of letters/numbers: 1. single 2. combinations
 # int
 single_or_combination: 2
 

@@ -18,25 +18,28 @@ class TextTagDetection
 {
 public:
 
-	std::vector<cv::Rect> text_tag_detection_with_VJ(cv::Mat img,std::string package_path);
+	TextTagDetection(const std::string& path_data);
 
-	std::vector<cv::Rect> text_tag_detection_fine_detection(cv::Mat img,std::string package_path);
+	inline void text_tag_detection_with_VJ(const cv::Mat& image, std::vector<cv::Rect>& rectangle_list);
+
+	void text_tag_detection_fine_detection(const cv::Mat& image, std::vector<cv::Rect>& rectangle_list);
 
 	int count_white_pixels(cv::Mat dst,cv::Point pt1,cv::Point pt2, bool vertical);
 
 	float find_best_two_lines(std::map<float,float> lines_with_count_map);
 
-	cv::Rect get_rect_with_hough_line_transform(cv::Mat src);
+	cv::Rect get_rect_with_hough_line_transform(const cv::Mat& src);
 
-	std::vector<cv::Rect> find_right_dashes(std::vector<cv::Rect> detected_dashes_list,cv::Mat img,cv::Rect rect);
+	// removes intersecting dashes
+	void find_right_dashes(std::vector<cv::Rect>& detected_dashes_list, const cv::Rect& rect);
 
-	cv::Rect restore_text_tag_by_three_detected_dashes(std::vector<cv::Rect> detected_dashes_list,cv::Rect text_tag,cv::Mat img);
+	cv::Rect restore_text_tag_by_three_detected_dashes(const std::vector<cv::Rect>& detected_dashes_list, const cv::Rect& text_tag, const cv::Mat& image);
 
-	cv::Rect select_best_match_from_three_estimated_dashes(cv::Rect text_tag_l,cv::Rect text_tag_m,cv::Rect text_tag_r,cv::Rect text_tag,cv::Mat img,std::string package_path);
+	cv::Rect select_best_match_from_three_estimated_dashes(const cv::Rect& text_tag_l, const cv::Rect& text_tag_m, const cv::Rect& text_tag_r, const cv::Rect& text_tag, const cv::Mat& image);
 
-	cv::Rect restore_tag_by_estimated_dashes(cv::Point estimated_dash_center,cv::Rect text_tag,cv::Mat img,std::vector<cv::Rect> detected_dashes_list);
+	cv::Rect restore_tag_by_estimated_dashes(const cv::Point& estimated_dash_center, const cv::Rect& text_tag, const cv::Mat& image, std::vector<cv::Rect>& detected_dashes_list);
 
-	cv::Rect restore_text_tag_by_detected_dashes(std::vector<cv::Rect> detected_dashes_list,cv::Rect text_tag,cv::Mat img,std::string package_path);
+	cv::Rect restore_text_tag_by_detected_dashes(std::vector<cv::Rect>& detected_dashes_list, const cv::Rect& text_tag, const cv::Mat& image);
 
 	void unsharpMask(cv::Mat& im);
 
@@ -44,5 +47,10 @@ public:
 
 	double compare_detection_with_template(cv::Rect text_tag, cv::Mat img,std::string package_path);
 
-	std::vector<cv::Rect>detect_dashes (cv::Rect rect,cv::Mat img);
+	void detect_dashes(const cv::Rect& rect, const cv::Mat& image, std::vector<cv::Rect>& detected_dashes_list);
+
+protected:
+
+	cv::CascadeClassifier text_tags_cascade_;	///< Viola-Jones classifier model for text tag detection
+	cv::Mat text_tag_template_image_;	///< template image of text tags
 };

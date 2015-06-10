@@ -263,7 +263,7 @@ void NiblackSauvolaWolfJolion (cv::Mat im, cv::Mat output, NiblackVersion versio
     }
 }
 
-cv::Mat FeatureReprenstation::wolf_thresholding(cv::Mat img_gray)
+cv::Mat FeatureReprenstation::wolf_thresholding(cv::Mat& img_gray)
 {
 
 	cv::Size dsize = cv::Size(img_gray.cols,img_gray.rows);
@@ -362,7 +362,7 @@ return ImageNames;
 }
 
 
-cv::Mat FeatureReprenstation::get_feature_descriptor(cv::Mat img,int feature_number,int single_or_combination)
+cv::Mat FeatureReprenstation::get_feature_descriptor(cv::Mat& img,int feature_number,int single_or_combination)
 {
 	//read image file
 	cv::Mat img_gray;
@@ -662,7 +662,7 @@ cv::Mat FeatureReprenstation::load_all_training_data_with_feature_descriptors
 	return trainData_and_trainClasses;
 	}
 
-cv::Mat FeatureReprenstation::preprocess_test_text_tag(cv::Mat testImg,int feature_number,int single_or_combination)
+cv::Mat FeatureReprenstation::preprocess_test_text_tag(cv::Mat& testImg,int feature_number,int single_or_combination)
 {
 	//single_or_combination: 1-single, 2- combination
 	std::vector<cv::Mat> image_portions;
@@ -724,7 +724,7 @@ return test_descriptorsValues;
 
 void FeatureReprenstation::load_or_train_SVM_classifiers(cv::SVM& numbers_svm,cv::SVM& letters_svm,
 															int load,int classifier,int feature_number,int single_or_combination,
-															std::string package_path)
+															std::string path_data)
 {
 //	std::cout<<"package path: "<<package_path<<std::endl;
 	double start_time,time_in_seconds;
@@ -750,8 +750,7 @@ void FeatureReprenstation::load_or_train_SVM_classifiers(cv::SVM& numbers_svm,cv
 		{
 
 			//std::cout<<"start processing training data..."<<std::endl;
-			std::string package_path_temp = package_path;
-			std::string training_path=package_path_temp.append("TrainingDataRAW/");
+			std::string training_path = path_data + "TrainingDataRAW/";
 //				std::string training_path = "/home/rmb-om/training_samples_for_SVM/";
 
 			numbers_trainData_and_trainClasses = load_all_training_data_with_feature_descriptors
@@ -779,21 +778,21 @@ void FeatureReprenstation::load_or_train_SVM_classifiers(cv::SVM& numbers_svm,cv
 			char *cstr_number,*cstr_letter;
 			if (single_or_combination==2)
 			{
-				ss<<package_path<<"TrainedSVMClassifiers/numbers_svm_model_"<<suffix<<".xml";
+				ss<<path_data<<"TrainedSVMClassifiers/numbers_svm_model_"<<suffix<<".xml";
 			}
 			else if (single_or_combination==1)
 			{
-				ss<<package_path<<"TrainedSVMClassifiers/single_number_svm_model_"<<suffix<<".xml";
+				ss<<path_data<<"TrainedSVMClassifiers/single_number_svm_model_"<<suffix<<".xml";
 			}
 			number_svm_model = ss.str();
 			ss.str("");
 			if (single_or_combination==2)
 			{
-				ss<<package_path<<"TrainedSVMClassifiers/letters_svm_model_"<<suffix<<".xml";
+				ss<<path_data<<"TrainedSVMClassifiers/letters_svm_model_"<<suffix<<".xml";
 			}
 			else if (single_or_combination==1)
 			{
-				ss<<package_path<<"TrainedSVMClassifiers/single_letter_svm_model_"<<suffix<<".xml";
+				ss<<path_data<<"TrainedSVMClassifiers/single_letter_svm_model_"<<suffix<<".xml";
 			}
 			letter_svm_model = ss.str();
 			ss.str("");
@@ -847,7 +846,7 @@ void FeatureReprenstation::load_or_train_SVM_classifiers(cv::SVM& numbers_svm,cv
 
 void FeatureReprenstation::load_or_train_KNN_classifiers(cv::KNearest& numbers_knn,cv::KNearest& letters_knn,
 															int load,int classifier,int feature_number,int single_or_combination,
-															std::string package_path)
+															std::string path_data)
 {
 	double start_time,time_in_seconds;
 	std::string classifier_name;
@@ -857,7 +856,7 @@ void FeatureReprenstation::load_or_train_KNN_classifiers(cv::KNearest& numbers_k
 	classifier_name="KNN";
 
 	//std::cout<<"start processing training data..."<<std::endl;
-	std::string training_path=package_path.append("TrainingDataRAW/");
+	std::string training_path = path_data + "TrainingDataRAW/";
 //	std::cout<<"training_path: "<<training_path<<std::endl;
 //				std::string training_path = "/home/rmb-om/training_samples_for_SVM/";
 
@@ -890,7 +889,7 @@ void FeatureReprenstation::load_or_train_KNN_classifiers(cv::KNearest& numbers_k
 }
 
 
-std::string FeatureReprenstation::read_text_tag_SVM(cv::SVM& numbers_svm,cv::SVM& letters_svm,cv::Mat testImg,int classifier,int feature_number,int single_or_combination)
+std::string FeatureReprenstation::read_text_tag_SVM(cv::SVM& numbers_svm,cv::SVM& letters_svm,cv::Mat& testImg,int classifier,int feature_number,int single_or_combination)
 {
 	//classifier: 1. KNN 2. train SVM 3. load SVM
 	double start_time,time_in_seconds;
@@ -999,7 +998,7 @@ std::string FeatureReprenstation::read_text_tag_SVM(cv::SVM& numbers_svm,cv::SVM
 	return text_label;
 }
 
-std::string FeatureReprenstation::read_text_tag_KNN(cv::KNearest& numbers_knn,cv::KNearest& letters_knn,cv::Mat testImg,int classifier,int feature_number,int single_or_combination)
+std::string FeatureReprenstation::read_text_tag_KNN(cv::KNearest& numbers_knn,cv::KNearest& letters_knn,cv::Mat& testImg,int classifier,int feature_number,int single_or_combination)
 {
 	//classifier: 1. KNN 2. train SVM 3. load SVM
 

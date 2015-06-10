@@ -102,22 +102,32 @@ protected:
 	//tf::TransformListener* transform_listener_;
 
 
-
-	double roi_height_;
-
 	ros::NodeHandle node_handle_; ///< ROS node handle
 
-public:
+	double roi_height_;		///<
+	std::string path_;	///< path to the package of this software
+	std::string path_data_;		///< path to the data files
 
 	MatchTemplate match_template_;
 	TextTagDetection text_tag_detection_;
-	FeatureReprenstation feature_reprenstation_;
+	FeatureReprenstation feature_representation_;
 
+	// parameters
+	int tag_detection_target_image_width_;		///< target image width used for tag detection in the image with Viola-Jones classifier
+	int tag_detection_target_image_height_;		///< target image height used for tag detection in the image with Viola-Jones classifier
+	int load_;	///< 1 - load training data from yml file; 0 - load training data from raw images
+	int classifier_;		///< 1-KNN, 2-train svm, 3-load svm
+	int feature_number_;		///< feature number: 1. HOG 2. LBP 3. BRIEF
+	int single_or_combination_;	///< single or combinations (pairs) of letters/numbers: 1. single 2. combinations
+	int recognition_method_;		///< template matching OR feature representation: 1. TM, 2. FR, 3. both.
+	int template_matching_method_;	///< template matching method: 0: SQDIFF \n 1: SQDIFF NORMED \n 2: CCORR \n 3: CCORR NORMED \n 4: COEFF \n 5: COEFF NORMED.
+
+public:
 	LabelReader(ros::NodeHandle nh);
 
 	~LabelReader();
 
-	unsigned long init();
+//	unsigned long init();
 
 	unsigned long convertImageMessageToMat(const sensor_msgs::Image::ConstPtr& color_image_msg, cv_bridge::CvImageConstPtr& color_image_ptr, cv::Mat& color_image);
 
@@ -135,8 +145,4 @@ public:
 	void pcDisconnectCB(const ros::SingleSubscriberPublisher& pub);
 
 	void setParams(ros::NodeHandle & nh);
-
-private:
-
-	int load, classifier,feature_number,single_or_combination,recognition_method,template_matching_method;
 };

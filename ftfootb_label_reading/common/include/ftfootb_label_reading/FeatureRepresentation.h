@@ -29,7 +29,7 @@ class FeatureReprenstation
 {
 public:
 
-		cv::Mat get_feature_descriptor(cv::Mat img,int feature_number,int single_or_combination);
+		cv::Mat get_feature_descriptor(cv::Mat& img,int feature_number,int single_or_combination);
 
 		int convertLettersToASCII(std::string letter,int single_or_combination);
 
@@ -45,21 +45,21 @@ public:
 		cv::Mat load_all_training_data_with_feature_descriptors(std::string training_path,int number_or_letter,
 																int feature_number,int load,int single_or_combination);
 
-		cv::Mat preprocess_test_text_tag(cv::Mat testImg,int feature_number, int single_or_combination);
+		cv::Mat preprocess_test_text_tag(cv::Mat& testImg,int feature_number, int single_or_combination);
 
-		std::string read_text_tag_SVM(cv::SVM& numbers_svm,cv::SVM& letters_svm,cv::Mat image,int classifier,int feature_number,int single_or_combination);
-		std::string read_text_tag_KNN(cv::KNearest& numbers_knn,cv::KNearest& letters_knn,cv::Mat testImg,int classifier,int feature_number,int single_or_combination);
-		cv::Mat wolf_thresholding(cv::Mat img_gray);
+		std::string read_text_tag_SVM(cv::SVM& numbers_svm,cv::SVM& letters_svm,cv::Mat& image,int classifier,int feature_number,int single_or_combination);
+		std::string read_text_tag_KNN(cv::KNearest& numbers_knn,cv::KNearest& letters_knn,cv::Mat& testImg,int classifier,int feature_number,int single_or_combination);
+		cv::Mat wolf_thresholding(cv::Mat& img_gray);
 
 		void help();
 
 		void load_or_train_SVM_classifiers(cv::SVM& numbers_svm,cv::SVM& letters_svm,
 											int load,int classifier,int feature_number,int single_or_combination,
-											std::string package_path);
+											std::string path_data);
 
 		void load_or_train_KNN_classifiers(cv::KNearest& numbers_knn,cv::KNearest& letters_knn,
 											int load,int classifier,int feature_number,int single_or_combination,
-											std::string package_path);
+											std::string path_data);
 
 		cv::SVM numbers_svm;
 		cv::SVM letters_svm;

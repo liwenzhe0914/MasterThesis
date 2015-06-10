@@ -58,40 +58,43 @@
 
 #include <ftfootb_label_reading/read_label.h>
 
-std::string path = ros::package::getPath("ftfootb_label_reading");
-std::string path_template=path.append("/common/files/");
-
-void LabelReader::setParams(ros::NodeHandle & nh)
+void LabelReader::setParams(ros::NodeHandle& nh)
 {
-	nh.getParam("load", load);
-	nh.getParam("classifier", classifier);
-	nh.getParam("feature_number", feature_number);
-	nh.getParam("single_or_combination", single_or_combination);
-	nh.getParam("recognition_method", recognition_method);
-	nh.getParam("template_matching_method", template_matching_method);
+	node_handle_.param("tag_detection_target_image_width", tag_detection_target_image_width_, 640);
+	std::cout << "tag_detection_target_image_width = " << tag_detection_target_image_width_ << "\n";
+	node_handle_.param("tag_detection_target_image_height", tag_detection_target_image_height_, 480);
+	std::cout << "tag_detection_target_image_height = " << tag_detection_target_image_height_ << "\n";
+	node_handle_.param("load", load_, 0);
+	std::cout << "load = " << load_ << "\n";
+	node_handle_.param("classifier", classifier_, 1);
+	std::cout << "classifier = " << classifier_ << "\n";
+	node_handle_.param("feature_number", feature_number_, 1);
+	std::cout << "feature_number = " << feature_number_ << "\n";
+	node_handle_.param("single_or_combination", single_or_combination_, 1);
+	std::cout << "single_or_combination = " << single_or_combination_ << "\n";
+	node_handle_.param("recognition_method", recognition_method_, 2);
+	std::cout << "recognition_method = " << recognition_method_ << "\n";
+	node_handle_.param("template_matching_method", template_matching_method_, 5);
+	std::cout << "template_matching_method = " << template_matching_method_ << "\n";
 }
 
 LabelReader::LabelReader(ros::NodeHandle nh)
-: match_template_(path_template)
+: 	path_(ros::package::getPath("ftfootb_label_reading") + "/"), path_data_ (path_ + "common/files/"), match_template_(path_data_), text_tag_detection_(path_data_), node_handle_(nh)
 {
-	setParams(nh);
+	setParams(node_handle_);
 
-	if (classifier==2 || classifier==3) // SVM for classification
+	if (classifier_==2 || classifier_==3) // SVM for classification
 	{
-		feature_reprenstation_.load_or_train_SVM_classifiers(feature_reprenstation_.numbers_svm,feature_reprenstation_.letters_svm,
-															load,classifier,feature_number,single_or_combination,path);
+		feature_representation_.load_or_train_SVM_classifiers(feature_representation_.numbers_svm,feature_representation_.letters_svm,
+															load_,classifier_,feature_number_,single_or_combination_,path_data_);
 	}
-
-	else if (classifier==1) // KNN for classification
+	else if (classifier_==1) // KNN for classification
 	{
-		feature_reprenstation_.load_or_train_KNN_classifiers(feature_reprenstation_.numbers_knn,feature_reprenstation_.letters_knn,
-															load,classifier,feature_number,single_or_combination,path);
+		feature_representation_.load_or_train_KNN_classifiers(feature_representation_.numbers_knn,feature_representation_.letters_knn,
+															load_,classifier_,feature_number_,single_or_combination_,path_data_);
 	}
 	else
-		std::cout<<"[ROS Read label ERROR] wrong *load* parameter given! "<<std::endl;
-//	feature_reprenstation_.load_or_train_SVM_classifiers(feature_reprenstation_.numbers_svm,feature_reprenstation_.letters_svm,1,3,1,2,path);
-
-	node_handle_ = nh;
+		std::cout<<"[ROS Read label ERROR] wrong *classifier_* parameter given! "<<std::endl;
 
 	it_ = new image_transport::ImageTransport(node_handle_);
 	color_camera_image_sub_.registerCallback(boost::bind(&LabelReader::imageCallback, this, _1));
@@ -110,24 +113,23 @@ LabelReader::~LabelReader()
 //		delete transform_listener_;
 }
 
-unsigned long LabelReader::init()
-{
-	//color_camera_image_sub_.subscribe(*it_, "colorimage", 1);
-	//point_cloud_sub_.subscribe(node_handle_, "pointcloud", 1);
-
-	//sync_pointcloud_->connectInput(point_cloud_sub_, color_camera_image_sub_);
-	//sync_pointcloud_callback_connection_ = sync_pointcloud_->registerCallback(boost::bind(&CobKinectImageFlipNodelet::inputCallback, this, _1, _2));
-
-	return 0;
-}
+//unsigned long LabelReader::init()
+//{
+//	//color_camera_image_sub_.subscribe(*it_, "colorimage", 1);
+//	//point_cloud_sub_.subscribe(node_handle_, "pointcloud", 1);
+//
+//	//sync_pointcloud_->connectInput(point_cloud_sub_, color_camera_image_sub_);
+//	//sync_pointcloud_callback_connection_ = sync_pointcloud_->registerCallback(boost::bind(&CobKinectImageFlipNodelet::inputCallback, this, _1, _2));
+//
+//	return 0;
+//}
 
 unsigned long LabelReader::convertImageMessageToMat(const sensor_msgs::Image::ConstPtr& image_msg, cv_bridge::CvImageConstPtr& image_ptr, cv::Mat& image)
 {
 	try
 	{
-		image_ptr = cv_bridge::toCvShare(image_msg, sensor_msgs::image_encodings::MONO8);
+		image_ptr = cv_bridge::toCvShare(image_msg, image_msg->encoding);
 	}
-
 	catch (cv_bridge::Exception& e)
 	{
 		ROS_ERROR("text tag reading: cv_bridge exception: %s", e.what());
@@ -142,66 +144,80 @@ unsigned long LabelReader::convertImageMessageToMat(const sensor_msgs::Image::Co
 void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
 {
 	double start_time, time_in_seconds;
-	std::string tag_label_features;
 	start_time = clock();
+
+	// get image from message
 	cv_bridge::CvImageConstPtr image_ptr;
-	cv::Mat image;
+	cv::Mat image, image_grayscale, image_grayscale_small, image_display;
 	convertImageMessageToMat(image_msg, image_ptr, image);
+	if (image.channels() == 1)
+	{
+		// monochrome image
+		image_grayscale = image.clone();
+		cvtColor(image, image_display, CV_GRAY2BGR);
+	}
+	else if (image.channels() == 3)
+	{
+		// color image
+		image_display = image.clone();
+		cvtColor(image, image_grayscale, CV_BGR2GRAY);
+	}
+	else
+	{
+		ROS_ERROR("LabelReader::imageCallback: Wrong number of channels in camera image. Allowed is 1 or 3.");
+		return;
+	}
+	cv::resize(image_grayscale, image_grayscale_small, cv::Size(tag_detection_target_image_width_, tag_detection_target_image_height_));
 
-	cv::resize(image,image,cv::Size(640,480));
-
-
-	// mark segment of original image
-
-	std::vector<cv::Rect> detection_list = text_tag_detection_.text_tag_detection_fine_detection(image,path);
-
-//	double roi_height,roi_width;
+	// find text tags in original image
+	std::vector<cv::Rect> detection_list;
+	text_tag_detection_.text_tag_detection_fine_detection(image_grayscale_small, detection_list);
 	std::cout<<detection_list.size()<<" text tags detected!"<<std::endl;
-	std::string tag_label_template_matching;
 
-//	time_in_seconds = (clock() - start_time) / (double)CLOCKS_PER_SEC;
-//	std::cout << "Text Detection: [" << time_in_seconds << " s] processing time" << std::endl;
-	cvtColor(image, image, CV_GRAY2BGR);
+	time_in_seconds = (clock() - start_time) / (double)CLOCKS_PER_SEC;
+	std::cout << "Text Detection: [" << time_in_seconds << " s] processing time" << std::endl;
+
+	// read texts from tags
+//	cvtColor(image, image, CV_GRAY2BGR);
 //	image.convertTo(image, -1, 1.35, 0);
-	cv::Mat gray_image;
-	cv::cvtColor(image, gray_image, CV_BGR2GRAY);
-	gray_image.convertTo(gray_image, -1, 1.35, 0);
+//	cv::Mat gray_image;
+//	cv::cvtColor(image, gray_image, CV_BGR2GRAY);
+//	gray_image.convertTo(gray_image, -1, 1.35, 0);
 
-
-	for (unsigned int i = 0; i< detection_list.size();i++)
+	for (size_t i=0; i< detection_list.size(); ++i)
 	{
 		if (detection_list[i].x!=0 && detection_list[i].y!=0)
 		{
-			cv::rectangle(image,detection_list[i],cv::Scalar(0,0,255), 3, 8, 0);
+			cv::rectangle(image_display, detection_list[i], cv::Scalar(0,0,255), 3, 8, 0);
 
-			cv::Mat roi = gray_image(detection_list[i]);
+//			std::cout<<"feature representation starts"<<std::endl;
 
-			std::cout<<"feature representation starts"<<std::endl;
-
-			if (recognition_method==2 || recognition_method==3)
+			std::string tag_label_features, tag_label_template_matching;
+			cv::Mat roi = image_grayscale(detection_list[i]);
+			if (recognition_method_==2 || recognition_method_==3)
 			{
-				if (classifier==2 || classifier==3) // SVM for classification
+				if (classifier_==2 || classifier_==3) // SVM for classification
 				{
-					tag_label_features=feature_reprenstation_.read_text_tag_SVM(feature_reprenstation_.numbers_svm,feature_reprenstation_.letters_svm,roi,
-																							classifier,feature_number,single_or_combination);
+					tag_label_features=feature_representation_.read_text_tag_SVM(feature_representation_.numbers_svm,feature_representation_.letters_svm,roi,
+																							classifier_,feature_number_,single_or_combination_);
 				}
 
-				else if (classifier==1) // KNN for classification
+				else if (classifier_==1) // KNN for classification
 				{
-					tag_label_features=feature_reprenstation_.read_text_tag_KNN(feature_reprenstation_.numbers_knn,feature_reprenstation_.letters_knn,roi,
-																							classifier,feature_number,single_or_combination);
+					tag_label_features=feature_representation_.read_text_tag_KNN(feature_representation_.numbers_knn,feature_representation_.letters_knn,roi,
+																							classifier_,feature_number_,single_or_combination_);
 				}
 				else
 					std::cout<<"[Read label ERROR] wrong *load* parameter given! "<<std::endl;
 
-				cv::putText(image, tag_label_features, cv::Point(detection_list[i].x, detection_list[i].y-5), cv::FONT_HERSHEY_PLAIN, 2, CV_RGB(0,0,255), 2);
+				cv::putText(image_display, tag_label_features, cv::Point(detection_list[i].x, detection_list[i].y-5), cv::FONT_HERSHEY_PLAIN, 2, CV_RGB(0,0,255), 2);
 			}
 
-			if (recognition_method==1 || recognition_method==3)
+			if (recognition_method_==1 || recognition_method_==3)
 			{
-				match_template_.read_tag(roi, tag_label_template_matching,template_matching_method);
+				match_template_.read_tag(roi, tag_label_template_matching,template_matching_method_);
 				std::cout << "The text tag reads: " << tag_label_template_matching << "." << std::endl;
-				cv::putText(image, tag_label_template_matching, cv::Point(detection_list[i].x-100, detection_list[i].y-5), cv::FONT_HERSHEY_PLAIN, 2, CV_RGB(255,0,255), 2);
+				cv::putText(image_display, tag_label_template_matching, cv::Point(detection_list[i].x-100, detection_list[i].y-5), cv::FONT_HERSHEY_PLAIN, 2, CV_RGB(255,0,255), 2);
 			}
 		}
 	}
@@ -210,18 +226,19 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
 	std::cout << "Whole system [" << time_in_seconds << " s] processing time" << std::endl;
 	std::stringstream ss;
 	ss<<time_in_seconds<<"s processing time";
-	cv::putText(image, ss.str(), cv::Point(10, 30), cv::FONT_HERSHEY_PLAIN, 1.5, CV_RGB(255,0,0), 2);
+	cv::putText(image_display, ss.str(), cv::Point(10, 30), cv::FONT_HERSHEY_PLAIN, 1.5, CV_RGB(255,0,0), 2);
 	ss.str("");
-	cv::imshow("image", image);
+	cv::imshow("image", image_display);
 	cv::waitKey(1);
+//	double roi_height,roi_width;
 //	cv::Rect roi_rect((color_image.cols-roi_width)/2,(color_image.rows-roi_height)/2,roi_width,roi_height);
 //	cv::rectangle(color_image, cv::Point(roi_rect.x-2, roi_rect.y-2), cv::Point(roi_rect.x+roi_rect.width+2, roi_rect.y+roi_rect.height+2), CV_RGB(0,0,255), 2);
 //	cv::Mat gray_image;
 //	cv::cvtColor(color_image, gray_image, CV_BGR2GRAY);
 //	cv::Mat roi = gray_image(roi_rect);
-
-	// detect text
-
+//
+//	// detect text
+//
 //	time_in_seconds = (clock() - start_time) / (double)CLOCKS_PER_SEC;
 //	std::cout << "[" << time_in_seconds << " s] processing time" << std::endl;
 //
@@ -230,7 +247,7 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
 //	std::stringstream ss;
 //	ss << roi_height_;
 //	cv::putText(color_image, ss.str(), cv::Point(roi_rect.x+roi_rect.width+10, roi_rect.y+roi_rect.height), cv::FONT_HERSHEY_PLAIN, 1, CV_RGB(255,0,0), 1);
-
+//
 //	// now do something with color_image
 //	cv::imshow("image", color_image);
 //	char c = cv::waitKey(10);
@@ -238,10 +255,10 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
 //		roi_height_ += 1.0;
 //	if (c=='y')
 //		roi_height_ = std::max(10.0, roi_height_-1.0);
-
-	// create ReadLabel object (from common folder) and call detect function
-
-	// publish image
+//
+//	// create ReadLabel object (from common folder) and call detect function
+//
+//	// publish image
 //	cv_bridge::CvImage cv_ptr;
 //	cv_ptr.image = color_image_turned;
 //	cv_ptr.encoding = "bgr8";
@@ -259,7 +276,8 @@ int main(int argc, char** argv)
 
 	// Create a handle for this node, initialize node
 	ros::NodeHandle nh("~");
-	// Create CobKinectImageFlip class instance
+
+	// Create LabelReader class instance
 	LabelReader label_reader(nh);
 	ros::spin();
 
@@ -340,7 +358,7 @@ int main(int argc, char** argv)
 //		ROS_INFO("%d ImageFlip: Time stamp of pointcloud message: %f. Delay: %f.", point_cloud_msg->header.seq, point_cloud_msg->header.stamp.toSec(), ros::Time::now().toSec()-point_cloud_msg->header.stamp.toSec());
 ////		ROS_INFO("Pointcloud callback in image flip took %f ms.", tim.getElapsedTimeInMilliSec());
 //}
-
+//
 //void LabelReader::imgConnectCB(const image_transport::SingleSubscriberPublisher& pub)
 //{
 //	img_sub_counter_++;
@@ -359,7 +377,7 @@ int main(int argc, char** argv)
 //		color_camera_image_sub_.unsubscribe();
 //	}
 //}
-
+//
 //void LabelReader::pcConnectCB(const ros::SingleSubscriberPublisher& pub)
 //{
 //	pc_sub_counter_++;
