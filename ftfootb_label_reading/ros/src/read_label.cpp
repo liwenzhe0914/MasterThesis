@@ -57,6 +57,7 @@
 //#### includes ####
 
 #include <ftfootb_label_reading/read_label.h>
+#include <ftfootb_label_reading/timer.h>
 
 void LabelReader::setParams(ros::NodeHandle& nh)
 {
@@ -143,8 +144,7 @@ unsigned long LabelReader::convertImageMessageToMat(const sensor_msgs::Image::Co
 
 void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
 {
-	double start_time, time_in_seconds;
-	start_time = clock();
+	Timer tim;
 
 	// get image from message
 	cv_bridge::CvImageConstPtr image_ptr;
@@ -174,8 +174,7 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
 	text_tag_detection_.text_tag_detection_fine_detection(image_grayscale_small, detection_list);
 	std::cout<<detection_list.size()<<" text tags detected!"<<std::endl;
 
-	time_in_seconds = (clock() - start_time) / (double)CLOCKS_PER_SEC;
-	std::cout << "Text Detection: [" << time_in_seconds << " s] processing time" << std::endl;
+	std::cout << "Text Detection: [" << tim.getElapsedTimeInMilliSec() << " ms] processing time" << std::endl;
 
 	// read texts from tags
 //	cvtColor(image, image, CV_GRAY2BGR);
@@ -190,7 +189,7 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
 		{
 			cv::rectangle(image_display, detection_list[i], cv::Scalar(0,0,255), 3, 8, 0);
 
-//			std::cout<<"feature representation starts"<<std::endl;
+			std::cout<<"feature representation starts"<<std::endl;
 
 			std::string tag_label_features, tag_label_template_matching;
 			cv::Mat roi = image_grayscale(detection_list[i]);
@@ -198,6 +197,7 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
 			{
 				if (classifier_==2 || classifier_==3) // SVM for classification
 				{
+					// todo: check for const image
 					tag_label_features=feature_representation_.read_text_tag_SVM(feature_representation_.numbers_svm,feature_representation_.letters_svm,roi,
 																							classifier_,feature_number_,single_or_combination_);
 				}
@@ -222,10 +222,10 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
 		}
 	}
 
-	time_in_seconds = (clock() - start_time) / (double)CLOCKS_PER_SEC;
-	std::cout << "Whole system [" << time_in_seconds << " s] processing time" << std::endl;
+	double time_in_mseconds = tim.getElapsedTimeInMilliSec();
+	std::cout << "Whole system [" << time_in_mseconds << " s] processing time" << std::endl;
 	std::stringstream ss;
-	ss<<time_in_seconds<<"s processing time";
+	ss<<time_in_mseconds<<"s processing time";
 	cv::putText(image_display, ss.str(), cv::Point(10, 30), cv::FONT_HERSHEY_PLAIN, 1.5, CV_RGB(255,0,0), 2);
 	ss.str("");
 	cv::imshow("image", image_display);

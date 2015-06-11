@@ -84,9 +84,8 @@ return count;
 cv::Rect TextTagDetection::get_rect_with_hough_line_transform(const cv::Mat& src)
 {
 	// preprocessing the input text tag
-//	cv::cvtColor(src, src, CV_RGB2GRAY);
-	double resize_fx = 400. / src.cols;
-	double resize_fy = 100. / src.rows;
+	double resize_fx = 400. / (double)src.cols;
+	double resize_fy = 100. / (double)src.rows;
 	std::map<float,float> upper_horizontal_with_count_map, lower_horizontal_with_count_map,	left_vertical_with_count_map, right_vertical_with_count_map;
 	cv::Mat src_resized, dst, cdst;
 	resize(src, src_resized, cv::Size(), resize_fx, resize_fy);
@@ -160,6 +159,11 @@ cv::Rect TextTagDetection::get_rect_with_hough_line_transform(const cv::Mat& src
 			}
 		}
 	}
+
+#ifdef _DEBUG_DISPLAYS_
+	cv::imshow("lines", cdst);
+	cv::waitKey(10);
+#endif
 
 	//divide the text tag into four parts(left right upper and lower)
 	//and obtain the position with largest white pixels number for every part
@@ -274,8 +278,8 @@ double TextTagDetection::angle(cv::Point pt1, cv::Point pt2, cv::Point pt0)
 void TextTagDetection::detect_dashes(const cv::Rect& rect, const cv::Mat& image, std::vector<cv::Rect>& detected_dashes_list)
 {
 		cv::Mat src;
-		double resize_fx = 600. / src.cols;
-		double resize_fy = 150. / src.rows;
+		double resize_fx = 600. / (double)rect.width;
+		double resize_fy = 150. / (double)rect.height;
 		cv::resize(image(rect), src, cv::Size(), resize_fx, resize_fy);
 
 		cv::Mat gray1,gray2,gray3,gray4;
@@ -620,19 +624,19 @@ void TextTagDetection::text_tag_detection_fine_detection(const cv::Mat& image, s
 
 	for (std::vector<cv::Rect>::const_iterator r = initial_rectangle_list.begin(); r != initial_rectangle_list.end(); r++)
 	{
+//		std::cout<<"1. text_tag: "<<r->x<<" "<<r->y<<" "<<r->width<<" "<<r->height<<std::endl;
+
 		// update detection by Hough line transform
-		cv::Point r1(r->x, r->y);
-		cv::Point r2(r->x + r->width, r->y + r->height);
-		cv::Rect retang(r1.x, r1.y, abs(r2.x - r1.x), abs(r2.y - r1.y));
-		cv::Mat roi = image(retang);
+		cv::Mat roi = image(*r);
 		cv::Rect rectangle_info = get_rect_with_hough_line_transform(roi);
-		cv::Rect rectangle_updated_by_hough_line(retang.x+rectangle_info.x, retang.y+rectangle_info.y, rectangle_info.width, rectangle_info.height);
+		cv::Rect rectangle_updated_by_hough_line(r->x+rectangle_info.x, r->y+rectangle_info.y, rectangle_info.width, rectangle_info.height);
 
 		//update detection by dashes detection
 		std::vector<cv::Rect> detected_dashes_list;
 		detect_dashes(rectangle_updated_by_hough_line, image, detected_dashes_list);
-
 		cv::Rect rectangle_updated_by_dashes_detection = restore_text_tag_by_detected_dashes(detected_dashes_list, rectangle_updated_by_hough_line, image);
+
+//		std::cout<<"2. text_tag: "<<rectangle_updated_by_dashes_detection.x<<" "<<rectangle_updated_by_dashes_detection.y<<" "<<rectangle_updated_by_dashes_detection.width<<" "<<rectangle_updated_by_dashes_detection.height<<std::endl;
 
 //		double score = compare_detection_with_template(rectangle_updated_by_dashes_detection,image,package_path);
 //
