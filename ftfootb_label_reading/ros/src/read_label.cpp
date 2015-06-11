@@ -173,8 +173,19 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
 	std::vector<cv::Rect> detection_list;
 	text_tag_detection_.text_tag_detection_fine_detection(image_grayscale_small, detection_list);
 	std::cout<<detection_list.size()<<" text tags detected!"<<std::endl;
-
 	std::cout << "Text Detection: [" << tim.getElapsedTimeInMilliSec() << " ms] processing time" << std::endl;
+
+	// correct scale of detections
+	const double factor_x = image.cols/(double)tag_detection_target_image_width_;
+	const double factor_y = image.rows/(double)tag_detection_target_image_height_;
+	for (size_t i=0; i<detection_list.size(); ++i)
+	{
+		detection_list[i].x *= factor_x;
+		detection_list[i].width *= factor_x;
+		detection_list[i].y *= factor_y;
+		detection_list[i].height *= factor_y;
+	}
+
 
 	// read texts from tags
 //	cvtColor(image, image, CV_GRAY2BGR);
@@ -223,9 +234,9 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
 	}
 
 	double time_in_mseconds = tim.getElapsedTimeInMilliSec();
-	std::cout << "Whole system [" << time_in_mseconds << " s] processing time" << std::endl;
+	std::cout << "Whole system [" << time_in_mseconds << " ms] processing time" << std::endl;
 	std::stringstream ss;
-	ss<<time_in_mseconds<<"s processing time";
+	ss<<time_in_mseconds<<"ms processing time";
 	cv::putText(image_display, ss.str(), cv::Point(10, 30), cv::FONT_HERSHEY_PLAIN, 1.5, CV_RGB(255,0,0), 2);
 	ss.str("");
 	cv::imshow("image", image_display);

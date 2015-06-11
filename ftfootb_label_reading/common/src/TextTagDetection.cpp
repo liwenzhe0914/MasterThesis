@@ -9,6 +9,8 @@ TextTagDetection::TextTagDetection(const std::string& path_data)
 	// read text tag template image
 	std::string tag_template_fullname = path_data + "template.png";
 	text_tag_template_image_ = cv::imread(tag_template_fullname, CV_LOAD_IMAGE_GRAYSCALE);
+	text_tag_template_target_size_ = cv::Size(55,10);
+	cv::resize(text_tag_template_image_, text_tag_template_image_, text_tag_template_target_size_);
 }
 
 // struct byArea and byCenterX are meant to compare the area
@@ -25,7 +27,7 @@ struct byCenterX
 {
     bool operator () (const cv::Rect & a,const cv::Rect & b)
     {
-         return a.x+0.5*a.width> b.x+0.5*b.width ;
+         return a.x+0.5*a.width < b.x+0.5*b.width;
     }
 };
 
@@ -35,135 +37,112 @@ struct byCenterX
 //this function is to find the best line with most white white pixels.
 //The input of this function is a map between the lines position (represented by x or y coordinate)
 //and the white pixels number. The output of the function is the line position with largest white pixels number.
-float TextTagDetection::find_best_two_lines(std::map<float,float> lines_with_count_map)
+inline float TextTagDetection::find_best_two_lines(const std::map<int,float>& lines_with_count_map)
 {
-	unsigned currentMax = 0;
-	unsigned arg_max = 0;
-	std::map<float,float>::iterator it = lines_with_count_map.begin();
-	for(it=lines_with_count_map.begin(); it!=lines_with_count_map.end(); ++it )
-	    {
-		if (it->first > currentMax)
-	    	{
-	        	arg_max = it->second;
-	        	currentMax = it->first;
-	    	}
-	    }
-	return arg_max;
+	if (lines_with_count_map.size() > 0)
+		return (--lines_with_count_map.end())->second;
+
+	return 0.f;
 }
 
 
 // This function is to count the number of the white pixels.
-int TextTagDetection::count_white_pixels(cv::Mat dst,cv::Point pt1,cv::Point pt2,bool vertical)
+int TextTagDetection::count_white_pixels_on_line(const cv::Mat& dst, const double r, const double cosine, const double sine, const bool vertical)
 {
-	int count=0;
-	cv::Point temp;
+	// line equation: y = (r-cosine*x)/sine
+	int count = 0;
 	if (vertical)
 	{
-		for(temp.y=-200;temp.y<200;temp.y++)
-			{
-				if (dst.at<uchar>(temp.y,pt2.x)==(255))
-				{
-					count++;
-				}
-			}
+		for(int y=0; y<dst.rows; ++y)
+		{
+			int x = (r-y*sine)/cosine;
+			if (dst.at<uchar>(y,x)==255)
+				count++;
+		}
 	}
 	else
 	{
-		for(temp.x=pt1.x;temp.x<pt2.x;temp.x++)
+		for(int x=0; x<dst.cols; ++x)
 		{
-			if (dst.at<uchar>(pt1.y, temp.x)==(255))
-			{
+			int y = (r-cosine*x)/sine;
+			if (dst.at<uchar>(y,x)==255)
 				count++;
-			}
 		}
 	}
-return count;
+	return count;
 }
 
 //#define _DEBUG_DISPLAYS_
 cv::Rect TextTagDetection::get_rect_with_hough_line_transform(const cv::Mat& src)
 {
 	// preprocessing the input text tag
-	double resize_fx = 400. / (double)src.cols;
 	double resize_fy = 100. / (double)src.rows;
-	std::map<float,float> upper_horizontal_with_count_map, lower_horizontal_with_count_map,	left_vertical_with_count_map, right_vertical_with_count_map;
+	double resize_fx = resize_fy;	//400. / (double)src.cols;
+	std::map<int,float> upper_horizontal_with_count_map, lower_horizontal_with_count_map,	left_vertical_with_count_map, right_vertical_with_count_map;
 	cv::Mat src_resized, dst, cdst;
-	resize(src, src_resized, cv::Size(), resize_fx, resize_fy);
+	cv::resize(src, src_resized, cv::Size(), resize_fx, resize_fy);
 	src_resized.convertTo(src_resized, -1, 0.8, 0);		// todo: cv::normalize(src_resized, src_resized, 0, 255, cv::NORM_MINMAX);
 	cv::Mat img_thres_gray;
-	double canny_acc_thresh = threshold(src_resized, img_thres_gray, 0, 255, CV_THRESH_BINARY|CV_THRESH_OTSU);
+	double canny_acc_thresh = cv::threshold(src_resized, img_thres_gray, 0, 255, CV_THRESH_BINARY|CV_THRESH_OTSU);
 //	double CannyThresh = 0.1 * canny_acc_thresh;
 	cv::Canny(src_resized, dst, 0, canny_acc_thresh/2);
+
 #ifdef _DEBUG_DISPLAYS_
 	cvtColor(dst, cdst, CV_GRAY2BGR);
 #endif
 
 	// detect horizontal lines
 	std::vector<cv::Vec2f> lines_horizontal;
-	cv::HoughLines(dst, lines_horizontal, 1, CV_PI/180, 40, 0, 0 );
+	cv::HoughLines(dst, lines_horizontal, 1, CV_PI/180, 0.1*dst.cols, 0, 0 );
 	for( size_t i = 0; i < lines_horizontal.size(); i++ )
 	{
-		float rho = lines_horizontal[i][0], theta = lines_horizontal[i][1];
+		double rho = lines_horizontal[i][0], theta = lines_horizontal[i][1];
 
-		if(theta>CV_PI/180*89.5 && theta<CV_PI/180*90.5)
+		if(theta>CV_PI/180*88 && theta<CV_PI/180*92)
 		{
 			cv::Point pt1, pt2;
-			double a = cos(theta), b = sin(theta);
-			double x0 = a*rho, y0 = b*rho;
-			pt1.x = cvRound(x0 + 1000*(-b));
-			pt1.y = cvRound(y0 + 1000*(a));
-			pt2.x = cvRound(x0 - 1000*(-b));
-			pt2.y = cvRound(y0 - 1000*(a));
-#ifdef _DEBUG_DISPLAYS_
-			cv::line( cdst, pt1, pt2, cv::Scalar(255,0,255), 3, CV_AA);
-#endif
-			int count=count_white_pixels(dst,pt1,pt2,0);
+			double c = cos(theta), s = sin(theta);
+			double x0 = c*rho, y0 = s*rho;
+			pt1.x = 0;		//cvRound(x0 + 1000*(-s));
+			pt1.y = rho/s;	//cvRound(y0 + 1000*(c));
+			pt2.x = dst.cols;		//cvRound(x0 - 1000*(-s));
+			pt2.y = (rho - dst.cols*c)/s;	//cvRound(y0 - 1000*(c));
+			int count = count_white_pixels_on_line(dst, rho, c, s, false);
 			if (pt1.y<0.25*dst.rows)
-			{
-			upper_horizontal_with_count_map[count]=pt1.y;
-			}
+				upper_horizontal_with_count_map[count]=0.5*(pt1.y+pt2.y);
 			else if (pt1.y>0.75*dst.rows)
-			{
-			lower_horizontal_with_count_map[count]=pt1.y;
-			}
+				lower_horizontal_with_count_map[count]=0.5*(pt1.y+pt2.y);
+#ifdef _DEBUG_DISPLAYS_
+			cv::line(cdst, pt1, pt2, cv::Scalar(0,count/(double)dst.cols*255,0), 2, CV_AA);
+#endif
 		}
 	}
 
 	// detect vertical lines
 	std::vector<cv::Vec2f> lines_vertical;
-	cv::HoughLines(dst, lines_vertical, 1, CV_PI/180, 20, 0, 0 );
+	cv::HoughLines(dst, lines_vertical, 1, CV_PI/180, 0.2*dst.rows, 0, 0 );
 	for( size_t i = 0; i < lines_vertical.size(); i++ )
 	{
-		float rho = lines_vertical[i][0], theta = lines_vertical[i][1];
-		if(theta>CV_PI/180*179.5 || theta<CV_PI/180*0.5)
+		double rho = lines_vertical[i][0], theta = lines_vertical[i][1];
+		if(theta>CV_PI/180*178 || theta<CV_PI/180*2)
 		{
 			cv::Point pt1, pt2;
-			double a = cos(theta), b = sin(theta);
-			double x0 = a*rho, y0 = b*rho;
-			pt1.x = cvRound(x0 + 1000*(-b));
-			pt1.y = cvRound(y0 + 1000*(a));
-			pt2.x = cvRound(x0 - 1000*(-b));
-			pt2.y = cvRound(y0 - 1000*(a));
-#ifdef _DEBUG_DISPLAYS_
-			cv::line( cdst, pt1, pt2, cv::Scalar(255,0,255), 3, CV_AA);
-#endif
-			int count=count_white_pixels(dst,pt1,pt2,1);
-
+			double c = cos(theta), s = sin(theta);
+			double x0 = c*rho, y0 = s*rho;
+			pt1.x = rho/c;		//cvRound(x0 + 1000*(-s));
+			pt1.y = 0;			//cvRound(y0 + 1000*(c));
+			pt2.x = (rho - dst.rows*s)/c;	//cvRound(x0 - 1000*(-s));
+			pt2.y = dst.rows;				//cvRound(y0 - 1000*(c));
+			int count = count_white_pixels_on_line(dst, rho, c, s, true);
 			if (pt1.x>0.92*dst.cols)
-			{
-				right_vertical_with_count_map[count]=pt1.x;
-			}
+				right_vertical_with_count_map[count]=0.5*(pt1.x+pt2.x);
 			else if (pt1.x<0.08*dst.cols)
-			{
-				left_vertical_with_count_map[count]=pt1.x;
-			}
+				left_vertical_with_count_map[count]=0.5*(pt1.x+pt2.x);
+#ifdef _DEBUG_DISPLAYS_
+			cv::line( cdst, pt1, pt2, cv::Scalar(0,count/(double)dst.rows*255,0), 2, CV_AA);
+#endif
 		}
 	}
-
-#ifdef _DEBUG_DISPLAYS_
-	cv::imshow("lines", cdst);
-	cv::waitKey(10);
-#endif
 
 	//divide the text tag into four parts(left right upper and lower)
 	//and obtain the position with largest white pixels number for every part
@@ -173,22 +152,24 @@ cv::Rect TextTagDetection::get_rect_with_hough_line_transform(const cv::Mat& src
 	float best_upper_horizontal = find_best_two_lines(upper_horizontal_with_count_map);
 	float best_lower_horizontal = find_best_two_lines(lower_horizontal_with_count_map);
 
-	if (best_lower_horizontal==0)
-	{
-		best_lower_horizontal=100;
-	}
+	if (best_lower_horizontal<=0.f)
+		best_lower_horizontal=dst.rows;
 
-	if (best_right_vertical==0)
-	{
-		best_right_vertical=400;
-	}
+	if (best_right_vertical<=0.f)
+		best_right_vertical=dst.cols;
 
 	//remember that we have scaled the image, so here is the operation to
 	//restore the lines' position back to its original size.
-
 	cv::Rect rectangle(best_left_vertical/resize_fx, best_upper_horizontal/resize_fy, best_right_vertical/resize_fx-best_left_vertical/resize_fx, best_lower_horizontal/resize_fy-best_upper_horizontal/resize_fy);
 
 //	std::cout<<rectangle.x<<" "<<rectangle.y<<" "<<rectangle.width<<" "<<rectangle.height<<std::endl;
+
+#ifdef _DEBUG_DISPLAYS_
+	cv::imshow("lines", cdst);
+	cv::imshow("dst", dst);
+	cv::imshow("cut", src(rectangle));
+	cv::waitKey();
+#endif
 
 	return rectangle;
 }
@@ -198,24 +179,25 @@ cv::Rect TextTagDetection::get_rect_with_hough_line_transform(const cv::Mat& src
 
 cv::Rect TextTagDetection::restore_text_tag_by_detected_dashes(std::vector<cv::Rect>& detected_dashes_list, const cv::Rect& text_tag, const cv::Mat& image)
 {
-	cv::Rect refined_text_tag;
-	cv::Mat roi = image(text_tag);
-	if (detected_dashes_list.size()==3 )
+	cv::Rect refined_text_tag = text_tag;
+	if (detected_dashes_list.size()==3)
 	{
 		refined_text_tag = restore_text_tag_by_three_detected_dashes(detected_dashes_list, text_tag, image);
 	}
 	else if (detected_dashes_list.size()==2)
 	{
+		// center0 is left of center1
 		cv::Point center0 = (detected_dashes_list[0].tl()+detected_dashes_list[0].br())*0.5;
 		cv::Point center1 = (detected_dashes_list[1].tl()+detected_dashes_list[1].br())*0.5;
 
-		cv::Point center_l = cv::Point (center1.x-(center0.x-center1.x),center0.y);
-		cv::Point center_r = cv::Point (center0.x+(center0.x-center1.x),center0.y);
-		cv::Point center_m = cv::Point (center0.x-0.5*(center0.x-center1.x),center0.y);
+		// 3 possibilities for the missing dash
+		cv::Point center_l = cv::Point(center0.x-(center1.x-center0.x),center0.y);
+		cv::Point center_m = cv::Point(center0.x+0.5*(center1.x-center0.x),center0.y);
+		cv::Point center_r = cv::Point(center1.x+(center1.x-center0.x),center1.y);
 
-		cv::Rect text_tag_l = restore_tag_by_estimated_dashes(center_l, text_tag, image,detected_dashes_list);
-		cv::Rect text_tag_m = restore_tag_by_estimated_dashes(center_m, text_tag, image,detected_dashes_list);
-		cv::Rect text_tag_r = restore_tag_by_estimated_dashes(center_r, text_tag, image,detected_dashes_list);
+		cv::Rect text_tag_l = restore_tag_by_estimated_dashes(center_l, text_tag, image, detected_dashes_list);
+		cv::Rect text_tag_m = restore_tag_by_estimated_dashes(center_m, text_tag, image, detected_dashes_list);
+		cv::Rect text_tag_r = restore_tag_by_estimated_dashes(center_r, text_tag, image, detected_dashes_list);
 
 //		std::cout<<"text_tag l: "<<text_tag_l.x<<" "<<text_tag_l.y<<" "<<text_tag_l.width<<" "<<text_tag_l.height<<std::endl;
 //		std::cout<<"text_tag r: "<<text_tag_r.x<<" "<<text_tag_r.y<<" "<<text_tag_r.width<<" "<<text_tag_r.height<<std::endl;
@@ -278,8 +260,8 @@ double TextTagDetection::angle(cv::Point pt1, cv::Point pt2, cv::Point pt0)
 void TextTagDetection::detect_dashes(const cv::Rect& rect, const cv::Mat& image, std::vector<cv::Rect>& detected_dashes_list)
 {
 		cv::Mat src;
-		double resize_fx = 600. / (double)rect.width;
 		double resize_fy = 150. / (double)rect.height;
+		double resize_fx = resize_fy;	//600. / (double)rect.width;
 		cv::resize(image(rect), src, cv::Size(), resize_fx, resize_fy);
 
 		cv::Mat gray1,gray2,gray3,gray4;
@@ -298,13 +280,8 @@ void TextTagDetection::detect_dashes(const cv::Rect& rect, const cv::Mat& image,
 		src3=src.clone();
 		unsharpMask(src3);
 		src.convertTo(src4, -1, 2.85, 0);
-//		cv::cvtColor(src3, src3, CV_BGR2GRAY);
-//		cv::cvtColor(src2, src2, CV_BGR2GRAY);
-//		cv::cvtColor(src1, src1, CV_BGR2GRAY);
-//		cv::cvtColor(src4, src4, CV_BGR2GRAY);
 
 		// Use Canny instead of threshold to catch squares with gradient shading on 3 conditions
-
 		double CannyAccThresh = cv::threshold(src1,gray1,0,255,CV_THRESH_BINARY|CV_THRESH_OTSU);
 		cv::Canny(src1,bw1,0,CannyAccThresh*1);
 
@@ -343,7 +320,6 @@ void TextTagDetection::detect_dashes(const cv::Rect& rect, const cv::Mat& image,
 			// Skip small or non-convex objects
 			if (std::fabs(cv::contourArea(contours[i])) < 3)
 				continue;
-
 			else if (approx.size() >= 4 && approx.size() <= 6)
 			{
 				// Number of vertices of polygonal curve
@@ -365,34 +341,43 @@ void TextTagDetection::detect_dashes(const cv::Rect& rect, const cv::Mat& image,
 				// to determine the shape of the contour
 				if (vtc == 4 && mincos >= -0.23 && maxcos <= 0.3)
 				{
-					cv::Rect rect = cv::boundingRect(contours[i]);
-					cv::Rect rect_original_size;
-					rect_original_size.x=rect.x/resize_fx;
-					rect_original_size.y=rect.y/resize_fy;
-					rect_original_size.width=rect.width/resize_fx;
-					rect_original_size.height=rect.height/resize_fy;
+					cv::Rect bbrect = cv::boundingRect(contours[i]);
+					cv::Rect rect_original_size(bbrect.x/resize_fx, bbrect.y/resize_fy, bbrect.width/resize_fx, bbrect.height/resize_fy);
 					detected_dashes_list.push_back(rect_original_size);
 				}
 			}
 		}
 
-		//			transfer the dashes coordinates from roi to img and also show them
-//		std::vector<cv::Rect> detected_dashes_list_temp = detected_dashes_list;
-//		for (unsigned int p = 0; p < detected_dashes_list.size(); p++)
-//		{
-//			cv::Rect r(detected_dashes_list[p].x + rect.x, detected_dashes_list[p].y + rect.y, detected_dashes_list[p].width, detected_dashes_list[p].height);
-//			detected_dashes_list_temp.push_back(r);
-//		}
+		// transfer the dashes coordinates from roi to img and also show them
+		for (unsigned int p = 0; p < detected_dashes_list.size(); ++p)
+		{
+			detected_dashes_list[p].x += rect.x;
+			detected_dashes_list[p].y += rect.y;
+		}
+
+//		std::cout << "detected_dashes_list.size()=" << detected_dashes_list.size() << std::endl;
+//		displayDashes(detected_dashes_list, cv::Scalar(0,255,0), image);
 		find_right_dashes(detected_dashes_list, rect);
+//		std::cout << "detected_dashes_list.size()=" << detected_dashes_list.size() << std::endl;
+//		displayDashes(detected_dashes_list, cv::Scalar(0,0,255), image);
+}
+
+void TextTagDetection::displayDashes(const std::vector<cv::Rect>& detected_dashes_list, const cv::Scalar& color, const cv::Mat& image)
+{
+	cv::Mat image_display;
+	cv::cvtColor(image, image_display, CV_GRAY2BGR);
+	for (unsigned int p = 0; p < detected_dashes_list.size(); ++p)
+	{
+		cv::rectangle(image_display, detected_dashes_list[p], color, 1);
+	}
+	cv::imshow("dashes", image_display);
+	cv::waitKey();
 }
 
 // For the case of two dashes are detected, three text tag will be estimated.
-cv::Rect TextTagDetection::restore_tag_by_estimated_dashes(const cv::Point& estimated_dash_center, const cv::Rect& text_tag, const cv::Mat& image, std::vector<cv::Rect>& detected_dashes_list)
+cv::Rect TextTagDetection::restore_tag_by_estimated_dashes(const cv::Point& estimated_dash_center, const cv::Rect& text_tag, const cv::Mat& image, std::vector<cv::Rect> detected_dashes_list)
 {
-	cv::Point r1(estimated_dash_center.x-0.5*detected_dashes_list[0].width, estimated_dash_center.y-0.5*detected_dashes_list[0].height);
-	cv::Point r2(detected_dashes_list[0].width, detected_dashes_list[0].height);
-	cv::Rect rect_temp(r1.x, r1.y, r2.x, r2.y);
-
+	cv::Rect rect_temp(estimated_dash_center.x-0.5*detected_dashes_list[0].width, estimated_dash_center.y-0.5*detected_dashes_list[0].height, detected_dashes_list[0].width, detected_dashes_list[0].height);
 	detected_dashes_list.push_back(rect_temp);
 
 	std::sort(detected_dashes_list.begin(), detected_dashes_list.end(), byCenterX());
@@ -438,91 +423,56 @@ double TextTagDetection::compare_detection_with_template(cv::Rect text_tag, cv::
 cv::Rect TextTagDetection::select_best_match_from_three_estimated_dashes(const cv::Rect& text_tag_l, const cv::Rect& text_tag_m, const cv::Rect& text_tag_r,
 																					const cv::Rect& text_tag, const cv::Mat& image)
 {
-	int match_method=CV_TM_CCOEFF_NORMED;//CV_TM_CCOEFF_NORMED
-	cv::Mat result_r,result_l,result_m;
-//	cv::cvtColor(img, img, CV_BGR2GRAY);
-
-	bool left=true,middle=true,right=true;
-	if (text_tag_l.width*text_tag_l.height<5)
+	bool left=true, middle=true, right=true;
+	if (text_tag_l.area()<0.25*text_tag.area())
 		left=false;
-	if (text_tag_m.width*text_tag_m.height<5 || text_tag_m.width<0.6*text_tag.width)
+	if (text_tag_m.area()<0.25*text_tag.area() || text_tag_m.width<0.6*text_tag.width)
 		middle=false;
-	if (text_tag_r.width*text_tag_r.height<5)
+	if (text_tag_r.area()<0.25*text_tag.area())
 		right=false;
 
-	cv::Mat source_image_l=image(text_tag_l);
-	cv::Mat source_image_r=image(text_tag_r);
-	cv::Mat source_image_m=image(text_tag_m);
-	cv::Size dsize(55,10);
-	cv::resize(text_tag_template_image_,text_tag_template_image_,dsize);
-	cv::resize(source_image_l,source_image_l,dsize);
-	cv::resize(source_image_m,source_image_m,dsize);
-	cv::resize(source_image_r,source_image_r,dsize);
-	double minVal, maxVal,score_l = 0,score_m = 0,score_r = 0;
-	cv::Point minLoc, maxLoc,matchLoc;
-	matchTemplate(source_image_l,text_tag_template_image_,result_l,match_method);
+	double score_l = 1e10, score_m = 1e10, score_r = 1e10;
+	if (left == true)
+		score_l = template_matching_with_estimated_dashes(image(text_tag_l));
+	if (middle == true)
+		score_m = template_matching_with_estimated_dashes(image(text_tag_m));
+	if (right == true)
+		score_r = template_matching_with_estimated_dashes(image(text_tag_r));
 
-	cv::minMaxLoc( result_l, &minVal, &maxVal, &minLoc, &maxLoc, cv::Mat() );
-	if(match_method == cv::TM_SQDIFF || match_method == cv::TM_SQDIFF_NORMED)
-	{
-		matchLoc = minLoc;
-		score_l=minVal;
-	}
-	else
-	{
-		matchLoc = maxLoc;
-		score_l= 1.-maxVal;
-	}
-	matchTemplate(source_image_m,text_tag_template_image_,result_m,match_method);
-	cv::minMaxLoc( result_m, &minVal, &maxVal, &minLoc, &maxLoc, cv::Mat() );
-	if(match_method == cv::TM_SQDIFF || match_method == cv::TM_SQDIFF_NORMED)
-	{
-		matchLoc = minLoc;
-		score_m=minVal;
-	}
-	else
-	{
-		matchLoc = maxLoc;
-		score_m= 1.-maxVal;
-	}
-	matchTemplate(source_image_r,text_tag_template_image_,result_r,match_method);
-	cv::minMaxLoc( result_r, &minVal, &maxVal, &minLoc, &maxLoc, cv::Mat());
-	if(match_method == cv::TM_SQDIFF || match_method == cv::TM_SQDIFF_NORMED)
-	{
-		matchLoc = minLoc;
-		score_r=minVal;
-	}
-	else
-	{
-		matchLoc = maxLoc;
-		score_r=1.- maxVal;
-	}
-	if (!left)
-		score_l=10;
-	if (!middle)
-		score_m=10;
-	if (!right)
-		score_r=10;
-
-	std::map<double,std::string> map;
-	map[score_l]="l";
-	map[score_m]="m";
-	map[score_r]="r";
-	double min1 = std::min(score_m,score_r);
-	double minn = std::min(min1,score_l);
-	std::string best=map.find(minn) -> second;
-//	std::cout<<"best:"<<best<<std::endl;
-	cv::Rect best_text_tag;
-	if (best=="l")
-		best_text_tag=text_tag_l;
-	else if (best=="m")
-		best_text_tag=text_tag_m;
-	else if (best=="r")
-		best_text_tag=text_tag_r;
-	if (score_l==10 && score_m==10 && score_r==10)
-		best_text_tag=text_tag;
+	std::map<double, cv::Rect> ranking;
+	ranking[score_l] = text_tag_l;
+	ranking[score_m] = text_tag_m;
+	ranking[score_r] = text_tag_r;
+	cv::Rect best_text_tag = text_tag;
+	if (score_l<1e10 || score_m<1e10 || score_r<1e10)
+		best_text_tag = ranking.begin()->second;
 
 	return best_text_tag;
+}
+
+double TextTagDetection::template_matching_with_estimated_dashes(const cv::Mat& image)
+{
+	const int match_method=CV_TM_CCOEFF_NORMED;//CV_TM_CCOEFF_NORMED
+
+	cv::Mat image_resized;
+	cv::resize(image, image_resized, text_tag_template_target_size_);
+	double minVal, maxVal, score = 0;
+	cv::Point minLoc, maxLoc, matchLoc;
+	cv::Mat result;
+	cv::matchTemplate(image_resized, text_tag_template_image_, result, match_method);
+	cv::minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, cv::Mat());
+	if(match_method == cv::TM_SQDIFF || match_method == cv::TM_SQDIFF_NORMED)
+	{
+		matchLoc = minLoc;
+		score = minVal;
+	}
+	else
+	{
+		matchLoc = maxLoc;
+		score = 1.-maxVal;
+	}
+
+	return score;
 }
 
 //Eliminate some dashes by their shapes or aspect ratio etc and merge intersecting dashes.
@@ -573,22 +523,18 @@ cv::Rect TextTagDetection::restore_text_tag_by_three_detected_dashes(const std::
 //	cv::Point center2 = (detected_dashes_list[2].tl()+detected_dashes_list[2].br())*0.5;
 
 	cv::Point tag_center;
-	double two_near_dashes_gap = std::fabs( 0.5*(double(detected_dashes_list[2].x) - double(detected_dashes_list[0].x)) );
-	tag_center.x=ceil((double(center1.x-text_tag.x)-2./140.*two_near_dashes_gap)+text_tag.x);
-	tag_center.y=ceil((97./53.*double(center1.y-text_tag.y)*0.5)+text_tag.y);
+	double two_near_dashes_gap_x = std::fabs( 0.5*(double(detected_dashes_list[2].x) - double(detected_dashes_list[0].x)) );
+//	tag_center.x=ceil((double(center1.x-text_tag.x)-2./140.*two_near_dashes_gap_x)+text_tag.x);
+//	tag_center.y=ceil((97./53.*double(center1.y-text_tag.y)*0.5)+text_tag.y);
 
-	refined_text_tag.width = ceil(690./179.5*two_near_dashes_gap);//two_near_dashes_gap*2 + 127* two_near_dashes_gap/140+ 123* two_near_dashes_gap/140;
-	refined_text_tag.height = ceil(129./640.*refined_text_tag.width);
-	refined_text_tag.x= center1.x-0.5*refined_text_tag.width;
-	refined_text_tag.y= center1.y-6.5/129.*refined_text_tag.height-0.5*refined_text_tag.height;
+	// perfect tag template: width=690mm, height=129mm, width from dash to next dash=179.5mm, vertical distance between tag upper border and dash center=71
+	refined_text_tag.width = ceil(690./179.5*two_near_dashes_gap_x);		//two_near_dashes_gap*2 + 127* two_near_dashes_gap/140+ 123* two_near_dashes_gap/140;
+	refined_text_tag.height = ceil(129./690.*refined_text_tag.width);		//ceil(129./640.*refined_text_tag.width); might work better
+	refined_text_tag.x = center1.x-0.5*refined_text_tag.width;
+	refined_text_tag.y = center1.y-6.5/129.*refined_text_tag.height-0.5*refined_text_tag.height;		// -6.5/129.*refined_text_tag.height is a compensation for the dash not being perfectly centered vertically
 //	std::cout<<"text_tag: "<<text_tag.x<<" "<<text_tag.y<<" "<<text_tag.width<<" "<<text_tag.height<<std::endl;
-	if(refined_text_tag.x<0 || refined_text_tag.y<0 || (refined_text_tag.x+refined_text_tag.width)>image.cols || (refined_text_tag.y+refined_text_tag.height)>image.rows )
-	{
-		refined_text_tag.x =0;
-		refined_text_tag.y =0;
-		refined_text_tag.width=1;
-		refined_text_tag.height=1;
-	}
+	if(refined_text_tag.x<0 || refined_text_tag.y<0 || (refined_text_tag.x+refined_text_tag.width)>=image.cols || (refined_text_tag.y+refined_text_tag.height)>=image.rows)
+		refined_text_tag = cv::Rect(0, 0, 1, 1);
 	return refined_text_tag;
 }
 
@@ -624,23 +570,24 @@ void TextTagDetection::text_tag_detection_fine_detection(const cv::Mat& image, s
 
 	for (std::vector<cv::Rect>::const_iterator r = initial_rectangle_list.begin(); r != initial_rectangle_list.end(); r++)
 	{
-//		std::cout<<"1. text_tag: "<<r->x<<" "<<r->y<<" "<<r->width<<" "<<r->height<<std::endl;
-
 		// update detection by Hough line transform
 		cv::Mat roi = image(*r);
-		cv::Rect rectangle_info = get_rect_with_hough_line_transform(roi);
-		cv::Rect rectangle_updated_by_hough_line(r->x+rectangle_info.x, r->y+rectangle_info.y, rectangle_info.width, rectangle_info.height);
+		cv::Rect rectangle_hough_roi = get_rect_with_hough_line_transform(roi);
+		cv::Rect rectangle_updated_by_hough_line(r->x+rectangle_hough_roi.x, r->y+rectangle_hough_roi.y, rectangle_hough_roi.width, rectangle_hough_roi.height);
 
 		//update detection by dashes detection
 		std::vector<cv::Rect> detected_dashes_list;
 		detect_dashes(rectangle_updated_by_hough_line, image, detected_dashes_list);
 		cv::Rect rectangle_updated_by_dashes_detection = restore_text_tag_by_detected_dashes(detected_dashes_list, rectangle_updated_by_hough_line, image);
 
-//		std::cout<<"2. text_tag: "<<rectangle_updated_by_dashes_detection.x<<" "<<rectangle_updated_by_dashes_detection.y<<" "<<rectangle_updated_by_dashes_detection.width<<" "<<rectangle_updated_by_dashes_detection.height<<std::endl;
-
 //		double score = compare_detection_with_template(rectangle_updated_by_dashes_detection,image,package_path);
 //
 //		std::cout<<"score: "<<score<<std::endl;
+
+//		cv::imshow("Viola-Jones", image(*r));
+//		cv::imshow("Hough", image(rectangle_updated_by_hough_line));
+//		cv::imshow("Dashes", image(rectangle_updated_by_dashes_detection));
+//		cv::waitKey();
 
 		rectangle_list.push_back(rectangle_updated_by_dashes_detection);
 	}

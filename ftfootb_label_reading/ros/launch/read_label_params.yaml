@@ -17,7 +17,7 @@ feature_number: 1
 
 # single or combinations (pairs) of letters/numbers: 1. single 2. combinations
 # int
-single_or_combination: 2
+single_or_combination: 1
 
 # template matching OR feature representation: 1. TM, 2. FR, 3. both.
 # int
