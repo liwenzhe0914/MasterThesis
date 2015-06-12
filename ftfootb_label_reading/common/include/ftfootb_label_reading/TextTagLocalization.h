@@ -5,14 +5,21 @@
  *      Author: rmb-lw
  */
 
-#ifndef 3DLOCALIAZATION_H_
-#define 3DLOCALIAZATION_H_
+#ifndef TEXT_TAG_LOCALIZATION_H_
+#define TEXT_TAG_LOCALIZATION_H_
+#include <math.h>
+#include <nlopt.h>
+#include <stdio.h>
+#include <iostream>
+#include "opencv/cv.h"
+#include "opencv/highgui.h"
+//#include <tf/tf.h>
 
 class TextTagLocalization
 {
-
+	//Transform localize_text_tag();
 };
 
 
 
-#endif /* 3DLOCALIAZATION_H_ */
+#endif /* TEXT_TAG_LOCALIZATION_H_ */

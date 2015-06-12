@@ -230,6 +230,9 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
 				std::cout << "The text tag reads: " << tag_label_template_matching << "." << std::endl;
 				cv::putText(image_display, tag_label_template_matching, cv::Point(detection_list[i].x-100, detection_list[i].y-5), cv::FONT_HERSHEY_PLAIN, 2, CV_RGB(255,0,255), 2);
 			}
+
+			// localize text tag
+			//Transform = text_tag_localization_.localize_text_tag();
 		}
 	}
 
@@ -241,6 +244,10 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
 	ss.str("");
 	cv::imshow("image", image_display);
 	cv::waitKey(1);
+
+	// publish detected text tags (location, label)
+
+
 //	double roi_height,roi_width;
 //	cv::Rect roi_rect((color_image.cols-roi_width)/2,(color_image.rows-roi_height)/2,roi_width,roi_height);
 //	cv::rectangle(color_image, cv::Point(roi_rect.x-2, roi_rect.y-2), cv::Point(roi_rect.x+roi_rect.width+2, roi_rect.y+roi_rect.height+2), CV_RGB(0,0,255), 2);
