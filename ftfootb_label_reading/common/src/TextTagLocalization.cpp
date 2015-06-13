@@ -1,12 +1,12 @@
 /*
- * 3DLocalization.cpp
+ * TextTagLocalization.cpp
  *
  *  Created on: Jun 12, 2015
  *      Author: rmb-lw
  */
 
 
-
+#include <nlopt.h>
 #include <ftfootb_label_reading/TextTagLocalization.h>
 
 // function1: (s1*x1 - s2*x2)*(s1*x1 - s2*x2) + (s1*y1 - s2*y2)*(s1*y1 - s2*y2) + (s1*z1 - s2*z2)*(s1*z1 - s2*z2) - w*w
@@ -203,22 +203,82 @@ double f8d()
 
 void jacobi(cv::Mat& jacobi_matrix,
 			double x1, double y1,double z1, double x2, double y2, double z2, double x3, double y3, double z3, double x4, double y4, double z4,
-			double s1, double s2, double s3, double s4)
-{
+			double s1, double s2, double s3, double s4,
+			double a, double b, double c)
+{	/*	--------------------------------------------------------------------
+		 |	s1		s2		s3		s4		a		b		c		d	|
+		--------------------------------------------------------------------
+	 * * | f1s1 	f1s2 	0 		0 		0 		0 		0 		0	|
+	 * * | 0		0		f2s3	f2s4	0		0		0		0	|
+	 * * | f3s1		0		0		f3s4	0		0		0		0	|
+	 * * | 0		f4s2	f4s3	0		0		0		0		0	|
+	 * * | f5s1		0		0		0		f5a		f5b		f5c		f5d	|
+	 * * | 0		f6s2	0		0		f6a		f6b		f6c		f6d	|
+	 * * | 0		0		f7s3	0		f7a		f7b		f7c		f7d	|
+	 * * | 0		0		0		f8s4	f8a		f8b		f8c		f8d	|
+	*/
 	jacobi_matrix.at<uchar>(0,0) = f1s1(s1, s2, x1, y1, z1, x2, y2, z2);
 	jacobi_matrix.at<uchar>(0,1) = f1s2(s1, s2, x1, y1, z1, x2, y2, z2);
-//	jacobi_matrix.at<uchar>(0,2) = 0;
-//	jacobi_matrix.at<uchar>(0,3) = 0;
-//	jacobi_matrix.at<uchar>(0,4) = 0;
-//	jacobi_matrix.at<uchar>(0,5) = 0;
-//	jacobi_matrix.at<uchar>(0,6) = 0;
-//	jacobi_matrix.at<uchar>(0,7) = 0;
+
 	jacobi_matrix.at<uchar>(1,2) = f2s3(s3, s4, x3, y3, z3, x4, y4, z4);
 	jacobi_matrix.at<uchar>(1,3) = f2s4(s3, s4, x3, y3, z3, x4, y4, z4);
-	jacobi_matrix.at<uchar>(2,0) = f2s3(s3, s4, x3, y3, z3, x4, y4, z4);
-	jacobi_matrix.at<uchar>(1,3) = f2s4(s3, s4, x3, y3, z3, x4, y4, z4);
 
+	jacobi_matrix.at<uchar>(2,0) = f3s1(s1, s4, x1, y1, z1, x4, y4, z4);
+	jacobi_matrix.at<uchar>(2,3) = f3s4(s3, s4, x3, y3, z3, x4, y4, z4);
 
+	jacobi_matrix.at<uchar>(3,1) = f4s2(s2, s3, x2, y2, z2, x3, y3, z3);
+	jacobi_matrix.at<uchar>(3,2) = f4s3(s2, s3, x2, y2, z2, x3, y3, z3);
 
+	jacobi_matrix.at<uchar>(4,0) = f5s1(a, b, c, x1, y1, z1);
+	jacobi_matrix.at<uchar>(4,4) = f5a(s1, x1);
+	jacobi_matrix.at<uchar>(4,5) = f5b(s1, y1);
+	jacobi_matrix.at<uchar>(4,6) = f5c(s1, z1);
+	jacobi_matrix.at<uchar>(4,7) = f5d();
+
+	jacobi_matrix.at<uchar>(5,1) = f6s2(a, b, c, x2, y2, z2);
+	jacobi_matrix.at<uchar>(5,4) = f6a(s2, x2);
+	jacobi_matrix.at<uchar>(5,5) = f6b(s2, y2);
+	jacobi_matrix.at<uchar>(5,6) = f6c(s2, z2);
+	jacobi_matrix.at<uchar>(5,7) = f6d();
+
+	jacobi_matrix.at<uchar>(6,2) = f7s3(a, b, c, x3, y3, z3);
+	jacobi_matrix.at<uchar>(6,4) = f7a(s3, x3);
+	jacobi_matrix.at<uchar>(6,5) = f7b(s3, y3);
+	jacobi_matrix.at<uchar>(6,6) = f7c(s3, z3);
+	jacobi_matrix.at<uchar>(6,7) = f7d();
+
+	jacobi_matrix.at<uchar>(7,3) = f8s4(a, b, c, x4, y4, z4);
+	jacobi_matrix.at<uchar>(7,4) = f8a(s4, x4);
+	jacobi_matrix.at<uchar>(7,5) = f8b(s4, y4);
+	jacobi_matrix.at<uchar>(7,6) = f8c(s4, z4);
+	jacobi_matrix.at<uchar>(7,7) = f8d();
 }
 
+cv::Mat delta(const cv::Mat jacobi_matrix, double& ds1, double& ds2,double& ds3,double& ds4, double& da, double& db, double& dc, double& dd,
+			double x1, double y1, double z1, double x2, double y2, double z2, double x3, double y3, double z3, double x4, double y4, double z4,
+			double s1, double s2, double s3, double s4, double a, double b, double c, double d ,double w, double h)
+{
+	cv::Mat jacobi_matrix_inverse = jacobi_matrix.inv();
+	cv::Mat function_mat;
+	function_mat.at<uchar>(0,0) = function1(s1,s2,x1,y1,z1,x2,y2,z2,w);
+	function_mat.at<uchar>(0,1) = function2(s3,s4,x3,y3,z3,x4,y4,z4,w);
+	function_mat.at<uchar>(0,2) = function3(s1,s4,x1,y1,z1,x4,y4,z4,h);
+	function_mat.at<uchar>(0,3) = function4(s2,s3,x2,y2,z2,x3,y3,z3,h);
+	function_mat.at<uchar>(0,4) = function5(s1,x1,y1,z1,a,b,c,d);
+	function_mat.at<uchar>(0,5) = function6(s2,x2,y2,z2,a,b,c,d);
+	function_mat.at<uchar>(0,6) = function7(s3,x3,y3,z3,a,b,c,d);
+	function_mat.at<uchar>(0,7) = function8(s4,x4,y4,z4,a,b,c,d);
+
+	cv::Mat delta_mat = -1.* jacobi_matrix_inverse.dot(function_mat);
+
+	return delta_mat;
+}
+
+void TextTagLocalization(double x1, double y1,double z1, double x2, double y2, double z2, double x3, double y3, double z3, double x4, double y4, double z4)
+{
+
+	 while(1)
+	 {
+
+	 }
+}
