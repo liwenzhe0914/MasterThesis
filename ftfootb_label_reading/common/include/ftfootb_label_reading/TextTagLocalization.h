@@ -8,7 +8,6 @@
 #ifndef TEXT_TAG_LOCALIZATION_H_
 #define TEXT_TAG_LOCALIZATION_H_
 #include <math.h>
-#include <nlopt.h>
 #include <stdio.h>
 #include <iostream>
 #include "opencv/cv.h"

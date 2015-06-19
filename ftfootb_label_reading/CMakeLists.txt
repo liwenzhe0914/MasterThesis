@@ -65,8 +65,8 @@ add_executable(read_label	ros/src/read_label.cpp
 							common/src/MatchTemplate.cpp
 							common/src/FeatureRepresentation.cpp
 							common/src/TextTagDetection.cpp
-							common/src/LBPandHistogram.cpp
-							common/src/TextTagLocalization.cpp)
+							common/src/LBPandHistogram.cpp)
+							#common/src/TextTagLocalization.cpp)
 target_link_libraries(read_label
 	${catkin_LIBRARIES} # automatically links all catkin_BUILD_PACKAGES
 	${OpenCV_LIBRARIES})
@@ -113,6 +113,12 @@ add_dependencies(text_tag_detection_node	${catkin_EXPORTED_TARGETS})
 
 #find_package(Boost 1.42.0)
 
+add_executable(newton_method	
+	common/src/TextTagLocalization.cpp)
+target_link_libraries(newton_method
+	${catkin_LIBRARIES} # automatically links all catkin_BUILD_PACKAGES
+	${OpenCV_LIBRARIES})
+add_dependencies(newton_method	${catkin_EXPORTED_TARGETS})
 
 ############ obsolete ##############
 #add_executable(text_tag_recogntion_test common/src/text_tag_recogntion_test.cpp 
