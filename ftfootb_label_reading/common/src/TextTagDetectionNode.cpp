@@ -18,7 +18,7 @@ int main(int argc, char** argv)
 	double start_time;
 	double time_in_seconds;
 	start_time = clock();
-	ttd.text_tag_detection_fine_detection(img, detection_list);
+	ttd.text_tag_detection_fine_detection_vj(img, detection_list);
 
 	cv::Mat img_color = cv::imread(image_filename,CV_LOAD_IMAGE_COLOR);
 	for (unsigned int i = 0; i< detection_list.size();i++)

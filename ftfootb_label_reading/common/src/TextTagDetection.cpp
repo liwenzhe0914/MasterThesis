@@ -308,13 +308,11 @@ void TextTagDetection::detect_dashes(const cv::Rect& rect, const cv::Mat& image,
 		contours.insert( contours.end(), contours4.begin(), contours4.end() );
 
 	//		std::cout<<contours.size()<<" "<<contours1.size()<<" "<<contours2.size()<<" "<<contours3.size()<<std::endl;
-		std::vector<cv::Point> approx;
-
-
 		for (unsigned int i = 0; i < contours.size(); i++)
 		{
 			// Approximate contour with accuracy proportional
 			// to the contour perimeter
+			std::vector<cv::Point> approx;
 			cv::approxPolyDP(cv::Mat(contours[i]), approx, cv::arcLength(cv::Mat(contours[i]), true)*0.03, true);
 
 			// Skip small or non-convex objects
@@ -546,7 +544,7 @@ inline void TextTagDetection::text_tag_detection_with_VJ(const cv::Mat& image, s
 //	cv::cvtColor(image, image, CV_RGB2GRAY);
 //	cv::equalizeHist(image, image);
 
-	text_tags_cascade_.detectMultiScale(image, rectangle_list, 1.1, 10, 0, cv::Size(35, 9), cv::Size());
+	text_tags_cascade_.detectMultiScale(image, rectangle_list, 1.1, 3, 0, cv::Size(35, 9), cv::Size());		// (image, rectangle_list, 1.1, 10, 0, cv::Size(35, 9), cv::Size())
 //    if (rectangle_list.size() == 0)
 //    {
 //
@@ -563,7 +561,7 @@ inline void TextTagDetection::text_tag_detection_with_VJ(const cv::Mat& image, s
 
 /////////////////////  text tag Detector integrated by VJ Hough transform and dashes detection /////////////////////////
 
-void TextTagDetection::text_tag_detection_fine_detection(const cv::Mat& image, std::vector<cv::Rect>& rectangle_list)
+void TextTagDetection::text_tag_detection_fine_detection_vj(const cv::Mat& image, std::vector<cv::Rect>& rectangle_list)
 {
 	std::vector<cv::Rect> initial_rectangle_list;
 	text_tag_detection_with_VJ(image, initial_rectangle_list);
@@ -593,6 +591,92 @@ void TextTagDetection::text_tag_detection_fine_detection(const cv::Mat& image, s
 	}
 }
 
+void TextTagDetection::text_tag_detection_fine_detection_rectangle_detection(const cv::Mat& image, std::vector<cv::Rect>& rectangle_list)
+{
+	std::vector<cv::Rect> initial_rectangle_list;
+	detect_tag_by_frame(image, initial_rectangle_list);
+
+	for (std::vector<cv::Rect>::const_iterator r = initial_rectangle_list.begin(); r != initial_rectangle_list.end(); r++)
+	{
+		//update detection by dashes detection
+		std::vector<cv::Rect> detected_dashes_list;
+		detect_dashes(*r, image, detected_dashes_list);
+		cv::Rect rectangle_updated_by_dashes_detection = restore_text_tag_by_detected_dashes(detected_dashes_list, *r, image);
+
+//		double score = compare_detection_with_template(rectangle_updated_by_dashes_detection,image,package_path);
+//
+//		std::cout<<"score: "<<score<<std::endl;
+
+//		cv::imshow("Viola-Jones", image(*r));
+//		cv::imshow("Hough", image(rectangle_updated_by_hough_line));
+//		cv::imshow("Dashes", image(rectangle_updated_by_dashes_detection));
+//		cv::waitKey();
+
+		rectangle_list.push_back(rectangle_updated_by_dashes_detection);
+	}
+}
+
+void TextTagDetection::detect_tag_by_frame(const cv::Mat& image_grayscale, std::vector<cv::Rect>& detections)
+{
+	detections.clear();
+
+	// Use Canny instead of threshold to catch squares with gradient shading on 3 conditions
+	//double CannyAccThresh = cv::threshold(image_grayscale, image_bw, 0, 255, CV_THRESH_BINARY|CV_THRESH_OTSU);
+	cv::Mat edge_image;
+	cv::Canny(image_grayscale, edge_image, 20, 150); //CannyAccThresh);
+
+	// Find contours on 3 conditions and combine them
+	std::vector<std::vector<cv::Point> > contours;
+	cv::findContours(edge_image, contours, CV_RETR_EXTERNAL , CV_CHAIN_APPROX_SIMPLE);
+
+	for (size_t i=0; i<contours.size(); ++i)
+	{
+		// Approximate contour with accuracy proportional
+		// to the contour perimeter
+		std::vector<cv::Point> approx;
+		cv::approxPolyDP(cv::Mat(contours[i]), approx, cv::arcLength(cv::Mat(contours[i]), true)*0.03, true);
+
+		// Skip small or non-convex objects
+		if (std::fabs(cv::contourArea(contours[i])) < 1000 || approx.size()!=4 || cv::isContourConvex(cv::Mat(approx))==false)
+			continue;
+
+		// verify that angles are about 90deg
+		// Number of vertices of polygonal curve
+		int vtc = approx.size();
+
+		// Get the cosines of all corners
+		std::vector<double> cos;
+		for (int j = 2; j < vtc+1; j++)
+			cos.push_back(angle(approx[j%vtc], approx[j-2], approx[j-1]));
+
+		// Sort ascending the cosine values
+		std::sort(cos.begin(), cos.end());
+
+		// Get the lowest and the highest cosine
+		double mincos = cos.front();
+		double maxcos = cos.back();
+
+		// Use the degrees obtained above and the number of vertices
+		// to determine the shape of the contour
+		if ((mincos >= -0.23 && maxcos <= 0.3) == false)
+			continue;
+
+		// check for aspect ratio
+		cv::Rect tag_frame = cv::boundingRect(contours[i]);
+		if (tag_frame.height/(double)tag_frame.width < 0.85*129./690. || tag_frame.height/(double)tag_frame.width > 1.15*129./690.)
+			continue;
+
+		detections.push_back(tag_frame);
+	}
+
+//	// display
+//	cv::Mat display_image;
+//	cv::cvtColor(image_grayscale, display_image, CV_GRAY2BGR);
+//	for (size_t i=0; i<detections.size(); ++i)
+//		cv::rectangle(display_image, detections[i], CV_RGB(0,255,0), 2);
+//	cv::imshow("detections", display_image);
+//	cv::waitKey();
+}
 
 
 
