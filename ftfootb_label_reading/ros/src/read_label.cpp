@@ -171,7 +171,7 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
 
 	// find text tags in original image
 	std::vector<cv::Rect> detection_list;
-	text_tag_detection_.text_tag_detection_fine_detection(image_grayscale_small, detection_list);
+	text_tag_detection_.text_tag_detection_fine_detection_rectangle_detection(image_grayscale_small, detection_list);
 	std::cout<<detection_list.size()<<" text tags detected!"<<std::endl;
 	std::cout << "Text Detection: [" << tim.getElapsedTimeInMilliSec() << " ms] processing time" << std::endl;
 
