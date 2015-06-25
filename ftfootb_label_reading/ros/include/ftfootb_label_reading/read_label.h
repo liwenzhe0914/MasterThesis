@@ -90,6 +90,7 @@
 
 class LabelReader
 {
+
 protected:
 //	ros::Subscriber point_cloud_sub_;
 //	ros::Publisher point_cloud_pub_; ///< Point cloud output topic

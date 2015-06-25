@@ -10,198 +10,198 @@
 #include <stdlib.h>
 
 // function1: (s1*x1 - s2*x2)*(s1*x1 - s2*x2) + (s1*y1 - s2*y2)*(s1*y1 - s2*y2) + (s1*z1 - s2*z2)*(s1*z1 - s2*z2) - w*w
-double function1(double s1, double s2,double x1,double y1, double z1, double x2, double y2, double z2, double w)
+double TextTagLocalization::function1(double s1, double s2,double x1,double y1, double z1, double x2, double y2, double z2, double w)
 {
 	return (s1*x1 - s2*x2)*(s1*x1 - s2*x2) + (s1*y1 - s2*y2)*(s1*y1 - s2*y2) + (s1*z1 - s2*z2)*(s1*z1 - s2*z2) - w*w;
 }
 
 // function2: (s3*x3 - s4*x4)*(s3*x3 - s4*x4) + (s3*y3 - s4*y4)*(s3*y3 - s4*y4) + (s3*z3 - s4*z4)*(s3*z3 - s4*z4) - w*w
 
-double function2(double s3, double s4,double x3,double y3,double z3, double x4,double y4, double z4, double w)
+double TextTagLocalization::function2(double s3, double s4,double x3,double y3,double z3, double x4,double y4, double z4, double w)
 {
 	return (s3*x3 - s4*x4)*(s3*x3 - s4*x4) + (s3*y3 - s4*y4)*(s3*y3 - s4*y4) + (s3*z3 - s4*z4)*(s3*z3 - s4*z4) - w*w;
 }
 
 // function3: (s1*x1 - s4*x4)*(s1*x1 - s4*x4) + (s1*y1 - s4*y4)*(s1*y1 - s4*y4) + (s1*z1 - s4*z4)*(s1*z1 - s4*z4) - h*h
 
-double function3(double s1, double s4, double x1,double y1, double z1, double x4, double y4, double z4, double h)
+double TextTagLocalization::function3(double s1, double s4, double x1,double y1, double z1, double x4, double y4, double z4, double h)
 {
 	return (s1*x1 - s4*x4)*(s1*x1 - s4*x4) + (s1*y1 - s4*y4)*(s1*y1 - s4*y4) + (s1*z1 - s4*z4)*(s1*z1 - s4*z4) - h*h;
 }
 
 // function4: (s2*x2 - s3*x3)*(s2*x2 - s3*x3) + (s2*y2 - s3*y3)*(s2*y2 - s3*y3) + (s1*z1 - s4*z4)*(s1*z1 - s4*z4) - h*h
 
-double function4(double s2, double s3, double x2, double y2, double z2, double x3, double y3, double z3, double h)
+double TextTagLocalization::function4(double s2, double s3, double x2, double y2, double z2, double x3, double y3, double z3, double h)
 {
 	return (s2*x2 - s3*x3)*(s2*x2 - s3*x3) + (s2*y2 - s2*y2)*(s3*y3 - s3*y3) + (s2*z2 - s2*z2)*(s3*z3 - s3*z3) - h*h;
 }
 
 // function5: s1*(a*x1 + b*y1 + c*z1) + d
-double function5(double s1, double x1, double y1, double z1, double a, double b, double c, double d)
+double TextTagLocalization::function5(double s1, double x1, double y1, double z1, double a, double b, double c, double d)
 {
 	return s1*(a*x1 + b*y1 + c*z1) + d;
 }
 
-double function6(double s2, double x2, double y2, double z2, double a, double b, double c, double d)
+double TextTagLocalization::function6(double s2, double x2, double y2, double z2, double a, double b, double c, double d)
 {
 	return s2*(a*x2 + b*y2 + c*z2) + d;
 }
 
-double function7(double s3, double x3, double y3, double z3, double a, double b, double c, double d)
+double TextTagLocalization::function7(double s3, double x3, double y3, double z3, double a, double b, double c, double d)
 {
 	return s3*(a*x3 + b*y3 + c*z3) + d;
 }
 
-double function8(double s4, double x4, double y4, double z4, double a, double b, double c, double d)
+double TextTagLocalization::function8(double s4, double x4, double y4, double z4, double a, double b, double c, double d)
 {
 	return s4*(a*x4 + b*y4 + c*z4) + d;
 }
 
 // df1/ds1
-double f1s1(double s1, double s2,double x1,double y1, double z1, double x2, double y2, double z2)
+double TextTagLocalization::f1s1(double s1, double s2,double x1,double y1, double z1, double x2, double y2, double z2)
 {
 	return 2*x1*x1*s1 - 2*s2*x1*x2 + 2*y1*y1*s1 - 2*s2*y1*y2 + 2*z1*z1*s1 - 2*s2*z1*z2;
 }
 
 // df1/ds2
-double f1s2(double s1, double s2,double x1,double y1, double z1, double x2, double y2, double z2)
+double TextTagLocalization::f1s2(double s1, double s2,double x1,double y1, double z1, double x2, double y2, double z2)
 {
 	return 2*x2*x2*s2 - 2*s1*x1*x2 + 2*y2*y2*s2 - 2*s2*y1*y2 + 2*z2*z2*s2 - 2*s1*z1*z2;
 }
 
 // df2/ds3
-double f2s3(double s3, double s4, double x3,double y3, double z3, double x4, double y4, double z4)
+double TextTagLocalization::f2s3(double s3, double s4, double x3,double y3, double z3, double x4, double y4, double z4)
 {
 	return 2*x3*x3*s3 - 2*s4*x4*x3 + 2*y3*y3*s3 - 2*s4*y4*y3 + 2*z3*z3*s3 - 2*s4*z4*z3;
 }
 
 // df2/ds4
-double f2s4(double s3, double s4, double x3,double y3, double z3, double x4, double y4, double z4)
+double TextTagLocalization::f2s4(double s3, double s4, double x3,double y3, double z3, double x4, double y4, double z4)
 {
 	return 2*x4*x4*s4 - 2*s3*x3*x4 + 2*y4*y4*s4 - 2*s3*y4*y3 + 2*z4*z4*s4 - 2*s3*z4*z3;
 }
 
 // df3/ds3
-double f3s1(double s1, double s4, double x1,double y1, double z1, double x4, double y4, double z4)
+double TextTagLocalization::f3s1(double s1, double s4, double x1,double y1, double z1, double x4, double y4, double z4)
 {
 	return 2*x1*x1*s1 - 2*s4*x1*x4 + 2*y1*y1*s1 - 2*s4*y4*y1 + 2*z1*z1*s1 - 2*s4*z4*z1;
 }
 
 // df3/ds4
-double f3s4(double s1, double s4, double x1,double y1, double z1, double x4, double y4, double z4)
+double TextTagLocalization::f3s4(double s1, double s4, double x1,double y1, double z1, double x4, double y4, double z4)
 {
 	return 2*x4*x4*s4 - 2*s1*x1*x4 + 2*y4*y4*s4 - 2*s1*y4*y1 + 2*z4*z4*s4 - 2*s1*z4*z1;
 }
 
 // df4/ds2
-double f4s2(double s2, double s3, double x2,double y2, double z2, double x3, double y3, double z3)
+double TextTagLocalization::f4s2(double s2, double s3, double x2,double y2, double z2, double x3, double y3, double z3)
 {
 	return 2*x2*x2*s2 - 2*s3*x2*x3 + 2*y2*y2*s2 - 2*s3*y3*y2 + 2*z2*z2*s2 - 2*s3*z2*z3;
 }
 
 // df4/ds3
-double f4s3(double s2, double s3, double x2,double y2, double z2, double x3, double y3, double z3)
+double TextTagLocalization::f4s3(double s2, double s3, double x2,double y2, double z2, double x3, double y3, double z3)
 {
 	return 2*x3*x3*s3 - 2*s2*x2*x3 + 2*y3*y3*s3 - 2*s2*y3*y2 + 2*z3*z3*s3 - 2*s2*z2*z3;
 }
 
-double f5s1(double a, double b,double c, double x1, double y1, double z1)
+double TextTagLocalization::f5s1(double a, double b,double c, double x1, double y1, double z1)
 {
 	return a*x1+b*y1+c*z1;
 }
-double f5a(double s1, double x1)
+double TextTagLocalization::f5a(double s1, double x1)
 {
 	return s1*x1;
 }
 
-double f5b(double s1, double y1)
+double TextTagLocalization::f5b(double s1, double y1)
 {
 	return s1*y1;
 }
 
-double f5c(double s1, double z1)
+double TextTagLocalization::f5c(double s1, double z1)
 {
 	return s1*z1;
 }
 
-double f5d()
+double TextTagLocalization::f5d()
 {
 	return 1.;
 }
 
-double f6s2(double a, double b,double c, double x2, double y2, double z2)
+double TextTagLocalization::f6s2(double a, double b,double c, double x2, double y2, double z2)
 {
 	return a*x2+b*y2+c*z2;
 }
-double f6a(double s2, double x2)
+double TextTagLocalization::f6a(double s2, double x2)
 {
 	return s2*x2;
 }
 
-double f6b(double s2, double y2)
+double TextTagLocalization::f6b(double s2, double y2)
 {
 	return s2*y2;
 }
 
-double f6c(double s2, double z2)
+double TextTagLocalization::f6c(double s2, double z2)
 {
 	return s2*z2;
 }
 
-double f6d()
+double TextTagLocalization::f6d()
 {
 	return 1.;
 }
 
-double f7s3(double a, double b,double c, double x3, double y3, double z3)
+double TextTagLocalization::f7s3(double a, double b,double c, double x3, double y3, double z3)
 {
 	return a*x3+b*y3+c*z3;
 }
-double f7a(double s3, double x3)
+double TextTagLocalization::f7a(double s3, double x3)
 {
 	return s3*x3;
 }
 
-double f7b(double s3, double y3)
+double TextTagLocalization::f7b(double s3, double y3)
 {
 	return s3*y3;
 }
 
-double f7c(double s3, double z3)
+double TextTagLocalization::f7c(double s3, double z3)
 {
 	return s3*z3;
 }
 
-double f7d()
+double TextTagLocalization::f7d()
 {
 	return 1.;
 }
 
-double f8s4(double a, double b,double c, double x4, double y4, double z4)
+double TextTagLocalization::f8s4(double a, double b,double c, double x4, double y4, double z4)
 {
 	return a*x4+b*y4+c*z4;
 }
-double f8a(double s4, double x4)
+double TextTagLocalization::f8a(double s4, double x4)
 {
 	return s4*x4;
 }
 
-double f8b(double s4, double y4)
+double TextTagLocalization::f8b(double s4, double y4)
 {
 	return s4*y4;
 }
 
-double f8c(double s4, double z4)
+double TextTagLocalization::f8c(double s4, double z4)
 {
 	return s4*z4;
 }
 
-double f8d()
+double TextTagLocalization::f8d()
 {
 	return 1.;
 }
 
-cv::Mat jacobi(double x1, double y1,double z1, double x2, double y2, double z2, double x3, double y3, double z3, double x4, double y4, double z4,
+cv::Mat TextTagLocalization::jacobi(double x1, double y1,double z1, double x2, double y2, double z2, double x3, double y3, double z3, double x4, double y4, double z4,
 			double s1, double s2, double s3, double s4,
 			double a, double b, double c)
 {
@@ -263,7 +263,7 @@ cv::Mat jacobi(double x1, double y1,double z1, double x2, double y2, double z2, 
 	return jacobi_matrix;
 }
 
-cv::Mat delta(const cv::Mat jacobi_matrix, double x1, double y1, double z1, double x2, double y2, double z2, double x3, double y3, double z3, double x4, double y4, double z4,
+cv::Mat TextTagLocalization::delta(const cv::Mat jacobi_matrix, double x1, double y1, double z1, double x2, double y2, double z2, double x3, double y3, double z3, double x4, double y4, double z4,
 			double s1, double s2, double s3, double s4, double a, double b, double c, double d ,double w, double h)
 {
 	std::cout<<"Start computing delta matrix."<<std::endl;
@@ -296,9 +296,23 @@ cv::Mat delta(const cv::Mat jacobi_matrix, double x1, double y1, double z1, doub
 	return delta_mat;
 }
 
-void NewtonMethod(double x1, double y1,double z1, double x2, double y2, double z2, double x3, double y3, double z3, double x4, double y4, double z4,
+void TextTagLocalization::TransformPixel2Coordinates(double &x, double &y, double &z)
+{
+	double fx = 1165.997, fy = 1167.095, cx = 630.314, cy = 506.779;
+
+	x = (x - cx)/fx;
+	y = (y - cy)/fy;
+	z = 1.;
+}
+
+void TextTagLocalization::NewtonMethod(double x1, double y1,double z1, double x2, double y2, double z2, double x3, double y3, double z3, double x4, double y4, double z4,
 					double w, double h, double& s1, double& s2, double& s3, double& s4, double& a, double& b, double& c, double& d)
 {
+	TransformPixel2Coordinates(x1, y1, z1);
+	TransformPixel2Coordinates(x2, y2, z2);
+	TransformPixel2Coordinates(x3, y3, z3);
+	TransformPixel2Coordinates(x4, y4, z4);
+
 	std::cout<<"staring NewtonMethod."<<std::endl;
 	cv::Mat jacobi_matrix (8,8,CV_64F);
 	jacobi_matrix = jacobi(x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4, s1, s2, s3, s4, a, b, c);
@@ -334,21 +348,36 @@ void NewtonMethod(double x1, double y1,double z1, double x2, double y2, double z
 	 }
 }
 
-int main()
+void TextTagLocalization::TextTagLocalizationWithNewtonMethod(cv::Rect detected_tectangle, double& X1, double& Y1,double& Z1, double& X2, double& Y2, double& Z2, double& X3, double& Y3, double& Z3, double& X4, double& Y4, double& Z4)
 {
-	double x1=1.,y1 = 30.;
-	double x2=3.,y2= 9.;
-	double x3=4.,y3= 49.;
-	double x4=9.,y4 = 12.;
-	double z1=0.1,z3=0.5,z2=1.,z4=2.1;
-	double w = 0.3,h = 0.1;
+	double x1= detected_tectangle.x, y1= detected_tectangle.y , z1= 1.;
+	double x2= detected_tectangle.x + detected_tectangle.width, y2= detected_tectangle.y, z2= 1.;
+	double x3= detected_tectangle.x, y3= detected_tectangle.y + detected_tectangle.height, z3= 1.;
+	double x4= detected_tectangle.x + detected_tectangle.width, y4= detected_tectangle.y + detected_tectangle.height, z4= 1.;
 
+	double w = 690., h = 129.;
 	// initial guess
 	double s1=1.5, s2=1.5, s3=1.5, s4 = 1.5;
 	double a, b, c, d = 1.5;
-	double value = 2*x1*x1*s1 - 2*s2*x1*x2 + 2*y1*y1*s1 - 2*s2*y1*y2 + 2*z1*z1*s1 - 2*s2*z1*z2;
-	std::cout<<"value: "<<value<<std::endl;
-	NewtonMethod(x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4,w,h,s1,s2,s3,s4,a,b,c,d);
-	std::cout<<"Results: "<<"s1: "<<s1<<"\t \t s2: "<<s2<<"\t \t s3: "<<s3<<"\t \t s4: "<<s4
-			<<"\t \t a: "<<a<<"\t \t b: "<<b<<"\t \t c: "<<c<<"\t \t d: "<<d<<std::endl;
+
+	TransformPixel2Coordinates (x1, y1, z1);
+	TransformPixel2Coordinates (x2, y2, z2);
+	TransformPixel2Coordinates (x3, y3, z3);
+	TransformPixel2Coordinates (x4, y4, z4);
+
+	NewtonMethod(x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4, w, h, s1, s2, s3, s4, a, b, c, d);
+
+	X1 = s1*x1;
+	Y1 = s1*y1;
+	Z1 = s1*z1;
+	X2 = s2*x2;
+	Y2 = s2*y2;
+	Z2 = s2*z2;
+	X3 = s3*x3;
+	Y3 = s3*y3;
+	Z3 = s3*z3;
+	X4 = s4*x4;
+	Y4 = s4*y4;
+
 }
+

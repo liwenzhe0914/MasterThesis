@@ -196,9 +196,15 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
 
 	for (size_t i=0; i< detection_list.size(); ++i)
 	{
+		double X1, Y1, Z1, X2,  Y2,  Z2, X3,  Y3,  Z3, X4,  Y4,  Z4;
+
 		if (detection_list[i].x!=0 && detection_list[i].y!=0)
 		{
 			cv::rectangle(image_display, detection_list[i], cv::Scalar(0,0,255), 3, 8, 0);
+
+			std::cout<<"3D localization"<<std::endl;
+
+			text_tag_localization_.TextTagLocalizationWithNewtonMethod(detection_list[i], X1, Y1, Z1, X2,  Y2,  Z2, X3,  Y3,  Z3, X4,  Y4,  Z4);
 
 			std::cout<<"feature representation starts"<<std::endl;
 
