@@ -61,4 +61,6 @@ protected:
 	cv::CascadeClassifier text_tags_cascade_;	///< Viola-Jones classifier model for text tag detection
 	cv::Mat text_tag_template_image_;	///< template image of text tags
 	cv::Size text_tag_template_target_size_;	///< desired size of templates
+
+	double th1, th2;
 };

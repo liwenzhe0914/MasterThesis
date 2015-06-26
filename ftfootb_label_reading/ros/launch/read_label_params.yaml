@@ -1,7 +1,7 @@
 # target image size used for tag detection in the image with Viola-Jones classifier
 # int
-tag_detection_target_image_width: 640
-tag_detection_target_image_height: 480
+tag_detection_target_image_width: -1
+tag_detection_target_image_height: -1
 
 # 1 - load training data from yml file; 0 - load training data from raw images
 # int

@@ -889,9 +889,8 @@ void FeatureReprenstation::load_or_train_KNN_classifiers(cv::KNearest& numbers_k
 }
 
 
-std::string FeatureReprenstation::read_text_tag_SVM(cv::SVM& numbers_svm,cv::SVM& letters_svm,cv::Mat& testImg,int classifier,int feature_number,int single_or_combination)
+std::string FeatureReprenstation::read_text_tag_SVM(cv::SVM& numbers_svm,cv::SVM& letters_svm,cv::Mat& testImg,int feature_number,int single_or_combination)
 {
-	//classifier: 1. KNN 2. train SVM 3. load SVM
 	double start_time,time_in_seconds;
 	std::vector<int> text_label_result_int;
 	std::string suffix;
@@ -913,8 +912,6 @@ std::string FeatureReprenstation::read_text_tag_SVM(cv::SVM& numbers_svm,cv::SVM
 
 	cv::Mat test_descriptorsValues=preprocess_test_text_tag(testImg,feature_number,single_or_combination);
 
-//	if (classifier==3 || classifier==2)
-//	{
 	if (single_or_combination==2)
 	{
 		float response = letters_svm.predict(test_descriptorsValues.row(0),test_descriptorsValues.row(0).cols);
@@ -939,39 +936,6 @@ std::string FeatureReprenstation::read_text_tag_SVM(cv::SVM& numbers_svm,cv::SVM
 			text_label_result_int.push_back(response);
 		}
 	}
-//	}
-//	else if (classifier==1)
-//	{
-//
-//		cv::Mat results(1,1,CV_32FC1);
-//		cv::Mat neighbourResponses = cv::Mat::ones(1,10,CV_32FC1);
-//		cv::Mat dist = cv::Mat::ones(1, 10, CV_32FC1);
-//
-//		if (single_or_combination==2)
-//		{
-//			letters_knn.find_nearest(test_descriptorsValues.row(0),1,results, neighbourResponses, dist);
-//			text_label_result_int.push_back(results.at<float>(0,0));
-//
-//			for (unsigned int j =1;j<4;j++)
-//			{
-//				numbers_knn.find_nearest(test_descriptorsValues.row(j),1,results, neighbourResponses, dist);
-//				text_label_result_int.push_back(results.at<float>(0,0));
-//			}
-//		}
-//		else if (single_or_combination==1)
-//		{
-//			for (unsigned int j =0;j<2;j++)
-//			{
-//				letters_knn.find_nearest(test_descriptorsValues.row(j),1,results, neighbourResponses, dist);
-//				text_label_result_int.push_back(results.at<float>(0,0));
-//			}
-//			for (unsigned int j =2;j<8;j++)
-//			{
-//				numbers_knn.find_nearest(test_descriptorsValues.row(j),1,results, neighbourResponses, dist);
-//				text_label_result_int.push_back(results.at<float>(0,0));
-//			}
-//		}
-//	}
 
 	std::stringstream ss;
 	std::string text_label;
@@ -992,16 +956,13 @@ std::string FeatureReprenstation::read_text_tag_SVM(cv::SVM& numbers_svm,cv::SVM
 		text_label = ss.str();
 		ss.str("");
 	}
-	std::cout << "From classifier $"<<"SVM"<<"$ with the feature $"<<suffix
-											<<"$ got label = "<<text_label<< std::endl;
+	std::cout << "From $"<<"SVM"<<"$ with the feature $"<< suffix <<"$ got label = "<<text_label<< std::endl;
 
 	return text_label;
 }
 
-std::string FeatureReprenstation::read_text_tag_KNN(cv::KNearest& numbers_knn,cv::KNearest& letters_knn,cv::Mat& testImg,int classifier,int feature_number,int single_or_combination)
+std::string FeatureReprenstation::read_text_tag_KNN(cv::KNearest& numbers_knn,cv::KNearest& letters_knn,cv::Mat& testImg,int feature_number,int single_or_combination)
 {
-	//classifier: 1. KNN 2. train SVM 3. load SVM
-
 	double start_time,time_in_seconds;
 	std::vector<int> text_label_result_int;
 	std::string suffix;
@@ -1073,8 +1034,7 @@ std::string FeatureReprenstation::read_text_tag_KNN(cv::KNearest& numbers_knn,cv
 		ss.str("");
 	}
 
-	std::cout << "From classifier $"<<"KNN"<<"$ with the feature $"<<suffix
-											<<"$ got label = "<<text_label<< std::endl;
+	std::cout << "From $"<<"KNN"<<"$ with the feature $"<<suffix<<"$ got label = "<<text_label<< std::endl;
 
 	return text_label;
 }

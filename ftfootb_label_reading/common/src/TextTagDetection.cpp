@@ -2,6 +2,9 @@
 
 TextTagDetection::TextTagDetection(const std::string& path_data)
 {
+	th1 = 20.;
+	th2 = 150.;
+
 	// Load Text cascade (.xml file)
 	std::string text_tags_cascade_xml_file = path_data + "TextLabelClassifier/haarclassifier_new/cascade.xml";
 	text_tags_cascade_.load(text_tags_cascade_xml_file);
@@ -593,27 +596,19 @@ void TextTagDetection::text_tag_detection_fine_detection_vj(const cv::Mat& image
 
 void TextTagDetection::text_tag_detection_fine_detection_rectangle_detection(const cv::Mat& image, std::vector<cv::Rect>& rectangle_list)
 {
-	std::vector<cv::Rect> initial_rectangle_list;
-	detect_tag_by_frame(image, initial_rectangle_list);
+	detect_tag_by_frame(image, rectangle_list);
 
-	for (std::vector<cv::Rect>::const_iterator r = initial_rectangle_list.begin(); r != initial_rectangle_list.end(); r++)
-	{
-		//update detection by dashes detection
-		std::vector<cv::Rect> detected_dashes_list;
-		detect_dashes(*r, image, detected_dashes_list);
-		cv::Rect rectangle_updated_by_dashes_detection = restore_text_tag_by_detected_dashes(detected_dashes_list, *r, image);
-
-//		double score = compare_detection_with_template(rectangle_updated_by_dashes_detection,image,package_path);
+//	std::vector<cv::Rect> initial_rectangle_list;
+//	detect_tag_by_frame(image, initial_rectangle_list);
+//	for (std::vector<cv::Rect>::const_iterator r = initial_rectangle_list.begin(); r != initial_rectangle_list.end(); r++)
+//	{
+//		//update detection by dashes detection
+//		std::vector<cv::Rect> detected_dashes_list;
+//		detect_dashes(*r, image, detected_dashes_list);
+//		cv::Rect rectangle_updated_by_dashes_detection = restore_text_tag_by_detected_dashes(detected_dashes_list, *r, image);
 //
-//		std::cout<<"score: "<<score<<std::endl;
-
-//		cv::imshow("Viola-Jones", image(*r));
-//		cv::imshow("Hough", image(rectangle_updated_by_hough_line));
-//		cv::imshow("Dashes", image(rectangle_updated_by_dashes_detection));
-//		cv::waitKey();
-
-		rectangle_list.push_back(rectangle_updated_by_dashes_detection);
-	}
+//		rectangle_list.push_back(rectangle_updated_by_dashes_detection);
+//	}
 }
 
 void TextTagDetection::detect_tag_by_frame(const cv::Mat& image_grayscale, std::vector<cv::Rect>& detections)
@@ -622,22 +617,34 @@ void TextTagDetection::detect_tag_by_frame(const cv::Mat& image_grayscale, std::
 
 	// Use Canny instead of threshold to catch squares with gradient shading on 3 conditions
 	//double CannyAccThresh = cv::threshold(image_grayscale, image_bw, 0, 255, CV_THRESH_BINARY|CV_THRESH_OTSU);
-	cv::Mat edge_image;
-	cv::Canny(image_grayscale, edge_image, 20, 150); //CannyAccThresh);
+	cv::Mat edge_image, binary_image;
+	double canny_threshold = cv::threshold(image_grayscale, binary_image, 0, 255, CV_THRESH_BINARY|CV_THRESH_OTSU);
+	cv::Canny(image_grayscale, edge_image, 0.5*canny_threshold, canny_threshold);
 
 	// Find contours on 3 conditions and combine them
 	std::vector<std::vector<cv::Point> > contours;
-	cv::findContours(edge_image, contours, CV_RETR_EXTERNAL , CV_CHAIN_APPROX_SIMPLE);
+	cv::findContours(edge_image.clone(), contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
+
+//	cv::Mat display_image;
+//	cv::cvtColor(image_grayscale, display_image, CV_GRAY2BGR);
+//	cv::drawContours(display_image, contours, -1, CV_RGB(0,255,0), 1);
+//	cv::imshow("contours", display_image);
+//	cv::imshow("edge_image", edge_image);
+//	cv::waitKey();
 
 	for (size_t i=0; i<contours.size(); ++i)
 	{
+		// Skip small or non-convex objects
+		if (std::fabs(cv::contourArea(contours[i])) < 1000)
+			continue;
+
 		// Approximate contour with accuracy proportional
 		// to the contour perimeter
 		std::vector<cv::Point> approx;
 		cv::approxPolyDP(cv::Mat(contours[i]), approx, cv::arcLength(cv::Mat(contours[i]), true)*0.03, true);
 
 		// Skip small or non-convex objects
-		if (std::fabs(cv::contourArea(contours[i])) < 1000 || approx.size()!=4 || cv::isContourConvex(cv::Mat(approx))==false)
+		if (approx.size()!=4 || cv::isContourConvex(cv::Mat(approx))==false)
 			continue;
 
 		// verify that angles are about 90deg

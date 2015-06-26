@@ -61,9 +61,9 @@
 
 void LabelReader::setParams(ros::NodeHandle& nh)
 {
-	node_handle_.param("tag_detection_target_image_width", tag_detection_target_image_width_, 640);
+	node_handle_.param("tag_detection_target_image_width", tag_detection_target_image_width_, -1);
 	std::cout << "tag_detection_target_image_width = " << tag_detection_target_image_width_ << "\n";
-	node_handle_.param("tag_detection_target_image_height", tag_detection_target_image_height_, 480);
+	node_handle_.param("tag_detection_target_image_height", tag_detection_target_image_height_, -1);
 	std::cout << "tag_detection_target_image_height = " << tag_detection_target_image_height_ << "\n";
 	node_handle_.param("load", load_, 0);
 	std::cout << "load = " << load_ << "\n";
@@ -167,7 +167,10 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
 		ROS_ERROR("LabelReader::imageCallback: Wrong number of channels in camera image. Allowed is 1 or 3.");
 		return;
 	}
-	cv::resize(image_grayscale, image_grayscale_small, cv::Size(tag_detection_target_image_width_, tag_detection_target_image_height_));
+	if (tag_detection_target_image_width_>0 && tag_detection_target_image_height_>0)
+		cv::resize(image_grayscale, image_grayscale_small, cv::Size(tag_detection_target_image_width_, tag_detection_target_image_height_));
+	else
+		image_grayscale_small = image_grayscale;
 
 	// find text tags in original image
 	std::vector<cv::Rect> detection_list;
@@ -176,16 +179,18 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
 	std::cout << "Text Detection: [" << tim.getElapsedTimeInMilliSec() << " ms] processing time" << std::endl;
 
 	// correct scale of detections
-	const double factor_x = image.cols/(double)tag_detection_target_image_width_;
-	const double factor_y = image.rows/(double)tag_detection_target_image_height_;
-	for (size_t i=0; i<detection_list.size(); ++i)
+	if (tag_detection_target_image_width_>0 && tag_detection_target_image_height_>0)
 	{
-		detection_list[i].x *= factor_x;
-		detection_list[i].width *= factor_x;
-		detection_list[i].y *= factor_y;
-		detection_list[i].height *= factor_y;
+		const double factor_x = image.cols/(double)tag_detection_target_image_width_;
+		const double factor_y = image.rows/(double)tag_detection_target_image_height_;
+		for (size_t i=0; i<detection_list.size(); ++i)
+		{
+			detection_list[i].x *= factor_x;
+			detection_list[i].width *= factor_x;
+			detection_list[i].y *= factor_y;
+			detection_list[i].height *= factor_y;
+		}
 	}
-
 
 	// read texts from tags
 //	cvtColor(image, image, CV_GRAY2BGR);
@@ -198,7 +203,7 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
 	{
 		if (detection_list[i].x!=0 && detection_list[i].y!=0)
 		{
-			cv::rectangle(image_display, detection_list[i], cv::Scalar(0,0,255), 3, 8, 0);
+			cv::rectangle(image_display, detection_list[i], cv::Scalar(0,0,255), 1, 8, 0);
 
 			std::cout<<"feature representation starts"<<std::endl;
 
@@ -210,13 +215,13 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
 				{
 					// todo: check for const image
 					tag_label_features=feature_representation_.read_text_tag_SVM(feature_representation_.numbers_svm,feature_representation_.letters_svm,roi,
-																							classifier_,feature_number_,single_or_combination_);
+																				feature_number_,single_or_combination_);
 				}
 
 				else if (classifier_==1) // KNN for classification
 				{
 					tag_label_features=feature_representation_.read_text_tag_KNN(feature_representation_.numbers_knn,feature_representation_.letters_knn,roi,
-																							classifier_,feature_number_,single_or_combination_);
+																				feature_number_,single_or_combination_);
 				}
 				else
 					std::cout<<"[Read label ERROR] wrong *load* parameter given! "<<std::endl;

@@ -47,8 +47,8 @@ public:
 
 		cv::Mat preprocess_test_text_tag(cv::Mat& testImg,int feature_number, int single_or_combination);
 
-		std::string read_text_tag_SVM(cv::SVM& numbers_svm,cv::SVM& letters_svm,cv::Mat& image,int classifier,int feature_number,int single_or_combination);
-		std::string read_text_tag_KNN(cv::KNearest& numbers_knn,cv::KNearest& letters_knn,cv::Mat& testImg,int classifier,int feature_number,int single_or_combination);
+		std::string read_text_tag_SVM(cv::SVM& numbers_svm,cv::SVM& letters_svm,cv::Mat& image,int feature_number,int single_or_combination);
+		std::string read_text_tag_KNN(cv::KNearest& numbers_knn,cv::KNearest& letters_knn,cv::Mat& testImg,int feature_number,int single_or_combination);
 		cv::Mat wolf_thresholding(cv::Mat& img_gray);
 
 		void help();
