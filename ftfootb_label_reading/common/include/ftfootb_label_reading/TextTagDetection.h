@@ -40,7 +40,7 @@ public:
 
 	cv::Rect select_best_match_from_three_estimated_dashes(const cv::Rect& text_tag_l, const cv::Rect& text_tag_m, const cv::Rect& text_tag_r, const cv::Rect& text_tag, const cv::Mat& image);
 
-	double template_matching_with_estimated_dashes(const cv::Mat& image);
+	double compare_detection_with_template(const cv::Mat& image);
 
 	cv::Rect restore_tag_by_estimated_dashes(const cv::Point& estimated_dash_center, const cv::Rect& text_tag, const cv::Mat& image, std::vector<cv::Rect> detected_dashes_list);
 
@@ -50,7 +50,7 @@ public:
 
 	double angle(cv::Point pt1, cv::Point pt2, cv::Point pt0);
 
-	double compare_detection_with_template(cv::Rect text_tag, cv::Mat img,std::string package_path);
+//	double compare_detection_with_template(cv::Rect text_tag, cv::Mat img,std::string package_path);
 
 	void detect_dashes(const cv::Rect& rect, const cv::Mat& image, std::vector<cv::Rect>& detected_dashes_list);
 
@@ -61,6 +61,4 @@ protected:
 	cv::CascadeClassifier text_tags_cascade_;	///< Viola-Jones classifier model for text tag detection
 	cv::Mat text_tag_template_image_;	///< template image of text tags
 	cv::Size text_tag_template_target_size_;	///< desired size of templates
-
-	double th1, th2;
 };
