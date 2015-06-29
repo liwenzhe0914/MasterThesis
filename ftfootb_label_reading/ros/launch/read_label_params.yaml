@@ -5,7 +5,7 @@ tag_detection_target_image_height: -1
 
 # 1 - load training data from yml file; 0 - load training data from raw images
 # int
-load: 1
+load: 0
 
 # 1-KNN, 2-train svm, 3-load svm
 # int

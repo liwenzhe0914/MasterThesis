@@ -597,11 +597,12 @@ void TextTagDetection::text_tag_detection_fine_detection_vj(const cv::Mat& image
 	}
 }
 
-void TextTagDetection::text_tag_detection_fine_detection_rectangle_detection(const cv::Mat& image, std::vector<cv::Rect>& rectangle_list)
+void TextTagDetection::text_tag_detection_fine_detection_rectangle_detection(const cv::Mat& image, std::vector<cv::Rect>& rectangle_list, std::vector<cv::RotatedRect>& rectangle_list_r)
 {
 	// detect rectangles
 	std::vector<cv::Rect> initial_rectangle_list;
-	detect_tag_by_frame(image, initial_rectangle_list);
+	std::vector<cv::RotatedRect> initial_rectangle_list_r;
+	detect_tag_by_frame(image, initial_rectangle_list, initial_rectangle_list_r);
 
 	for (std::vector<cv::Rect>::const_iterator r = initial_rectangle_list.begin(); r != initial_rectangle_list.end(); r++)
 	{
@@ -616,9 +617,45 @@ void TextTagDetection::text_tag_detection_fine_detection_rectangle_detection(con
 		if (score > 0.3)
 			rectangle_list.push_back(*r);
 	}
+
+	for (std::vector<cv::RotatedRect>::const_iterator r = initial_rectangle_list_r.begin(); r != initial_rectangle_list_r.end(); r++)
+	{
+		// get rotated image region
+		cv::Mat rotated_image;
+		cut_out_rotated_rectangle(*r, image, rotated_image);
+
+		// verify with template
+		double score = compare_detection_with_template(rotated_image);
+		if (score > 0.3)
+			rectangle_list_r.push_back(*r);
+	}
 }
 
-void TextTagDetection::detect_tag_by_frame(const cv::Mat& image_grayscale, std::vector<cv::Rect>& detections)
+
+void TextTagDetection::cut_out_rotated_rectangle(const cv::RotatedRect& rotated_rect, const cv::Mat& image, cv::Mat& rotated_image)
+{
+	double diagonal = sqrt(rotated_rect.size.width*rotated_rect.size.width + rotated_rect.size.height*rotated_rect.size.height);
+	cv::Mat roi(diagonal, diagonal, CV_8UC1);
+	int src_x = rotated_rect.center.x-diagonal*0.5;
+	int src_y = rotated_rect.center.y-diagonal*0.5;
+	for (int v=0; v<roi.rows; ++v)
+		for (int u=0; u<roi.cols; ++u)
+		{
+			if (src_x+u<0 || src_y+v<0)
+				roi.at<uchar>(v,u) = 0;
+			else
+				roi.at<uchar>(v,u) = image.at<uchar>(src_y+v, src_x+u);
+		}
+	cv::Mat rotation_matrix = cv::getRotationMatrix2D(cv::Point2f(diagonal*0.5, diagonal*0.5), rotated_rect.angle, 1.0);
+    cv::warpAffine(roi, rotated_image, rotation_matrix, cv::Size(diagonal, diagonal));
+	rotated_image = rotated_image(cv::Rect((diagonal-rotated_rect.size.width)*0.5, (diagonal-rotated_rect.size.height)*0.5, rotated_rect.size.width, rotated_rect.size.height));
+
+//    cv::imshow("rotated_image", rotated_image);
+//    cv::waitKey();
+}
+
+
+void TextTagDetection::detect_tag_by_frame(const cv::Mat& image_grayscale, std::vector<cv::Rect>& detections, std::vector<cv::RotatedRect>& detections_r)
 {
 	detections.clear();
 
@@ -672,10 +709,29 @@ void TextTagDetection::detect_tag_by_frame(const cv::Mat& image_grayscale, std::
 
 		// Use the degrees obtained above and the number of vertices
 		// to determine the shape of the contour
-		if ((mincos >= -0.23 && maxcos <= 0.3) == false)
+		if ((mincos >= -0.3 && maxcos <= 0.3) == false)
 			continue;
 
 		// check for aspect ratio
+		cv::RotatedRect tag_frame_r = cv::minAreaRect(contours[i]);
+		while (tag_frame_r.angle < -45.)
+		{
+			tag_frame_r.angle += 90.;
+			float width = tag_frame_r.size.height;
+			tag_frame_r.size.height = tag_frame_r.size.width;
+			tag_frame_r.size.width = width;
+		}
+		while (tag_frame_r.angle > 45.)
+		{
+			tag_frame_r.angle -= 90.;
+			float width = tag_frame_r.size.height;
+			tag_frame_r.size.height = tag_frame_r.size.width;
+			tag_frame_r.size.width = width;
+		}
+		if (tag_frame_r.size.height/(double)tag_frame_r.size.width < 0.85*129./690. || tag_frame_r.size.height/(double)tag_frame_r.size.width > 1.15*129./690.)
+			continue;
+		detections_r.push_back(tag_frame_r);
+
 		cv::Rect tag_frame = cv::boundingRect(contours[i]);
 		if (tag_frame.height/(double)tag_frame.width < 0.85*129./690. || tag_frame.height/(double)tag_frame.width > 1.15*129./690.)
 			continue;

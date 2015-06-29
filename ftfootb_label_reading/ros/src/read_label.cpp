@@ -174,7 +174,8 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
 
 	// find text tags in original image
 	std::vector<cv::Rect> detection_list;
-	text_tag_detection_.text_tag_detection_fine_detection_rectangle_detection(image_grayscale_small, detection_list);
+	std::vector<cv::RotatedRect> detection_list_r;
+	text_tag_detection_.text_tag_detection_fine_detection_rectangle_detection(image_grayscale_small, detection_list, detection_list_r);
 	std::cout<<detection_list.size()<<" text tags detected!"<<std::endl;
 	std::cout << "Text Detection: [" << tim.getElapsedTimeInMilliSec() << " ms] processing time" << std::endl;
 
@@ -190,6 +191,13 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
 			detection_list[i].y *= factor_y;
 			detection_list[i].height *= factor_y;
 		}
+		for (size_t i=0; i<detection_list_r.size(); ++i)
+		{
+			detection_list_r[i].center.x *= factor_x;
+			detection_list_r[i].center.y *= factor_y;
+			detection_list_r[i].size.width *= factor_x;
+			detection_list_r[i].size.height *= factor_y;
+		}
 	}
 
 	// read texts from tags
@@ -199,16 +207,21 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
 //	cv::cvtColor(image, gray_image, CV_BGR2GRAY);
 //	gray_image.convertTo(gray_image, -1, 1.35, 0);
 
-	for (size_t i=0; i< detection_list.size(); ++i)
+	for (size_t i=0; i< detection_list_r.size(); ++i)
 	{
-		if (detection_list[i].x!=0 && detection_list[i].y!=0)
+		if (detection_list_r[i].center.x!=0 && detection_list_r[i].center.y!=0)
 		{
-			cv::rectangle(image_display, detection_list[i], cv::Scalar(0,0,255), 1, 8, 0);
+			//cv::rectangle(image_display, detection_list[i], cv::Scalar(0,0,255), 1, 8, 0);
+			cv::Point2f rect_points[4];
+			detection_list_r[i].points(rect_points);
+			for(int j=0; j<4; ++j)
+				cv::line(image_display, rect_points[j], rect_points[(j+1)%4], cv::Scalar(0,0,255), 1, 8);
 
 			std::cout<<"feature representation starts"<<std::endl;
 
 			std::string tag_label_features, tag_label_template_matching;
-			cv::Mat roi = image_grayscale(detection_list[i]);
+			cv::Mat roi;	// = image_grayscale(detection_list[i]);
+			text_tag_detection_.cut_out_rotated_rectangle(detection_list_r[i], image_grayscale, roi);
 			if (recognition_method_==2 || recognition_method_==3)
 			{
 				if (classifier_==2 || classifier_==3) // SVM for classification
@@ -226,14 +239,16 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
 				else
 					std::cout<<"[Read label ERROR] wrong *load* parameter given! "<<std::endl;
 
-				cv::putText(image_display, tag_label_features, cv::Point(detection_list[i].x, detection_list[i].y-5), cv::FONT_HERSHEY_PLAIN, 2, CV_RGB(0,0,255), 2);
+				//cv::putText(image_display, tag_label_features, cv::Point(detection_list[i].x, detection_list[i].y-5), cv::FONT_HERSHEY_PLAIN, 2, CV_RGB(0,0,255), 2);
+				cv::putText(image_display, tag_label_features, cv::Point(rect_points[1].x, rect_points[1].y-5), cv::FONT_HERSHEY_PLAIN, 2, CV_RGB(0,0,255), 2);
 			}
 
 			if (recognition_method_==1 || recognition_method_==3)
 			{
 				match_template_.read_tag(roi, tag_label_template_matching,template_matching_method_);
 				std::cout << "The text tag reads: " << tag_label_template_matching << "." << std::endl;
-				cv::putText(image_display, tag_label_template_matching, cv::Point(detection_list[i].x-100, detection_list[i].y-5), cv::FONT_HERSHEY_PLAIN, 2, CV_RGB(255,0,255), 2);
+				//cv::putText(image_display, tag_label_template_matching, cv::Point(detection_list[i].x-100, detection_list[i].y-5), cv::FONT_HERSHEY_PLAIN, 2, CV_RGB(255,0,255), 2);
+				cv::putText(image_display, tag_label_template_matching, cv::Point(rect_points[1].x-100, rect_points[1].y-5), cv::FONT_HERSHEY_PLAIN, 2, CV_RGB(255,0,255), 2);
 			}
 		}
 	}

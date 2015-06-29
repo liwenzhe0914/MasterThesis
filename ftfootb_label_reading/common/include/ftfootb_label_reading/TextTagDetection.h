@@ -23,7 +23,7 @@ public:
 	inline void text_tag_detection_with_VJ(const cv::Mat& image, std::vector<cv::Rect>& rectangle_list);
 
 	void text_tag_detection_fine_detection_vj(const cv::Mat& image, std::vector<cv::Rect>& rectangle_list);
-	void text_tag_detection_fine_detection_rectangle_detection(const cv::Mat& image, std::vector<cv::Rect>& rectangle_list);
+	void text_tag_detection_fine_detection_rectangle_detection(const cv::Mat& image, std::vector<cv::Rect>& rectangle_list, std::vector<cv::RotatedRect>& rectangle_list_r);
 
 	int count_white_pixels_on_line(const cv::Mat& dst, const double r, const double cosine, const double sine, const bool vertical);
 
@@ -54,7 +54,9 @@ public:
 
 	void detect_dashes(const cv::Rect& rect, const cv::Mat& image, std::vector<cv::Rect>& detected_dashes_list);
 
-	void detect_tag_by_frame(const cv::Mat& image_grayscale, std::vector<cv::Rect>& detections);
+	void cut_out_rotated_rectangle(const cv::RotatedRect& rotated_rect, const cv::Mat& image, cv::Mat& rotated_image);
+
+	void detect_tag_by_frame(const cv::Mat& image_grayscale, std::vector<cv::Rect>& detections, std::vector<cv::RotatedRect>& detections_r);
 
 protected:
 

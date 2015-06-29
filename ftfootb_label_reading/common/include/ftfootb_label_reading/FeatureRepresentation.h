@@ -41,11 +41,11 @@ public:
 
 		std::vector<std::string> load_folder_of_image(std::string path);
 
-		cv::Mat get_feature_descriptor_from_training_data(std::vector<std::string> FoldersFullNames,
-																int number_or_letter,int feature_number,int single_or_combination);
+		void get_feature_descriptor_from_training_data(std::vector<std::string> FoldersFullNames,
+																int number_or_letter,int feature_number,int single_or_combination, cv::Mat& train_data, cv::Mat& train_labels);
 
-		cv::Mat load_all_training_data_with_feature_descriptors(std::string training_path,int number_or_letter,
-																int feature_number,int load,int single_or_combination);
+		void load_all_training_data_with_feature_descriptors(std::string training_path,int number_or_letter,
+																int feature_number,int load,int single_or_combination, cv::Mat& train_data, cv::Mat& train_labels);
 
 		cv::Mat preprocess_text_tag(cv::Mat& tag_image, int feature_number, int single_or_combination);
 
