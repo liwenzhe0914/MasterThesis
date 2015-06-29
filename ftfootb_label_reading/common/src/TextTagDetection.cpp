@@ -597,12 +597,12 @@ void TextTagDetection::text_tag_detection_fine_detection_vj(const cv::Mat& image
 	}
 }
 
-void TextTagDetection::text_tag_detection_fine_detection_rectangle_detection(const cv::Mat& image, std::vector<cv::Rect>& rectangle_list, std::vector<cv::RotatedRect>& rectangle_list_r)
+void TextTagDetection::text_tag_detection_fine_detection_rectangle_detection(const cv::Mat& image, std::vector<cv::Rect>& rectangle_list, std::vector<TagDetectionData>& detections_r)
 {
 	// detect rectangles
 	std::vector<cv::Rect> initial_rectangle_list;
-	std::vector<cv::RotatedRect> initial_rectangle_list_r;
-	detect_tag_by_frame(image, initial_rectangle_list, initial_rectangle_list_r);
+	std::vector<TagDetectionData> initial_detections_r;
+	detect_tag_by_frame(image, initial_rectangle_list, initial_detections_r);
 
 	for (std::vector<cv::Rect>::const_iterator r = initial_rectangle_list.begin(); r != initial_rectangle_list.end(); r++)
 	{
@@ -618,16 +618,16 @@ void TextTagDetection::text_tag_detection_fine_detection_rectangle_detection(con
 			rectangle_list.push_back(*r);
 	}
 
-	for (std::vector<cv::RotatedRect>::const_iterator r = initial_rectangle_list_r.begin(); r != initial_rectangle_list_r.end(); r++)
+	for (std::vector<TagDetectionData>::const_iterator r = initial_detections_r.begin(); r != initial_detections_r.end(); r++)
 	{
-		// get rotated image region
-		cv::Mat rotated_image;
-		cut_out_rotated_rectangle(*r, image, rotated_image);
+		// get rectified image region
+		cv::Mat rectified_image;
+		remove_projection(*r, image, rectified_image);
 
 		// verify with template
-		double score = compare_detection_with_template(rotated_image);
+		double score = compare_detection_with_template(rectified_image);
 		if (score > 0.3)
-			rectangle_list_r.push_back(*r);
+			detections_r.push_back(*r);
 	}
 }
 
@@ -655,9 +655,50 @@ void TextTagDetection::cut_out_rotated_rectangle(const cv::RotatedRect& rotated_
 }
 
 
-void TextTagDetection::detect_tag_by_frame(const cv::Mat& image_grayscale, std::vector<cv::Rect>& detections, std::vector<cv::RotatedRect>& detections_r)
+void TextTagDetection::remove_projection(const cv::RotatedRect& rotated_rect, const cv::Mat& image, cv::Mat& rectified_image)
+{
+	// setup corresponding points
+	std::vector<cv::Point2f> image_coordinates(4), target_coordinates(4);
+	cv::Point2f rect_points[4];
+	rotated_rect.points(rect_points);
+	for (int i=0; i<4; ++i)
+		image_coordinates[i] = rect_points[i];
+	target_coordinates[0] = cv::Point2f(0, rotated_rect.size.height-1);
+	target_coordinates[1] = cv::Point2f(0, 0);
+	target_coordinates[2] = cv::Point2f(rotated_rect.size.width-1, 0);
+	target_coordinates[3] = cv::Point2f(rotated_rect.size.width-1, rotated_rect.size.height-1);
+
+	// find homography and rectify image
+	cv::Mat H = cv::findHomography(image_coordinates, target_coordinates);
+	cv::warpPerspective(image, rectified_image, H, rotated_rect.size);
+
+//    cv::imshow("rectified_image", rectified_image);
+//    cv::waitKey();
+}
+
+
+void TextTagDetection::remove_projection(const TagDetectionData& detection, const cv::Mat& image, cv::Mat& rectified_image)
+{
+	// setup corresponding points
+	std::vector<cv::Point2f> target_coordinates(4);
+	target_coordinates[0] = cv::Point2f(0, detection.min_area_rect_.size.height-1);
+	target_coordinates[1] = cv::Point2f(0, 0);
+	target_coordinates[2] = cv::Point2f(detection.min_area_rect_.size.width-1, 0);
+	target_coordinates[3] = cv::Point2f(detection.min_area_rect_.size.width-1, detection.min_area_rect_.size.height-1);
+
+	// find homography and rectify image
+	cv::Mat H = cv::findHomography(detection.corners_, target_coordinates);
+	cv::warpPerspective(image, rectified_image, H, detection.min_area_rect_.size);
+
+//    cv::imshow("rectified_image", rectified_image);
+//    cv::waitKey();
+}
+
+
+void TextTagDetection::detect_tag_by_frame(const cv::Mat& image_grayscale, std::vector<cv::Rect>& detections, std::vector<TagDetectionData>& detections_r)
 {
 	detections.clear();
+	detections_r.clear();
 
 	// Use Canny instead of threshold to catch squares with gradient shading on 3 conditions
 	//double CannyAccThresh = cv::threshold(image_grayscale, image_bw, 0, 255, CV_THRESH_BINARY|CV_THRESH_OTSU);
@@ -730,7 +771,7 @@ void TextTagDetection::detect_tag_by_frame(const cv::Mat& image_grayscale, std::
 		}
 		if (tag_frame_r.size.height/(double)tag_frame_r.size.width < 0.85*129./690. || tag_frame_r.size.height/(double)tag_frame_r.size.width > 1.15*129./690.)
 			continue;
-		detections_r.push_back(tag_frame_r);
+		detections_r.push_back(TagDetectionData(tag_frame_r, approx));
 
 		cv::Rect tag_frame = cv::boundingRect(contours[i]);
 		if (tag_frame.height/(double)tag_frame.width < 0.85*129./690. || tag_frame.height/(double)tag_frame.width > 1.15*129./690.)

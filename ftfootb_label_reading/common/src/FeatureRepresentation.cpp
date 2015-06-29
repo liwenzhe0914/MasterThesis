@@ -382,11 +382,11 @@ cv::Rect FeatureReprenstation::remove_white_image_border(const cv::Mat& image, c
 			}
 	cv::Rect bounding_box(roi.x + min_point.x, roi.y + min_point.y, max_point.x-min_point.x+1, max_point.y-min_point.y+1);
 
-//	cv::imshow("padding", image);
-//	cv::imshow("binary", binary_image);
-//	cv::Mat cut = image(bounding_box);
-//	cv::imshow("cut", cut);
-//	cv::waitKey();
+	cv::imshow("padding", image);
+	cv::imshow("binary", binary_image);
+	cv::Mat cut = image(bounding_box);
+	cv::imshow("cut", cut);
+	cv::waitKey();
 
 	return bounding_box;
 }

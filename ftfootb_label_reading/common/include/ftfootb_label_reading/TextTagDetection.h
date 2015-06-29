@@ -1,5 +1,6 @@
 // OpenCV includes
 #include "opencv2/objdetect/objdetect.hpp"
+#include "opencv2/calib3d/calib3d.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 
@@ -14,6 +15,53 @@
 #include <string>
 #include <sstream>
 
+
+struct TagDetectionData
+{
+	cv::RotatedRect min_area_rect_;
+	std::vector<cv::Point2f> corners_;
+
+	TagDetectionData(const cv::RotatedRect& min_area_rect, const std::vector<cv::Point>& corners)
+	{
+		min_area_rect_ = min_area_rect;
+
+		std::vector<cv::Point2f> corners2f(corners.size());
+		for (size_t i=0; i<corners.size(); ++i)
+			corners2f[i] = cv::Point2f(corners[i].x, corners[i].y);
+		cv::Point2f rect_points[4];
+		min_area_rect_.points(rect_points);
+		for (int i=0; i<4; ++i)
+			corners_.push_back(get_nearest_point(rect_points[i], corners2f));
+	}
+
+	TagDetectionData(const cv::RotatedRect& min_area_rect, const std::vector<cv::Point2f>& corners)
+	{
+		min_area_rect_ = min_area_rect;
+
+		cv::Point2f rect_points[4];
+		min_area_rect_.points(rect_points);
+		for (int i=0; i<4; ++i)
+			corners_.push_back(get_nearest_point(rect_points[i], corners));
+	}
+
+	cv::Point2f get_nearest_point(const cv::Point2f& reference_point, const std::vector<cv::Point2f>& target_points)
+	{
+		double min_dist = 1e20;
+		cv::Point2f min_point(0,0);
+		for (size_t i=0; i<target_points.size(); ++i)
+		{
+			double dist = (reference_point.x-target_points[i].x)*(reference_point.x-target_points[i].x) + (reference_point.y-target_points[i].y)*(reference_point.y-target_points[i].y);
+			if (dist < min_dist)
+			{
+				min_dist = dist;
+				min_point = target_points[i];
+			}
+		}
+
+		return min_point;
+	}
+};
+
 class TextTagDetection
 {
 public:
@@ -23,7 +71,7 @@ public:
 	inline void text_tag_detection_with_VJ(const cv::Mat& image, std::vector<cv::Rect>& rectangle_list);
 
 	void text_tag_detection_fine_detection_vj(const cv::Mat& image, std::vector<cv::Rect>& rectangle_list);
-	void text_tag_detection_fine_detection_rectangle_detection(const cv::Mat& image, std::vector<cv::Rect>& rectangle_list, std::vector<cv::RotatedRect>& rectangle_list_r);
+	void text_tag_detection_fine_detection_rectangle_detection(const cv::Mat& image, std::vector<cv::Rect>& rectangle_list, std::vector<TagDetectionData>& detections_r);
 
 	int count_white_pixels_on_line(const cv::Mat& dst, const double r, const double cosine, const double sine, const bool vertical);
 
@@ -56,7 +104,10 @@ public:
 
 	void cut_out_rotated_rectangle(const cv::RotatedRect& rotated_rect, const cv::Mat& image, cv::Mat& rotated_image);
 
-	void detect_tag_by_frame(const cv::Mat& image_grayscale, std::vector<cv::Rect>& detections, std::vector<cv::RotatedRect>& detections_r);
+	void remove_projection(const cv::RotatedRect& rotated_rect, const cv::Mat& image, cv::Mat& rectified_image);
+	void remove_projection(const TagDetectionData& detection, const cv::Mat& image, cv::Mat& rectified_image);
+
+	void detect_tag_by_frame(const cv::Mat& image_grayscale, std::vector<cv::Rect>& detections, std::vector<TagDetectionData>& detections_r);
 
 protected:
 
