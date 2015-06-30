@@ -107,6 +107,10 @@ public:
 	void remove_projection(const cv::RotatedRect& rotated_rect, const cv::Mat& image, cv::Mat& rectified_image);
 	void remove_projection(const TagDetectionData& detection, const cv::Mat& image, cv::Mat& rectified_image);
 
+	void refine_detection(TagDetectionData& detection, const cv::Mat& image);
+
+	void fit_line(const std::vector<cv::Point2f>& points, cv::Vec4f& line, double inlier_ratio, double success_probability, double max_inlier_distance, bool draw_from_both_halves_of_point_set=false);
+
 	void detect_tag_by_frame(const cv::Mat& image_grayscale, std::vector<cv::Rect>& detections, std::vector<TagDetectionData>& detections_r);
 
 protected:

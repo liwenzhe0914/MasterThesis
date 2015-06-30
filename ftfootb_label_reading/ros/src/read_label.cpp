@@ -146,7 +146,7 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
 {
 	Timer tim;
 
-	// get image from message
+	// 1. get image from message
 	cv_bridge::CvImageConstPtr image_ptr;
 	cv::Mat image, image_grayscale, image_grayscale_small, image_display;
 	convertImageMessageToMat(image_msg, image_ptr, image);
@@ -172,11 +172,11 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
 	else
 		image_grayscale_small = image_grayscale;
 
-	// find text tags in original image
+	// 2. find text tags in original image
 	std::vector<cv::Rect> detection_list;
 	std::vector<TagDetectionData> detection_list_r;
 	text_tag_detection_.text_tag_detection_fine_detection_rectangle_detection(image_grayscale_small, detection_list, detection_list_r);
-	std::cout<<detection_list_r.size()<<" text tags detected!"<<std::endl;
+	std::cout << detection_list_r.size() << " text tags detected!" << std::endl;
 	std::cout << "Text Detection: [" << tim.getElapsedTimeInMilliSec() << " ms] processing time" << std::endl;
 
 	// correct scale of detections
@@ -184,13 +184,13 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
 	{
 		const double factor_x = image.cols/(double)tag_detection_target_image_width_;
 		const double factor_y = image.rows/(double)tag_detection_target_image_height_;
-		for (size_t i=0; i<detection_list.size(); ++i)
-		{
-			detection_list[i].x *= factor_x;
-			detection_list[i].width *= factor_x;
-			detection_list[i].y *= factor_y;
-			detection_list[i].height *= factor_y;
-		}
+//		for (size_t i=0; i<detection_list.size(); ++i)
+//		{
+//			detection_list[i].x *= factor_x;
+//			detection_list[i].width *= factor_x;
+//			detection_list[i].y *= factor_y;
+//			detection_list[i].height *= factor_y;
+//		}
 		for (size_t i=0; i<detection_list_r.size(); ++i)
 		{
 			detection_list_r[i].min_area_rect_.center.x *= factor_x;
@@ -205,28 +205,25 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
 		}
 	}
 
-	// read texts from tags
-//	cvtColor(image, image, CV_GRAY2BGR);
-//	image.convertTo(image, -1, 1.35, 0);
-//	cv::Mat gray_image;
-//	cv::cvtColor(image, gray_image, CV_BGR2GRAY);
-//	gray_image.convertTo(gray_image, -1, 1.35, 0);
-
+	// 3. read texts from tags
 	for (size_t i=0; i< detection_list_r.size(); ++i)
 	{
 		if (detection_list_r[i].min_area_rect_.center.x!=0 && detection_list_r[i].min_area_rect_.center.y!=0)
 		{
+			std::cout << "reading starts"<<std::endl;
 			//cv::rectangle(image_display, detection_list[i], cv::Scalar(0,0,255), 1, 8, 0);
 			for(int j=0; j<4; ++j)
 				cv::line(image_display, detection_list_r[i].corners_[j], detection_list_r[i].corners_[(j+1)%4], cv::Scalar(0,0,255), 1, 8);
 
-			std::cout<<"feature representation starts"<<std::endl;
+			// get rectified image roi for reading from it
+			cv::Mat roi;	// = image_grayscale(detection_list[i]);
+			text_tag_detection_.remove_projection(detection_list_r[i], image_grayscale, roi);
+			// verify with template
+			double score = text_tag_detection_.compare_detection_with_template(roi);
+			if (score <= 0.3)
+				continue;
 
 			std::string tag_label_features, tag_label_template_matching;
-			cv::Mat roi;	// = image_grayscale(detection_list[i]);
-			std::cout << "0" << std::endl;
-			text_tag_detection_.remove_projection(detection_list_r[i], image_grayscale, roi);
-			std::cout << "1" << std::endl;
 			if (recognition_method_==2 || recognition_method_==3)
 			{
 				if (classifier_==2 || classifier_==3) // SVM for classification
@@ -248,8 +245,6 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
 				cv::putText(image_display, tag_label_features, cv::Point(detection_list_r[i].corners_[1].x, detection_list_r[i].corners_[1].y-5), cv::FONT_HERSHEY_PLAIN, 2, CV_RGB(0,0,255), 2);
 			}
 
-			std::cout << "2" << std::endl;
-
 			if (recognition_method_==1 || recognition_method_==3)
 			{
 				match_template_.read_tag(roi, tag_label_template_matching,template_matching_method_);
@@ -268,33 +263,8 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
 	ss.str("");
 	cv::imshow("image", image_display);
 	cv::waitKey(1);
-//	double roi_height,roi_width;
-//	cv::Rect roi_rect((color_image.cols-roi_width)/2,(color_image.rows-roi_height)/2,roi_width,roi_height);
-//	cv::rectangle(color_image, cv::Point(roi_rect.x-2, roi_rect.y-2), cv::Point(roi_rect.x+roi_rect.width+2, roi_rect.y+roi_rect.height+2), CV_RGB(0,0,255), 2);
-//	cv::Mat gray_image;
-//	cv::cvtColor(color_image, gray_image, CV_BGR2GRAY);
-//	cv::Mat roi = gray_image(roi_rect);
-//
-//	// detect text
-//
-//	time_in_seconds = (clock() - start_time) / (double)CLOCKS_PER_SEC;
-//	std::cout << "[" << time_in_seconds << " s] processing time" << std::endl;
-//
-//	std::cout << "The text tag reads: " << tag_label << "." << std::endl;
-//	cv::putText(color_image, tag_label, cv::Point(roi_rect.x-100, roi_rect.y-5), cv::FONT_HERSHEY_PLAIN, 3, CV_RGB(0,0,255), 2);
-//	std::stringstream ss;
-//	ss << roi_height_;
-//	cv::putText(color_image, ss.str(), cv::Point(roi_rect.x+roi_rect.width+10, roi_rect.y+roi_rect.height), cv::FONT_HERSHEY_PLAIN, 1, CV_RGB(255,0,0), 1);
-//
-//	// now do something with color_image
-//	cv::imshow("image", color_image);
-//	char c = cv::waitKey(10);
-//	if (c=='x')
-//		roi_height_ += 1.0;
-//	if (c=='y')
-//		roi_height_ = std::max(10.0, roi_height_-1.0);
-//
-//	// create ReadLabel object (from common folder) and call detect function
+
+	//	// create ReadLabel object (from common folder) and call detect function
 //
 //	// publish image
 //	cv_bridge::CvImage cv_ptr;

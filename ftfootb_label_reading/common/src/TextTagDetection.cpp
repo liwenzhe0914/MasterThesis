@@ -618,16 +618,19 @@ void TextTagDetection::text_tag_detection_fine_detection_rectangle_detection(con
 //			rectangle_list.push_back(*r);
 //	}
 
-	for (std::vector<TagDetectionData>::const_iterator r = initial_detections_r.begin(); r != initial_detections_r.end(); r++)
+	for (std::vector<TagDetectionData>::iterator r = initial_detections_r.begin(); r != initial_detections_r.end(); r++)
 	{
-		// get rectified image region
-		cv::Mat rectified_image;
-		remove_projection(*r, image, rectified_image);
+//		// get rectified image region
+//		cv::Mat rectified_image;
+//		remove_projection(*r, image, rectified_image);
+//
+//		// verify with template
+//		double score = compare_detection_with_template(rectified_image);
+//		if (score > 0.3)
+//			detections_r.push_back(*r);
 
-		// verify with template
-		double score = compare_detection_with_template(rectified_image);
-		if (score > 0.3)
-			detections_r.push_back(*r);
+		refine_detection(*r, image);
+		detections_r.push_back(*r);
 	}
 }
 
@@ -690,10 +693,121 @@ void TextTagDetection::remove_projection(const TagDetectionData& detection, cons
 	cv::Mat H = cv::findHomography(detection.corners_, target_coordinates);
 	cv::warpPerspective(image, rectified_image, H, detection.min_area_rect_.size);
 
-//    cv::imshow("rectified_image", rectified_image);
-//    cv::waitKey();
+	cv::imshow("rectified_image", rectified_image);
+	cv::waitKey();
 }
 
+void TextTagDetection::refine_detection(TagDetectionData& detection, const cv::Mat& image)
+{
+	// 1. compute a slightly wider ROI than the enclosing aligned bounding box
+	cv::Rect bb = detection.min_area_rect_.boundingRect();
+	int padding = detection.min_area_rect_.size.height * 0.1;
+	cv::Rect frame(std::max<int>(bb.x-padding, 0), std::max<int>(bb.y-padding, 0), std::max(std::min<int>(bb.width+2*padding, image.cols), 1), std::max(std::min<int>(bb.height+2*padding, image.rows), 1));
+
+	// 2. find the inner tag borders (white area with text)
+	cv::Mat binary_image;
+	double canny_threshold = cv::threshold(image(frame), binary_image, 0, 255, CV_THRESH_BINARY|CV_THRESH_OTSU);
+	// 2.a. left line
+	const cv::Rect left_area_rect(0, 0, std::max<int>(frame.width*0.2, 1), frame.height);
+	const cv::Mat left_area_image = binary_image(left_area_rect);
+	cv::Mat edge, edge_display;
+	cv::Sobel(left_area_image, edge, -1, 1, 0, 3, 1.0/9.0, 0.0);
+	cv::threshold(edge, edge, 64, 255, CV_THRESH_BINARY);
+	std::vector<cv::Point2f> line_points;
+	for (int v=0; v<edge.rows; ++v)
+		for (int u=0; u<edge.cols; ++u)
+			if (edge.at<uchar>(v,u)>64)
+				line_points.push_back(cv::Point2f(u,v));
+	cv::Vec4f line;		// (x0, y0, n0.x, n0.y), where (n0.x, n0.y) is a normalized normal vector to the line and (x0, y0) is a point on the line
+	fit_line(line_points, line, 0.01, 0.9999, 0.9, true);
+
+	std::cout << "line: " << line[0] << ", " << line[1] << ", " << line[2] << ", " << line[3] << std::endl;
+	cv::Point pt1, pt2;
+	pt1.x = (line[0]*line[2] + line[1]*line[3])/line[2];
+	pt1.y = 0;
+	pt2.x = (line[0]*line[2] + (line[1]-edge.rows)*line[3])/line[2];
+	pt2.y = edge.rows;
+	std::cout << "draw points: " << pt1.x << ", " << pt1.y << ", " << pt2.x << ", " << pt2.y << std::endl;
+	cv::cvtColor(edge, edge_display, CV_GRAY2BGR);
+	cv::line(edge_display, pt1, pt2, cv::Scalar(0,255,0), 1, CV_AA);
+	cv::imshow("left edge points", edge);
+	cv::imshow("left edge", edge_display);
+
+	cv::imshow("binary_image", binary_image);
+
+//	cv::Mat display, display2;
+//	double canny_threshold = cv::threshold(image(frame), display, 0, 255, CV_THRESH_BINARY|CV_THRESH_OTSU);
+//	cv::Mat edge_image;
+//	cv::Canny(display, edge_image, 0.5*canny_threshold, canny_threshold);
+//	std::vector<std::vector<cv::Point> > contours;
+//	cv::findContours(edge_image.clone(), contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
+//	display2 = image(frame).clone();
+//	cv::drawContours(display2, contours, -1, CV_RGB(0,255,0), 1);
+//	cv::imshow("contours", display2);
+//	cv::imshow("region", display);
+	cv::waitKey();
+}
+
+void TextTagDetection::fit_line(const std::vector<cv::Point2f>& points, cv::Vec4f& line, const double inlier_ratio, const double success_probability, const double max_inlier_distance, bool draw_from_both_halves_of_point_set)
+{
+	const int iterations = (int)(log(1.-success_probability)/log(1.-inlier_ratio*inlier_ratio));
+	std::cout << "iterations: " << iterations << std::endl;
+	const int samples = (int)points.size();
+
+	// RANSAC iterations
+	int max_inliers = 0;
+	for (int k=0; k<iterations; ++k)
+	{
+		// draw two different points from samples
+		int index1, index2;
+		if (draw_from_both_halves_of_point_set == false)
+		{
+			index1 = rand()%samples;
+			index2 = index1;
+			while (index2==index1)
+				index2 = rand()%samples;
+		}
+		else
+		{
+			index1 = rand()%(samples/2);
+			index2 = std::min((samples/2)+rand()%(samples/2), samples-1);
+		}
+
+		// compute line equation from points: d = n0 * (x - x0)  (x0=point on line, n0=normalized normal on line, d=distance to line, d=0 -> line)
+		cv::Point2f x0 = points[index1];	// point on line
+		cv::Point2f n0(points[index2].y-points[index1].y, points[index1].x-points[index2].x);	// normal direction on line
+		const double n0_length = sqrt(n0.x*n0.x + n0.y*n0.y);
+		n0.x /= n0_length; n0.y /= n0_length;
+		const float c = -points[index1].x*n0.x - points[index1].y*n0.y;		// distance to line: d = n0*(x-x0) = n0.x*x + n0.y*y + c
+
+		// count inliers
+		int inliers = 0;
+		for (size_t i=0; i<points.size(); ++i)
+			if (abs(n0.x * points[i].x + n0.y * points[i].y + c) <= max_inlier_distance)
+				++inliers;
+
+		// update best model
+		if (inliers > max_inliers)
+		{
+			max_inliers = inliers;
+			line = cv::Vec4f(points[index1].x, points[index1].y, n0.x, n0.y);		// [x0, y0, n0.x, n0.y]
+			std::cout << "points: " << points[index1].x << ", " << points[index1].y << "; " << points[index2].x << ", " << points[index2].y << std::endl;
+		}
+	}
+	std::cout << "max_inliers: " << max_inliers << std::endl;
+
+//	// final optimization with least squares fit
+//	const cv::Point2f n0(line[2], line[3]);
+//	const double c = -line[0]*n0.x - line[1]*n0.y;
+//	std::vector<cv::Point2f> inlier_set;
+//	for (size_t i=0; i<points.size(); ++i)
+//		if (abs(n0.x * points[i].x + n0.y * points[i].y + c) <= max_inlier_distance)
+//			inlier_set.push_back(points[i]);
+//	cv::Vec4f line_ls;
+//	cv::fitLine(inlier_set, line_ls, CV_DIST_L2, 0, 0.01, 0.01);	// (vx, vy, x0, y0), where (vx, vy) is a normalized vector collinear to the line and (x0, y0) is a point on the line
+//	const double length = sqrt(line_ls[0]*line_ls[0]+line_ls[1]*line_ls[1]);
+//	line = cv::Vec4f(line_ls[2], line_ls[3], line_ls[1]/length, line_ls[0]/length);
+}
 
 void TextTagDetection::detect_tag_by_frame(const cv::Mat& image_grayscale, std::vector<cv::Rect>& detections, std::vector<TagDetectionData>& detections_r)
 {

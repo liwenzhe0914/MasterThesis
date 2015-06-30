@@ -414,8 +414,6 @@ cv::Mat FeatureReprenstation::get_feature_descriptor(const cv::Mat& image, int f
 		dsize_BRIEF=cv::Size(57,57);
 	}
 
-	std::cout << "i" << std::endl;
-
 	if(feature_number==1)
 	{
 
@@ -468,8 +466,6 @@ cv::Mat FeatureReprenstation::get_feature_descriptor(const cv::Mat& image, int f
 		memcpy(descriptorsValues_temp.data,descriptorsValues_vector.data(), descriptorsValues_vector.size()*sizeof(float));
 		descriptorsValues_temp.copyTo(descriptor_values);
 	}
-
-	std::cout << "ii" << std::endl;
 
 	return descriptor_values;
 }
@@ -701,23 +697,16 @@ void FeatureReprenstation::load_all_training_data_with_feature_descriptors
 
 cv::Mat FeatureReprenstation::preprocess_text_tag(cv::Mat& tag_image, int feature_number, int single_or_combination)
 {
-	//single_or_combination: 1-single, 2- combination
-	std::vector<cv::Rect> image_portions;
-	cv::Mat descriptor_values;
-	//std::cout<<"single_or_combination: "<<single_or_combination<<std::endl;
+	// single_or_combination: 1-single, 2- combination
 
 	// 1. find the 4 combinations of two letters/numbers
+	std::vector<cv::Rect> image_portions;
 	image_portions.push_back(remove_white_image_border(tag_image, cv::Rect(0.8/39.6*tag_image.cols, 0.9/7*tag_image.rows, 7.7/39.6*tag_image.cols, 5.4/7*tag_image.rows)));
 	image_portions.push_back(remove_white_image_border(tag_image, cv::Rect(11.0/39.6*tag_image.cols, 0.9/7*tag_image.rows, 7.4/39.6*tag_image.cols, 5.4/7*tag_image.rows)));
 	image_portions.push_back(remove_white_image_border(tag_image, cv::Rect(21.2/39.6*tag_image.cols, 0.9/7*tag_image.rows, 7.4/39.6*tag_image.cols, 5.4/7*tag_image.rows)));
 	image_portions.push_back(remove_white_image_border(tag_image, cv::Rect(31.5/39.6*tag_image.cols, 0.9/7*tag_image.rows, 7.4/39.6*tag_image.cols, 5.4/7*tag_image.rows)));
-//	for (double x_min_ratio = 0; x_min_ratio < 1.0; x_min_ratio += 0.25)
-//	{
-//		cv::Mat portion = tag_image(cv::Rect(tag_image.cols*x_min_ratio,0, tag_image.cols*0.25, tag_image.rows));
-//		image_portions.push_back(portion);
-//	}
 
-	// for single letters: separate found image portions into two sections
+	// 2. for single letters: separate found image portions into two sections
 	if (single_or_combination==1)
 	{
 		std::vector<cv::Rect> temp;
@@ -728,47 +717,11 @@ cv::Mat FeatureReprenstation::preprocess_text_tag(cv::Mat& tag_image, int featur
 		}
 		image_portions = temp;
 	}
-//	if (single_or_combination==1)
-//	{
-//		// single letters/numbers
-//		// todo: update numbers
-//		double x1,x2,x3,x4,x5,x6,x7,x8,y,width,height;
-//		x1=tag_image.cols*4.5/317.;
-//		x2=tag_image.cols*33./317.;
-//		x3=tag_image.cols*88./317.;
-//		x4=tag_image.cols*118./317.;
-//		x5=tag_image.cols*170./317.;
-//		x6=tag_image.cols*200./317.;
-//		x7=tag_image.cols*253./317.;
-//		x8=tag_image.cols*281./317.;
-//		y=tag_image.rows*5./59.;
-//		height=tag_image.rows*100./129.;
-//		width=tag_image.cols*62./690.;
-//		cv::Mat letter1(tag_image, cv::Rect(x1,y,width,height));
-//		image_portions.push_back(letter1);
-//		cv::Mat letter2(tag_image, cv::Rect(x2,y,width,height));
-//		image_portions.push_back(letter2);
-//		cv::Mat number1(tag_image, cv::Rect(x3,y,width,height));
-//		image_portions.push_back(number1);
-//		cv::Mat number2(tag_image, cv::Rect(x4,y,width,height));
-//		image_portions.push_back(number2);
-//		cv::Mat number3(tag_image, cv::Rect(x5,y,width,height));
-//		image_portions.push_back(number3);
-//		cv::Mat number4(tag_image, cv::Rect(x6,y,width,height));
-//		image_portions.push_back(number4);
-//		cv::Mat number5(tag_image, cv::Rect(x7,y,width,height));
-//		image_portions.push_back(number5);
-//		cv::Mat number6(tag_image, cv::Rect(x8,y,width,height));
-//		image_portions.push_back(number6);
-//	}
-//	else
-//		std::cout<<"please give: 1 - single character classifier \n" <<	"                2 - combination classifier "<<std::endl;
 
+	// 3. compute descriptor
+	cv::Mat descriptor_values;
 	for (unsigned int i = 0; i<image_portions.size();i++)
-	{
-		std::cout << "i: " << i << ",   " << image_portions[i].x << ", " << image_portions[i].y << ", " << image_portions[i].width << ", " << image_portions[i].height << std::endl;
 		descriptor_values.push_back(get_feature_descriptor(tag_image(image_portions[i]), feature_number, single_or_combination));
-	}
 
 	return descriptor_values;
 }
@@ -950,9 +903,7 @@ std::string FeatureReprenstation::read_text_tag_SVM(cv::SVM& numbers_svm, cv::SV
 	else
 		std::cout<<"[Feature representation ERROR: ] wrong feature number is given!"<<std::endl;
 
-	std::cout << "a" << std::endl;
 	cv::Mat descriptors_values = preprocess_text_tag(tag_image,feature_number,single_or_combination);
-	std::cout << "b" << std::endl;
 	if (single_or_combination==2)
 	{
 		float response = letters_svm.predict(descriptors_values.row(0),descriptors_values.row(0).cols);
@@ -966,12 +917,12 @@ std::string FeatureReprenstation::read_text_tag_SVM(cv::SVM& numbers_svm, cv::SV
 	}
 	else if (single_or_combination==1)
 	{
-		for (unsigned int j =0;j<2;j++)
+		for (unsigned int j=0; j<2; ++j)
 		{
 			float response = letters_svm.predict(descriptors_values.row(j),descriptors_values.row(j).cols);
 			text_label_result_int.push_back(response);
 		}
-		for (unsigned int j =2;j<8;j++)
+		for (unsigned int j=2; j<8; ++j)
 		{
 			float response = numbers_svm.predict(descriptors_values.row(j),descriptors_values.row(j).cols);
 			text_label_result_int.push_back(response);
