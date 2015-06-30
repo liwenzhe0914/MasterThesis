@@ -109,9 +109,16 @@ public:
 
 	void refine_detection(TagDetectionData& detection, const cv::Mat& image);
 
+	cv::Point2f line_intersection(const cv::Vec4f& line1, const cv::Vec4f& line2);
+
+	// mode: 0=left line, 1=upper line, 2=right line, 3=lower line
+	cv::Vec4f fit_tag_lines(const cv::Mat& area_image, const int mode);
+
 	void fit_line(const std::vector<cv::Point2f>& points, cv::Vec4f& line, double inlier_ratio, double success_probability, double max_inlier_distance, bool draw_from_both_halves_of_point_set=false);
 
 	void detect_tag_by_frame(const cv::Mat& image_grayscale, std::vector<cv::Rect>& detections, std::vector<TagDetectionData>& detections_r);
+
+	void correct_rotated_rect_rotation(cv::RotatedRect& rotated_rect);
 
 protected:
 

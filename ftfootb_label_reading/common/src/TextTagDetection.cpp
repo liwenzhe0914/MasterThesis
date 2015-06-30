@@ -693,8 +693,8 @@ void TextTagDetection::remove_projection(const TagDetectionData& detection, cons
 	cv::Mat H = cv::findHomography(detection.corners_, target_coordinates);
 	cv::warpPerspective(image, rectified_image, H, detection.min_area_rect_.size);
 
-	cv::imshow("rectified_image", rectified_image);
-	cv::waitKey();
+//	cv::imshow("rectified_image", rectified_image);
+//	cv::waitKey();
 }
 
 void TextTagDetection::refine_detection(TagDetectionData& detection, const cv::Mat& image)
@@ -707,51 +707,128 @@ void TextTagDetection::refine_detection(TagDetectionData& detection, const cv::M
 	// 2. find the inner tag borders (white area with text)
 	cv::Mat binary_image;
 	double canny_threshold = cv::threshold(image(frame), binary_image, 0, 255, CV_THRESH_BINARY|CV_THRESH_OTSU);
+//	cv::imshow("binary_image", binary_image);
 	// 2.a. left line
 	const cv::Rect left_area_rect(0, 0, std::max<int>(frame.width*0.2, 1), frame.height);
-	const cv::Mat left_area_image = binary_image(left_area_rect);
-	cv::Mat edge, edge_display;
-	cv::Sobel(left_area_image, edge, -1, 1, 0, 3, 1.0/9.0, 0.0);
-	cv::threshold(edge, edge, 64, 255, CV_THRESH_BINARY);
+	cv::Vec4f left_line = fit_tag_lines(binary_image(left_area_rect), 0);
+	left_line[0] += frame.x; left_line[1] += frame.y;
+	// 2.b. upper line
+	const cv::Rect upper_area_rect(0, 0, frame.width, std::max<int>(frame.height*0.5, 1));
+	cv::Vec4f upper_line = fit_tag_lines(binary_image(upper_area_rect), 1);
+	upper_line[0] += frame.x; upper_line[1] += frame.y;
+	// 2.c. right line
+	const cv::Rect right_area_rect(std::max<int>(frame.width*0.8, 0), 0, std::max<int>(frame.width*0.2, 1), frame.height);
+	cv::Vec4f right_line = fit_tag_lines(binary_image(right_area_rect), 2);
+	right_line[0] += frame.x+std::max<int>(frame.width*0.8, 0); right_line[1] += frame.y;
+	// 2.b. lower line
+	const cv::Rect lower_area_rect(0, std::max<int>(frame.height*0.5, 0), frame.width, std::max<int>(frame.height*0.5, 1));
+	cv::Vec4f lower_line = fit_tag_lines(binary_image(lower_area_rect), 3);
+	lower_line[0] += frame.x; lower_line[1] += frame.y+std::max<int>(frame.height*0.5, 0);
+
+	// 3. compute the refined corners of the rectangle by crossing the boundary edges
+	std::vector<cv::Point2f> corners(4);
+	corners[0] = line_intersection(lower_line, left_line);
+	corners[1] = line_intersection(left_line, upper_line);
+	corners[2] = line_intersection(upper_line, right_line);
+	corners[3] = line_intersection(right_line, lower_line);
+
+	// 4. update detection with refined boundary
+	cv::RotatedRect min_area_rect = cv::minAreaRect(corners);
+	correct_rotated_rect_rotation(min_area_rect);
+	detection = TagDetectionData(min_area_rect, corners);
+}
+
+cv::Point2f TextTagDetection::line_intersection(const cv::Vec4f& line1, const cv::Vec4f& line2)
+{
+	// line equation 1: a*x + b*y + c = 0  <--->  n0 * (x - x0) = 0    , line = (x0, y0, n0.x, n0.y)
+	// line equation 2: d*x + e*y + d = 0
+	double a = line1[2];
+	double b = line1[3];
+	double c = -line1[0]*line1[2] - line1[1]*line1[3];
+	double d = line2[2];
+	double e = line2[3];
+	double f = -line2[0]*line2[2] - line2[1]*line2[3];
+
+	// solve: A*[x,y]' = B
+	cv::Mat A(2,2,CV_64FC1);
+	A.at<double>(0,0) = a;
+	A.at<double>(0,1) = b;
+	A.at<double>(1,0) = d;
+	A.at<double>(1,1) = e;
+
+	cv::Mat B(2,1,CV_64FC1);
+	B.at<double>(0) = -c;
+	B.at<double>(1) = -f;
+
+	cv::Mat X;
+	cv::solve(A, B, X);
+
+	return cv::Point2f(X.at<double>(0), X.at<double>(1));
+}
+
+cv::Vec4f TextTagDetection::fit_tag_lines(const cv::Mat& area_image, const int mode)
+{
+	// create edge image with respective black/white or white/black transition according to edge location
+	cv::Mat edge;
+	if (mode == 0)	// left edge
+		cv::Sobel(area_image, edge, -1, 1, 0, 3, 1.0/9.0, 0.0);
+	else if (mode == 1) // upper edge
+		cv::Sobel(area_image, edge, -1, 0, 1, 3, 1.0/9.0, 0.0);
+	else if (mode == 2)	// right edge
+			cv::Sobel(area_image, edge, -1, 1, 0, 3, -1.0/9.0, 0.0);
+	else if (mode == 3) // lower edge
+		cv::Sobel(area_image, edge, -1, 0, 1, 3, -1.0/9.0, 0.0);
+
+	// collect all potential line points (first half of point set are the upper/left points, second half are the lower/right points -> selection during RANSAC is better informed)
 	std::vector<cv::Point2f> line_points;
-	for (int v=0; v<edge.rows; ++v)
+	if (mode == 0 || mode == 2)
+	{
+		for (int v=0; v<edge.rows; ++v)
+			for (int u=0; u<edge.cols; ++u)
+				if (edge.at<uchar>(v,u)>64)
+					line_points.push_back(cv::Point2f(u,v));
+	}
+	else
+	{
 		for (int u=0; u<edge.cols; ++u)
-			if (edge.at<uchar>(v,u)>64)
-				line_points.push_back(cv::Point2f(u,v));
+			for (int v=0; v<edge.rows; ++v)
+				if (edge.at<uchar>(v,u)>64)
+					line_points.push_back(cv::Point2f(u,v));
+	}
 	cv::Vec4f line;		// (x0, y0, n0.x, n0.y), where (n0.x, n0.y) is a normalized normal vector to the line and (x0, y0) is a point on the line
-	fit_line(line_points, line, 0.01, 0.9999, 0.9, true);
+	fit_line(line_points, line, 0.1, 0.9999, 0.9, true);
 
-	std::cout << "line: " << line[0] << ", " << line[1] << ", " << line[2] << ", " << line[3] << std::endl;
-	cv::Point pt1, pt2;
-	pt1.x = (line[0]*line[2] + line[1]*line[3])/line[2];
-	pt1.y = 0;
-	pt2.x = (line[0]*line[2] + (line[1]-edge.rows)*line[3])/line[2];
-	pt2.y = edge.rows;
-	std::cout << "draw points: " << pt1.x << ", " << pt1.y << ", " << pt2.x << ", " << pt2.y << std::endl;
-	cv::cvtColor(edge, edge_display, CV_GRAY2BGR);
-	cv::line(edge_display, pt1, pt2, cv::Scalar(0,255,0), 1, CV_AA);
-	cv::imshow("left edge points", edge);
-	cv::imshow("left edge", edge_display);
+//	// display
+//	cv::Point pt1, pt2;
+//	if (mode == 0 || mode == 2)
+//	{
+//		pt1.x = (line[0]*line[2] + line[1]*line[3])/line[2];
+//		pt1.y = 0;
+//		pt2.x = (line[0]*line[2] + (line[1]-edge.rows)*line[3])/line[2];
+//		pt2.y = edge.rows;
+//	}
+//	else
+//	{
+//		pt1.x = 0;
+//		pt1.y = (line[0]*line[2] + line[1]*line[3])/line[3];
+//		pt2.x = edge.cols;
+//		pt2.y = ((line[0]-edge.cols)*line[2] + line[1]*line[3])/line[3];
+//	}
+//	std::cout << "draw points: " << pt1.x << ", " << pt1.y << ", " << pt2.x << ", " << pt2.y << std::endl;
+//	cv::Mat edge_display;
+//	cv::cvtColor(edge, edge_display, CV_GRAY2BGR);
+//	cv::line(edge_display, pt1, pt2, cv::Scalar(0,255,0), 1, CV_AA);
+//	cv::imshow("edge points", edge);
+//	cv::imshow("edge", edge_display);
+//	cv::waitKey();
 
-	cv::imshow("binary_image", binary_image);
-
-//	cv::Mat display, display2;
-//	double canny_threshold = cv::threshold(image(frame), display, 0, 255, CV_THRESH_BINARY|CV_THRESH_OTSU);
-//	cv::Mat edge_image;
-//	cv::Canny(display, edge_image, 0.5*canny_threshold, canny_threshold);
-//	std::vector<std::vector<cv::Point> > contours;
-//	cv::findContours(edge_image.clone(), contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
-//	display2 = image(frame).clone();
-//	cv::drawContours(display2, contours, -1, CV_RGB(0,255,0), 1);
-//	cv::imshow("contours", display2);
-//	cv::imshow("region", display);
-	cv::waitKey();
+	return line;
 }
 
 void TextTagDetection::fit_line(const std::vector<cv::Point2f>& points, cv::Vec4f& line, const double inlier_ratio, const double success_probability, const double max_inlier_distance, bool draw_from_both_halves_of_point_set)
 {
 	const int iterations = (int)(log(1.-success_probability)/log(1.-inlier_ratio*inlier_ratio));
-	std::cout << "iterations: " << iterations << std::endl;
+//	std::cout << "iterations: " << iterations << std::endl;
 	const int samples = (int)points.size();
 
 	// RANSAC iterations
@@ -791,10 +868,8 @@ void TextTagDetection::fit_line(const std::vector<cv::Point2f>& points, cv::Vec4
 		{
 			max_inliers = inliers;
 			line = cv::Vec4f(points[index1].x, points[index1].y, n0.x, n0.y);		// [x0, y0, n0.x, n0.y]
-			std::cout << "points: " << points[index1].x << ", " << points[index1].y << "; " << points[index2].x << ", " << points[index2].y << std::endl;
 		}
 	}
-	std::cout << "max_inliers: " << max_inliers << std::endl;
 
 //	// final optimization with least squares fit
 //	const cv::Point2f n0(line[2], line[3]);
@@ -869,20 +944,7 @@ void TextTagDetection::detect_tag_by_frame(const cv::Mat& image_grayscale, std::
 
 		// check for aspect ratio
 		cv::RotatedRect tag_frame_r = cv::minAreaRect(contours[i]);
-		while (tag_frame_r.angle < -45.)
-		{
-			tag_frame_r.angle += 90.;
-			float width = tag_frame_r.size.height;
-			tag_frame_r.size.height = tag_frame_r.size.width;
-			tag_frame_r.size.width = width;
-		}
-		while (tag_frame_r.angle > 45.)
-		{
-			tag_frame_r.angle -= 90.;
-			float width = tag_frame_r.size.height;
-			tag_frame_r.size.height = tag_frame_r.size.width;
-			tag_frame_r.size.width = width;
-		}
+		correct_rotated_rect_rotation(tag_frame_r);
 		if (tag_frame_r.size.height/(double)tag_frame_r.size.width < 0.85*129./690. || tag_frame_r.size.height/(double)tag_frame_r.size.width > 1.15*129./690.)
 			continue;
 		detections_r.push_back(TagDetectionData(tag_frame_r, approx));
@@ -904,5 +966,22 @@ void TextTagDetection::detect_tag_by_frame(const cv::Mat& image_grayscale, std::
 }
 
 
+void TextTagDetection::correct_rotated_rect_rotation(cv::RotatedRect& rotated_rect)
+{
+	while (rotated_rect.angle < -45.)
+	{
+		rotated_rect.angle += 90.;
+		float width = rotated_rect.size.height;
+		rotated_rect.size.height = rotated_rect.size.width;
+		rotated_rect.size.width = width;
+	}
+	while (rotated_rect.angle > 45.)
+	{
+		rotated_rect.angle -= 90.;
+		float width = rotated_rect.size.height;
+		rotated_rect.size.height = rotated_rect.size.width;
+		rotated_rect.size.width = width;
+	}
+}
 
 
