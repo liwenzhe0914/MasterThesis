@@ -71,7 +71,7 @@ public:
 	inline void text_tag_detection_with_VJ(const cv::Mat& image, std::vector<cv::Rect>& rectangle_list);
 
 	void text_tag_detection_fine_detection_vj(const cv::Mat& image, std::vector<cv::Rect>& rectangle_list);
-	void text_tag_detection_fine_detection_rectangle_detection(const cv::Mat& image, std::vector<cv::Rect>& rectangle_list, std::vector<TagDetectionData>& detections_r);
+	void text_tag_detection_fine_detection_rectangle_detection(const cv::Mat& image, std::vector<TagDetectionData>& detections);
 
 	int count_white_pixels_on_line(const cv::Mat& dst, const double r, const double cosine, const double sine, const bool vertical);
 
@@ -109,6 +109,8 @@ public:
 
 	void refine_detection(TagDetectionData& detection, const cv::Mat& image);
 
+	double distance(const cv::Point2f& a, const cv::Point2f& b);
+
 	cv::Point2f line_intersection(const cv::Vec4f& line1, const cv::Vec4f& line2);
 
 	// mode: 0=left line, 1=upper line, 2=right line, 3=lower line
@@ -116,7 +118,7 @@ public:
 
 	void fit_line(const std::vector<cv::Point2f>& points, cv::Vec4f& line, double inlier_ratio, double success_probability, double max_inlier_distance, bool draw_from_both_halves_of_point_set=false);
 
-	void detect_tag_by_frame(const cv::Mat& image_grayscale, std::vector<cv::Rect>& detections, std::vector<TagDetectionData>& detections_r);
+	void detect_tag_by_frame(const cv::Mat& image_grayscale, std::vector<TagDetectionData>& detections);
 
 	void correct_rotated_rect_rotation(cv::RotatedRect& rotated_rect);
 

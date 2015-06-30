@@ -167,15 +167,17 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
 		ROS_ERROR("LabelReader::imageCallback: Wrong number of channels in camera image. Allowed is 1 or 3.");
 		return;
 	}
+	//cv::equalizeHist(image_grayscale, image_grayscale);
 	if (tag_detection_target_image_width_>0 && tag_detection_target_image_height_>0)
 		cv::resize(image_grayscale, image_grayscale_small, cv::Size(tag_detection_target_image_width_, tag_detection_target_image_height_));
 	else
 		image_grayscale_small = image_grayscale;
 
+	std::cout << "image received" << std::endl;
+
 	// 2. find text tags in original image
-	std::vector<cv::Rect> detection_list;
 	std::vector<TagDetectionData> detection_list_r;
-	text_tag_detection_.text_tag_detection_fine_detection_rectangle_detection(image_grayscale_small, detection_list, detection_list_r);
+	text_tag_detection_.text_tag_detection_fine_detection_rectangle_detection(image_grayscale_small, detection_list_r);
 	std::cout << detection_list_r.size() << " text tags detected!" << std::endl;
 	std::cout << "Text Detection: [" << tim.getElapsedTimeInMilliSec() << " ms] processing time" << std::endl;
 
@@ -220,7 +222,7 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
 			text_tag_detection_.remove_projection(detection_list_r[i], image_grayscale, roi);
 			// verify with template
 			double score = text_tag_detection_.compare_detection_with_template(roi);
-			if (score <= 0.3)
+			if (score <= 0.5)
 				continue;
 
 			std::string tag_label_features, tag_label_template_matching;

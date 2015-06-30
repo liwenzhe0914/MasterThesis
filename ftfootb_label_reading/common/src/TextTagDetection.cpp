@@ -454,7 +454,8 @@ double TextTagDetection::compare_detection_with_template(const cv::Mat& image)
 
 	cv::Mat image_resized;
 	cv::resize(image, image_resized, text_tag_template_target_size_);
-	cv::threshold(image_resized, image_resized, -1, 255, cv::THRESH_BINARY|cv::THRESH_OTSU);
+	cv::equalizeHist(image_resized, image_resized);
+	//cv::threshold(image_resized, image_resized, -1, 255, cv::THRESH_BINARY|cv::THRESH_OTSU);
 	double minVal, maxVal, score = 0;
 	cv::Point minLoc, maxLoc, matchLoc;
 	cv::Mat result;
@@ -597,12 +598,12 @@ void TextTagDetection::text_tag_detection_fine_detection_vj(const cv::Mat& image
 	}
 }
 
-void TextTagDetection::text_tag_detection_fine_detection_rectangle_detection(const cv::Mat& image, std::vector<cv::Rect>& rectangle_list, std::vector<TagDetectionData>& detections_r)
+void TextTagDetection::text_tag_detection_fine_detection_rectangle_detection(const cv::Mat& image, std::vector<TagDetectionData>& detections)
 {
 	// detect rectangles
-	std::vector<cv::Rect> initial_rectangle_list;
-	std::vector<TagDetectionData> initial_detections_r;
-	detect_tag_by_frame(image, initial_rectangle_list, initial_detections_r);
+//	std::vector<cv::Rect> initial_rectangle_list;
+	std::vector<TagDetectionData> initial_detections;
+	detect_tag_by_frame(image, initial_detections);
 
 //	for (std::vector<cv::Rect>::const_iterator r = initial_rectangle_list.begin(); r != initial_rectangle_list.end(); r++)
 //	{
@@ -618,7 +619,7 @@ void TextTagDetection::text_tag_detection_fine_detection_rectangle_detection(con
 //			rectangle_list.push_back(*r);
 //	}
 
-	for (std::vector<TagDetectionData>::iterator r = initial_detections_r.begin(); r != initial_detections_r.end(); r++)
+	for (std::vector<TagDetectionData>::iterator r = initial_detections.begin(); r != initial_detections.end(); r++)
 	{
 //		// get rectified image region
 //		cv::Mat rectified_image;
@@ -630,7 +631,7 @@ void TextTagDetection::text_tag_detection_fine_detection_rectangle_detection(con
 //			detections_r.push_back(*r);
 
 		refine_detection(*r, image);
-		detections_r.push_back(*r);
+		detections.push_back(*r);
 	}
 }
 
@@ -702,28 +703,56 @@ void TextTagDetection::refine_detection(TagDetectionData& detection, const cv::M
 	// 1. compute a slightly wider ROI than the enclosing aligned bounding box
 	cv::Rect bb = detection.min_area_rect_.boundingRect();
 	int padding = detection.min_area_rect_.size.height * 0.1;
-	cv::Rect frame(std::max<int>(bb.x-padding, 0), std::max<int>(bb.y-padding, 0), std::max(std::min<int>(bb.width+2*padding, image.cols), 1), std::max(std::min<int>(bb.height+2*padding, image.rows), 1));
+	const cv::Point min_frame(std::max<int>(bb.x-padding, 0), std::max<int>(bb.y-padding, 0));
+	const cv::Rect frame(min_frame.x, min_frame.y, std::max(std::min<int>(bb.width+2*padding, image.cols-min_frame.x), 1), std::max(std::min<int>(bb.height+2*padding, image.rows-min_frame.y), 1));
 
 	// 2. find the inner tag borders (white area with text)
-	cv::Mat binary_image;
-	double canny_threshold = cv::threshold(image(frame), binary_image, 0, 255, CV_THRESH_BINARY|CV_THRESH_OTSU);
+	cv::Mat roi = image(frame).clone();
+	// fill area outside the detection's rotated rect with white to avoid false placement of tag boundary
+	cv::RotatedRect padded_rect = detection.min_area_rect_;
+	padded_rect.center.x -= frame.x; padded_rect.center.y -= frame.y;
+	padded_rect.size.width += 2*padding; padded_rect.size.height += 2*padding;
+	cv::Point2f corner_points[4];
+	padded_rect.points(corner_points);
+	std::vector<cv::Point> outer_area;
+	for (int i=0; i<5; ++i)
+		outer_area.push_back(cv::Point(corner_points[i%4].x, corner_points[i%4].y));
+	outer_area.push_back(cv::Point(0,0));
+	outer_area.push_back(cv::Point(0,roi.rows));
+	outer_area.push_back(cv::Point(roi.cols,roi.rows));
+	outer_area.push_back(cv::Point(roi.cols,0));
+	outer_area.push_back(cv::Point(0,0));
+	std::vector<std::vector<cv::Point> > boundary(1, outer_area);
+	cv::fillPoly(roi, boundary, cv::Scalar(255));
+
+//	double min_gray_value = 0;
+//	cv::minMaxLoc(roi, &min_gray_value);
+//	cv::Scalar mean_gray_value = cv::mean(roi);
+//	//cv::Mat binary_image;
+//	//cv::threshold(roi, binary_image, 0, 255, CV_THRESH_BINARY|CV_THRESH_OTSU);
+//	//cv::threshold(roi, binary_image, (min_gray_value+mean_gray_value[0])*0.5, 255, CV_THRESH_BINARY);
+//	//cv::adaptiveThreshold(roi, binary_image, 255, cv::ADAPTIVE_THRESH_MEAN_C, cv::THRESH_BINARY, 21, 10);
 //	cv::imshow("binary_image", binary_image);
+//	cv::waitKey();
+	cv::Vec4f zero_line(0,0,0,0);
 	// 2.a. left line
 	const cv::Rect left_area_rect(0, 0, std::max<int>(frame.width*0.2, 1), frame.height);
-	cv::Vec4f left_line = fit_tag_lines(binary_image(left_area_rect), 0);
+	cv::Vec4f left_line = fit_tag_lines(roi(left_area_rect), 0);
 	left_line[0] += frame.x; left_line[1] += frame.y;
 	// 2.b. upper line
 	const cv::Rect upper_area_rect(0, 0, frame.width, std::max<int>(frame.height*0.5, 1));
-	cv::Vec4f upper_line = fit_tag_lines(binary_image(upper_area_rect), 1);
+	cv::Vec4f upper_line = fit_tag_lines(roi(upper_area_rect), 1);
 	upper_line[0] += frame.x; upper_line[1] += frame.y;
 	// 2.c. right line
 	const cv::Rect right_area_rect(std::max<int>(frame.width*0.8, 0), 0, std::max<int>(frame.width*0.2, 1), frame.height);
-	cv::Vec4f right_line = fit_tag_lines(binary_image(right_area_rect), 2);
+	cv::Vec4f right_line = fit_tag_lines(roi(right_area_rect), 2);
 	right_line[0] += frame.x+std::max<int>(frame.width*0.8, 0); right_line[1] += frame.y;
 	// 2.b. lower line
 	const cv::Rect lower_area_rect(0, std::max<int>(frame.height*0.5, 0), frame.width, std::max<int>(frame.height*0.5, 1));
-	cv::Vec4f lower_line = fit_tag_lines(binary_image(lower_area_rect), 3);
+	cv::Vec4f lower_line = fit_tag_lines(roi(lower_area_rect), 3);
 	lower_line[0] += frame.x; lower_line[1] += frame.y+std::max<int>(frame.height*0.5, 0);
+	if (left_line==zero_line || upper_line==zero_line || right_line==zero_line || lower_line==zero_line)
+		return;
 
 	// 3. compute the refined corners of the rectangle by crossing the boundary edges
 	std::vector<cv::Point2f> corners(4);
@@ -732,10 +761,21 @@ void TextTagDetection::refine_detection(TagDetectionData& detection, const cv::M
 	corners[2] = line_intersection(upper_line, right_line);
 	corners[3] = line_intersection(right_line, lower_line);
 
-	// 4. update detection with refined boundary
+	// 4. update detection with refined boundary (if the new boundary is not weird)
 	cv::RotatedRect min_area_rect = cv::minAreaRect(corners);
 	correct_rotated_rect_rotation(min_area_rect);
-	detection = TagDetectionData(min_area_rect, corners);
+	TagDetectionData updated_detection(min_area_rect, corners);
+	const double max_shift = detection.min_area_rect_.size.height * 0.2;
+	bool update = true;
+	for (size_t i=0; i<detection.corners_.size(); ++i)
+		update &= (distance(detection.corners_[i], updated_detection.corners_[i])<max_shift);
+	if (update == true)
+		detection = updated_detection;
+}
+
+double TextTagDetection::distance(const cv::Point2f& a, const cv::Point2f& b)
+{
+	return sqrt((a.x-b.x)*(a.x-b.x) + (a.y-b.y)*(a.y-b.y));
 }
 
 cv::Point2f TextTagDetection::line_intersection(const cv::Vec4f& line1, const cv::Vec4f& line2)
@@ -785,18 +825,19 @@ cv::Vec4f TextTagDetection::fit_tag_lines(const cv::Mat& area_image, const int m
 	{
 		for (int v=0; v<edge.rows; ++v)
 			for (int u=0; u<edge.cols; ++u)
-				if (edge.at<uchar>(v,u)>64)
+				if (edge.at<uchar>(v,u)>16)		// 64
 					line_points.push_back(cv::Point2f(u,v));
 	}
 	else
 	{
 		for (int u=0; u<edge.cols; ++u)
 			for (int v=0; v<edge.rows; ++v)
-				if (edge.at<uchar>(v,u)>64)
+				if (edge.at<uchar>(v,u)>16)
 					line_points.push_back(cv::Point2f(u,v));
 	}
-	cv::Vec4f line;		// (x0, y0, n0.x, n0.y), where (n0.x, n0.y) is a normalized normal vector to the line and (x0, y0) is a point on the line
-	fit_line(line_points, line, 0.1, 0.9999, 0.9, true);
+	cv::Vec4f line(0,0,0,0);		// (x0, y0, n0.x, n0.y), where (n0.x, n0.y) is a normalized normal vector to the line and (x0, y0) is a point on the line
+	if (line_points.size() > 5)
+		fit_line(line_points, line, 0.1, 0.9999, 0.9, true);
 
 //	// display
 //	cv::Point pt1, pt2;
@@ -814,7 +855,7 @@ cv::Vec4f TextTagDetection::fit_tag_lines(const cv::Mat& area_image, const int m
 //		pt2.x = edge.cols;
 //		pt2.y = ((line[0]-edge.cols)*line[2] + line[1]*line[3])/line[3];
 //	}
-//	std::cout << "draw points: " << pt1.x << ", " << pt1.y << ", " << pt2.x << ", " << pt2.y << std::endl;
+//	//std::cout << "draw points: " << pt1.x << ", " << pt1.y << ", " << pt2.x << ", " << pt2.y << std::endl;
 //	cv::Mat edge_display;
 //	cv::cvtColor(edge, edge_display, CV_GRAY2BGR);
 //	cv::line(edge_display, pt1, pt2, cv::Scalar(0,255,0), 1, CV_AA);
@@ -884,10 +925,9 @@ void TextTagDetection::fit_line(const std::vector<cv::Point2f>& points, cv::Vec4
 //	line = cv::Vec4f(line_ls[2], line_ls[3], line_ls[1]/length, line_ls[0]/length);
 }
 
-void TextTagDetection::detect_tag_by_frame(const cv::Mat& image_grayscale, std::vector<cv::Rect>& detections, std::vector<TagDetectionData>& detections_r)
+void TextTagDetection::detect_tag_by_frame(const cv::Mat& image_grayscale, std::vector<TagDetectionData>& detections)
 {
 	detections.clear();
-	detections_r.clear();
 
 	// Use Canny instead of threshold to catch squares with gradient shading on 3 conditions
 	//double CannyAccThresh = cv::threshold(image_grayscale, image_bw, 0, 255, CV_THRESH_BINARY|CV_THRESH_OTSU);
@@ -945,15 +985,16 @@ void TextTagDetection::detect_tag_by_frame(const cv::Mat& image_grayscale, std::
 		// check for aspect ratio
 		cv::RotatedRect tag_frame_r = cv::minAreaRect(contours[i]);
 		correct_rotated_rect_rotation(tag_frame_r);
-		if (tag_frame_r.size.height/(double)tag_frame_r.size.width < 0.85*129./690. || tag_frame_r.size.height/(double)tag_frame_r.size.width > 1.15*129./690.)
-			continue;
-		detections_r.push_back(TagDetectionData(tag_frame_r, approx));
-
-		cv::Rect tag_frame = cv::boundingRect(contours[i]);
-		if (tag_frame.height/(double)tag_frame.width < 0.85*129./690. || tag_frame.height/(double)tag_frame.width > 1.15*129./690.)
+		if (tag_frame_r.size.height/(double)tag_frame_r.size.width < 0.85*129./690. || tag_frame_r.size.height/(double)tag_frame_r.size.width > 1.2*129./690.)
 			continue;
 
-		detections.push_back(tag_frame);
+		detections.push_back(TagDetectionData(tag_frame_r, approx));
+
+//		cv::Rect tag_frame = cv::boundingRect(contours[i]);
+//		if (tag_frame.height/(double)tag_frame.width < 0.85*129./690. || tag_frame.height/(double)tag_frame.width > 1.15*129./690.)
+//			continue;
+//
+//		detections.push_back(tag_frame);
 	}
 
 //	// display
