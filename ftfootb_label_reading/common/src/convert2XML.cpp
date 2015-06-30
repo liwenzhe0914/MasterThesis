@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-using namespace std;
+//using namespace std;
 
 int main ()
 {
@@ -14,17 +14,17 @@ int main ()
 	newFile.open(newFileName.c_str());
 	newFile << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"<<endl;
 	newFile << "<tagset>"<< std::endl;
-	string STRING;
-	ifstream infile;
+	std::string STRING;
+	std::ifstream infile;
 	infile.open ("/home/damon/git/imageclipper/info.dat");
     while(!infile.eof()) // To get you all the lines.
     {
     	getline(infile,STRING); // Saves the line in STRING.
-		cout<<STRING<<endl; // Prints our STRING.
+    	std::cout<<STRING<<std::endl; // Prints our STRING.
 		std::string remainingString = STRING;
-		string imagename = remainingString.substr(0, remainingString.find_first_of(' ')).c_str();
-		newFile <<"  <image>"<<endl<<"    <imageName>"<<"VJ_test_warehouse_dataset/"<<imagename<<"</imageName>"<<endl
-				<<"    <taggedRectangles>"<<endl;
+		std::string imagename = remainingString.substr(0, remainingString.find_first_of(' ')).c_str();
+		newFile <<"  <image>"<<std::endl<<"    <imageName>"<<"VJ_test_warehouse_dataset/"<<imagename<<"</imageName>"<<endl
+				<<"    <taggedRectangles>"<<std::endl;
 
 		remainingString = remainingString.substr(remainingString.find_first_of(' ') + 1, remainingString.length()
 				                - remainingString.find_first_of(' '));

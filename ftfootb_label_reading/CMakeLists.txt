@@ -65,7 +65,8 @@ add_executable(read_label	ros/src/read_label.cpp
 							common/src/MatchTemplate.cpp
 							common/src/FeatureRepresentation.cpp
 							common/src/TextTagDetection.cpp
-							common/src/LBPandHistogram.cpp)
+							common/src/LBPandHistogram.cpp
+							common/src/TextTagLocalization.cpp)
 target_link_libraries(read_label
 	${catkin_LIBRARIES} # automatically links all catkin_BUILD_PACKAGES
 	${OpenCV_LIBRARIES})

@@ -85,10 +85,12 @@
 #include "ftfootb_label_reading/MatchTemplate.h"
 #include "ftfootb_label_reading/FeatureRepresentation.h"
 #include "ftfootb_label_reading/TextTagDetection.h"
+#include "ftfootb_label_reading/TextTagLocalization.h"
 #include "ros/package.h"
 
 class LabelReader
 {
+
 protected:
 //	ros::Subscriber point_cloud_sub_;
 //	ros::Publisher point_cloud_pub_; ///< Point cloud output topic
@@ -111,6 +113,7 @@ protected:
 	MatchTemplate match_template_;
 	TextTagDetection text_tag_detection_;
 	FeatureReprenstation feature_representation_;
+	TextTagLocalization text_tag_localization_;
 
 	// parameters
 	int tag_detection_target_image_width_;		///< target image width used for tag detection in the image with Viola-Jones classifier

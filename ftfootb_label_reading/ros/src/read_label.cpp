@@ -167,7 +167,6 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
 		ROS_ERROR("LabelReader::imageCallback: Wrong number of channels in camera image. Allowed is 1 or 3.");
 		return;
 	}
-	//cv::equalizeHist(image_grayscale, image_grayscale);
 	if (tag_detection_target_image_width_>0 && tag_detection_target_image_height_>0)
 		cv::resize(image_grayscale, image_grayscale_small, cv::Size(tag_detection_target_image_width_, tag_detection_target_image_height_));
 	else
