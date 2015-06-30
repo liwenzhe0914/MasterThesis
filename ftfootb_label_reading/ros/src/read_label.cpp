@@ -176,7 +176,7 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
 	std::vector<cv::Rect> detection_list;
 	std::vector<TagDetectionData> detection_list_r;
 	text_tag_detection_.text_tag_detection_fine_detection_rectangle_detection(image_grayscale_small, detection_list, detection_list_r);
-	std::cout<<detection_list.size()<<" text tags detected!"<<std::endl;
+	std::cout<<detection_list_r.size()<<" text tags detected!"<<std::endl;
 	std::cout << "Text Detection: [" << tim.getElapsedTimeInMilliSec() << " ms] processing time" << std::endl;
 
 	// correct scale of detections
@@ -224,7 +224,9 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
 
 			std::string tag_label_features, tag_label_template_matching;
 			cv::Mat roi;	// = image_grayscale(detection_list[i]);
+			std::cout << "0" << std::endl;
 			text_tag_detection_.remove_projection(detection_list_r[i], image_grayscale, roi);
+			std::cout << "1" << std::endl;
 			if (recognition_method_==2 || recognition_method_==3)
 			{
 				if (classifier_==2 || classifier_==3) // SVM for classification
@@ -245,6 +247,8 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
 				//cv::putText(image_display, tag_label_features, cv::Point(detection_list[i].x, detection_list[i].y-5), cv::FONT_HERSHEY_PLAIN, 2, CV_RGB(0,0,255), 2);
 				cv::putText(image_display, tag_label_features, cv::Point(detection_list_r[i].corners_[1].x, detection_list_r[i].corners_[1].y-5), cv::FONT_HERSHEY_PLAIN, 2, CV_RGB(0,0,255), 2);
 			}
+
+			std::cout << "2" << std::endl;
 
 			if (recognition_method_==1 || recognition_method_==3)
 			{

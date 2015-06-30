@@ -362,13 +362,17 @@ return ImageNames;
 }
 
 
-cv::Rect FeatureReprenstation::remove_white_image_border(const cv::Mat& image, const cv::Rect& roi)
+cv::Rect FeatureReprenstation::remove_white_image_border(const cv::Mat& image, cv::Rect roi)
 {
 	// remove white border
 	cv::Mat binary_image, temp;
+	if (roi.x + roi.width > image.cols)
+		roi.width = image.cols - roi.x;
+	if (roi.y + roi.height > image.rows)
+		roi.height = image.rows - roi.y;
 	cv::threshold(image(roi), binary_image, 0, 255, CV_THRESH_BINARY|CV_THRESH_OTSU);
-	cv::dilate(binary_image, temp, cv::Mat(), cv::Point(-1,-1), 1);
-	cv::erode(temp, binary_image, cv::Mat(), cv::Point(-1,-1), 1);
+//	cv::dilate(binary_image, temp, cv::Mat(), cv::Point(-1,-1), 1);
+//	cv::erode(temp, binary_image, cv::Mat(), cv::Point(-1,-1), 1);
 	cv::Point min_point(binary_image.cols, binary_image.rows);
 	cv::Point max_point(0, 0);
 	for (int v=0; v<binary_image.rows; ++v)
@@ -380,13 +384,13 @@ cv::Rect FeatureReprenstation::remove_white_image_border(const cv::Mat& image, c
 				if (max_point.x < u) max_point.x = u;
 				if (max_point.y < v) max_point.y = v;
 			}
-	cv::Rect bounding_box(roi.x + min_point.x, roi.y + min_point.y, max_point.x-min_point.x+1, max_point.y-min_point.y+1);
+	cv::Rect bounding_box(roi.x + min_point.x, roi.y + min_point.y, std::max(std::min(max_point.x-min_point.x+1, roi.width), 1), std::max(std::min(max_point.y-min_point.y+1, roi.height), 1));
 
-	cv::imshow("padding", image);
-	cv::imshow("binary", binary_image);
-	cv::Mat cut = image(bounding_box);
-	cv::imshow("cut", cut);
-	cv::waitKey();
+//	cv::imshow("padding", image);
+//	cv::imshow("binary", binary_image);
+//	cv::Mat cut = image(bounding_box);
+//	cv::imshow("cut", cut);
+//	cv::waitKey();
 
 	return bounding_box;
 }
@@ -409,6 +413,8 @@ cv::Mat FeatureReprenstation::get_feature_descriptor(const cv::Mat& image, int f
 		dsize_HOG_LBP=cv::Size(64,64);
 		dsize_BRIEF=cv::Size(57,57);
 	}
+
+	std::cout << "i" << std::endl;
 
 	if(feature_number==1)
 	{
@@ -462,6 +468,8 @@ cv::Mat FeatureReprenstation::get_feature_descriptor(const cv::Mat& image, int f
 		memcpy(descriptorsValues_temp.data,descriptorsValues_vector.data(), descriptorsValues_vector.size()*sizeof(float));
 		descriptorsValues_temp.copyTo(descriptor_values);
 	}
+
+	std::cout << "ii" << std::endl;
 
 	return descriptor_values;
 }
@@ -757,7 +765,10 @@ cv::Mat FeatureReprenstation::preprocess_text_tag(cv::Mat& tag_image, int featur
 //		std::cout<<"please give: 1 - single character classifier \n" <<	"                2 - combination classifier "<<std::endl;
 
 	for (unsigned int i = 0; i<image_portions.size();i++)
+	{
+		std::cout << "i: " << i << ",   " << image_portions[i].x << ", " << image_portions[i].y << ", " << image_portions[i].width << ", " << image_portions[i].height << std::endl;
 		descriptor_values.push_back(get_feature_descriptor(tag_image(image_portions[i]), feature_number, single_or_combination));
+	}
 
 	return descriptor_values;
 }
@@ -939,8 +950,9 @@ std::string FeatureReprenstation::read_text_tag_SVM(cv::SVM& numbers_svm, cv::SV
 	else
 		std::cout<<"[Feature representation ERROR: ] wrong feature number is given!"<<std::endl;
 
+	std::cout << "a" << std::endl;
 	cv::Mat descriptors_values = preprocess_text_tag(tag_image,feature_number,single_or_combination);
-
+	std::cout << "b" << std::endl;
 	if (single_or_combination==2)
 	{
 		float response = letters_svm.predict(descriptors_values.row(0),descriptors_values.row(0).cols);

@@ -604,19 +604,19 @@ void TextTagDetection::text_tag_detection_fine_detection_rectangle_detection(con
 	std::vector<TagDetectionData> initial_detections_r;
 	detect_tag_by_frame(image, initial_rectangle_list, initial_detections_r);
 
-	for (std::vector<cv::Rect>::const_iterator r = initial_rectangle_list.begin(); r != initial_rectangle_list.end(); r++)
-	{
-//		//update detection by dashes detection
-//		std::vector<cv::Rect> detected_dashes_list;
-//		detect_dashes(*r, image, detected_dashes_list);
-//		cv::Rect rectangle_updated_by_dashes_detection = restore_text_tag_by_detected_dashes(detected_dashes_list, *r, image);
-//		rectangle_list.push_back(rectangle_updated_by_dashes_detection);
-
-		// verify with template
-		double score = compare_detection_with_template(image(*r));
-		if (score > 0.3)
-			rectangle_list.push_back(*r);
-	}
+//	for (std::vector<cv::Rect>::const_iterator r = initial_rectangle_list.begin(); r != initial_rectangle_list.end(); r++)
+//	{
+////		//update detection by dashes detection
+////		std::vector<cv::Rect> detected_dashes_list;
+////		detect_dashes(*r, image, detected_dashes_list);
+////		cv::Rect rectangle_updated_by_dashes_detection = restore_text_tag_by_detected_dashes(detected_dashes_list, *r, image);
+////		rectangle_list.push_back(rectangle_updated_by_dashes_detection);
+//
+//		// verify with template
+//		double score = compare_detection_with_template(image(*r));
+//		if (score > 0.3)
+//			rectangle_list.push_back(*r);
+//	}
 
 	for (std::vector<TagDetectionData>::const_iterator r = initial_detections_r.begin(); r != initial_detections_r.end(); r++)
 	{

@@ -29,7 +29,7 @@ class FeatureReprenstation
 {
 public:
 
-	cv::Rect remove_white_image_border(const cv::Mat& image, const cv::Rect& roi);
+	cv::Rect remove_white_image_border(const cv::Mat& image, cv::Rect roi);
 
 		cv::Mat get_feature_descriptor(const cv::Mat& img,int feature_number,int single_or_combination);
 
