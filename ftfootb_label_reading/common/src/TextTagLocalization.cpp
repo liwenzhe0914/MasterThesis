@@ -378,6 +378,7 @@ void TextTagLocalization::TextTagLocalizationWithNewtonMethod(cv::Rect detected_
 	Z3 = s3*z3;
 	X4 = s4*x4;
 	Y4 = s4*y4;
-
 }
+
+
 

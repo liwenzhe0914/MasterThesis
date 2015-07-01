@@ -58,13 +58,14 @@
 
 // ROS message includes
 #include <sensor_msgs/Image.h>
+#include <sensor_msgs/CameraInfo.h>
 //#include <sensor_msgs/PointCloud2.h>
 //#include <tf/transform_listener.h>
 
 // topics
-//#include <message_filters/subscriber.h>
-//#include <message_filters/synchronizer.h>
-//#include <message_filters/sync_policies/approximate_time.h>
+#include <message_filters/subscriber.h>
+#include <message_filters/synchronizer.h>
+#include <message_filters/sync_policies/approximate_time.h>
 #include <image_transport/image_transport.h>
 #include <image_transport/subscriber_filter.h>
 
@@ -92,17 +93,24 @@ class LabelReader
 {
 
 protected:
+
+	typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::CameraInfo> ColorImageSyncPolicy;
+
 //	ros::Subscriber point_cloud_sub_;
 //	ros::Publisher point_cloud_pub_; ///< Point cloud output topic
 	//message_filters::Subscriber<sensor_msgs::PointCloud2> point_cloud_sub_;	///< Point cloud input topic
 	image_transport::ImageTransport* it_;
 	image_transport::SubscriberFilter color_camera_image_sub_;	///< Color camera image input topic
+	message_filters::Subscriber<sensor_msgs::CameraInfo> color_camera_info_sub_;	///< camera information service
+	boost::shared_ptr<message_filters::Synchronizer<ColorImageSyncPolicy > > color_image_sub_sync_; ///< Synchronizer
 	//image_transport::Publisher color_camera_image_pub_;		///< Color camera image output topic
 	//message_filters::Synchronizer<message_filters::sync_policies::ApproximateTime<sensor_msgs::PointCloud2, sensor_msgs::Image> >* sync_pointcloud_;	///< synchronizer for input data
 	//message_filters::Connection sync_pointcloud_callback_connection_;
 
 	//tf::TransformListener* transform_listener_;
 
+    cv::Mat camera_matrix_;
+    bool camera_matrix_initialized_;
 
 	ros::NodeHandle node_handle_; ///< ROS node handle
 
@@ -137,15 +145,15 @@ public:
 //	template <typename T>
 //	void inputCallback(const sensor_msgs::PointCloud2::ConstPtr& point_cloud_msg);
 
-	void imageCallback(const sensor_msgs::ImageConstPtr& color_image_msg);
+	void imageCallback(const sensor_msgs::ImageConstPtr& color_camera_data, const sensor_msgs::CameraInfoConstPtr& color_camera_info);
 
-	void imgConnectCB(const image_transport::SingleSubscriberPublisher& pub);
-
-	void imgDisconnectCB(const image_transport::SingleSubscriberPublisher& pub);
-
-	void pcConnectCB(const ros::SingleSubscriberPublisher& pub);
-
-	void pcDisconnectCB(const ros::SingleSubscriberPublisher& pub);
+//	void imgConnectCB(const image_transport::SingleSubscriberPublisher& pub);
+//
+//	void imgDisconnectCB(const image_transport::SingleSubscriberPublisher& pub);
+//
+//	void pcConnectCB(const ros::SingleSubscriberPublisher& pub);
+//
+//	void pcDisconnectCB(const ros::SingleSubscriberPublisher& pub);
 
 	void setParams(ros::NodeHandle & nh);
 };

@@ -1,3 +1,6 @@
+#ifndef TEXT_TAG_DETECTION_H
+#define TEXT_TAG_DETECTION_H
+
 // OpenCV includes
 #include "opencv2/objdetect/objdetect.hpp"
 #include "opencv2/calib3d/calib3d.hpp"
@@ -128,3 +131,5 @@ protected:
 	cv::Mat text_tag_template_image_;	///< template image of text tags
 	cv::Size text_tag_template_target_size_;	///< desired size of templates
 };
+
+#endif // TEXT_TAG_DETECTION_H

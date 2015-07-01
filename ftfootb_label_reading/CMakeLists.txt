@@ -7,6 +7,8 @@ set(catkin_RUN_PACKAGES			# all ROS packages from package.xml (libopencv-dev is 
 	cv_bridge
 	sensor_msgs
 	image_transport
+	message_filters
+	tf
 )
 
 set(catkin_BUILD_PACKAGES 

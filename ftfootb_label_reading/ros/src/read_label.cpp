@@ -84,6 +84,8 @@ LabelReader::LabelReader(ros::NodeHandle nh)
 {
 	setParams(node_handle_);
 
+	camera_matrix_initialized_ = false;
+
 	if (classifier_==2 || classifier_==3) // SVM for classification
 	{
 		feature_representation_.load_or_train_SVM_classifiers(feature_representation_.numbers_svm,feature_representation_.letters_svm,
@@ -98,8 +100,13 @@ LabelReader::LabelReader(ros::NodeHandle nh)
 		std::cout<<"[ROS Read label ERROR] wrong *classifier_* parameter given! "<<std::endl;
 
 	it_ = new image_transport::ImageTransport(node_handle_);
-	color_camera_image_sub_.registerCallback(boost::bind(&LabelReader::imageCallback, this, _1));
-	color_camera_image_sub_.subscribe(*it_, "colorimage_in", 1);
+	//color_camera_image_sub_.registerCallback(boost::bind(&LabelReader::imageCallback, this, _1));
+	color_camera_image_sub_.subscribe(*it_, "image_color", 1);
+	color_camera_info_sub_.subscribe(node_handle_, "camera_info", 1);
+
+    color_image_sub_sync_ = boost::shared_ptr<message_filters::Synchronizer<ColorImageSyncPolicy> >(new message_filters::Synchronizer<ColorImageSyncPolicy>(ColorImageSyncPolicy(3)));
+    color_image_sub_sync_->connectInput(color_camera_image_sub_, color_camera_info_sub_);
+    color_image_sub_sync_->registerCallback(boost::bind(&LabelReader::imageCallback, this, _1, _2));
 
 	std::cout << "LabelReader initialized." << std::endl;
 }
@@ -142,14 +149,26 @@ unsigned long LabelReader::convertImageMessageToMat(const sensor_msgs::Image::Co
 	return 0;
 }
 
-void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
+void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& color_camera_data, const sensor_msgs::CameraInfoConstPtr& color_camera_info)
 {
+	// set camera matrix on first call
+	if (camera_matrix_initialized_ == false)
+	{
+		camera_matrix_ = cv::Mat::zeros(3,3,CV_64FC1);
+		camera_matrix_.at<double>(0,0) = color_camera_info->K[0];
+		camera_matrix_.at<double>(0,2) = color_camera_info->K[2];
+		camera_matrix_.at<double>(1,1) = color_camera_info->K[4];
+		camera_matrix_.at<double>(1,2) = color_camera_info->K[5];
+		camera_matrix_.at<double>(2,2) = 1;
+		camera_matrix_initialized_ = true;
+	}
+
 	Timer tim;
 
 	// 1. get image from message
 	cv_bridge::CvImageConstPtr image_ptr;
 	cv::Mat image, image_grayscale, image_grayscale_small, image_display;
-	convertImageMessageToMat(image_msg, image_ptr, image);
+	convertImageMessageToMat(color_camera_data, image_ptr, image);
 	if (image.channels() == 1)
 	{
 		// monochrome image
@@ -206,7 +225,7 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
 		}
 	}
 
-	// 3. read texts from tags
+	// 3. read texts from tags, determine 3d coordinates
 	for (size_t i=0; i< detection_list_r.size(); ++i)
 	{
 		if (detection_list_r[i].min_area_rect_.center.x!=0 && detection_list_r[i].min_area_rect_.center.y!=0)
@@ -253,6 +272,14 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& image_msg)
 				//cv::putText(image_display, tag_label_template_matching, cv::Point(detection_list[i].x-100, detection_list[i].y-5), cv::FONT_HERSHEY_PLAIN, 2, CV_RGB(255,0,255), 2);
 				cv::putText(image_display, tag_label_template_matching, cv::Point(detection_list_r[i].corners_[1].x-100, detection_list_r[i].corners_[1].y-5), cv::FONT_HERSHEY_PLAIN, 2, CV_RGB(255,0,255), 2);
 			}
+
+			cv::Mat u, p;
+			text_tag_localization_.prepareNewtonOptimization(detection_list_r[i], camera_matrix_.at<double>(0,0), camera_matrix_.at<double>(1,1), camera_matrix_.at<double>(0,2), camera_matrix_.at<double>(1,2), 0.391, 0.065, u, p);
+			text_tag_localization_.newtonOptimization(u, p);
+			tf::Vector3 position;
+			tf::Quaternion orientation;
+			text_tag_localization_.computeLabelPose(u, position, orientation);
+			std::cout << "Metric point location: " << position.x() << ", " << position.y() << ", " << position.z() << "   orientation: " << orientation.x() << ", " << orientation.y() << ", " << orientation.z() << ", " << orientation.w() << std::endl;
 		}
 	}
 

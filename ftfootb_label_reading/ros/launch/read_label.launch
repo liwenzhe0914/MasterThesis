@@ -4,7 +4,8 @@
 	
   <node name="read_label" pkg="ftfootb_label_reading" ns="/label_reading" type="read_label" output="screen"> <!--launch-prefix="valgrind"-->
     <rosparam command="load" file="$(find ftfootb_label_reading)/ros/launch/read_label_params.yaml"/>
-    <remap from="~colorimage_in" to="/camera/image_raw"/>
+    <remap from="~image_color" to="/camera/rgb/image_raw"/>
+    <remap from="~camera_info" to="/camera/rgb/camera_info"/>
   </node>
 
 </launch>
