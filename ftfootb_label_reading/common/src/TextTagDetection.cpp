@@ -985,7 +985,16 @@ void TextTagDetection::detect_tag_by_frame(const cv::Mat& image_grayscale, std::
 		// check for aspect ratio
 		cv::RotatedRect tag_frame_r = cv::minAreaRect(contours[i]);
 		correct_rotated_rect_rotation(tag_frame_r);
-		if (tag_frame_r.size.height/(double)tag_frame_r.size.width < 0.85*6.5/39.1 || tag_frame_r.size.height/(double)tag_frame_r.size.width > 1.2*6.5/39.1)
+		double side_length_ratio = tag_frame_r.size.height/(double)tag_frame_r.size.width;
+
+//		cv::Point2f corners[4];
+//		tag_frame_r.points(corners);
+//		for(int j=0; j<4; ++j)
+//			cv::line(display_image, corners[j], corners[(j+1)%4], cv::Scalar(0,255,0), 1, 8);
+//		std::stringstream ss; ss << side_length_ratio;
+//		cv::putText(display_image, ss.str(), cv::Point(tag_frame_r.center.x, tag_frame_r.center.y), cv::FONT_HERSHEY_PLAIN, 2, CV_RGB(0,0,255));
+
+		if (side_length_ratio < 0.85*6.5/39.1 || side_length_ratio > 1.8*6.5/39.1)
 			continue;
 
 		detections.push_back(TagDetectionData(tag_frame_r, approx));
