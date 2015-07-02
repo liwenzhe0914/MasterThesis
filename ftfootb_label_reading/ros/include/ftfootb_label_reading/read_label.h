@@ -126,6 +126,9 @@ protected:
 	TextTagLocalization text_tag_localization_;
 
 	// parameters
+	double metric_tag_width_;		///< metric tag dimensions (in [m])
+	double metric_tag_height_;		///< metric tag dimensions (in [m])
+	bool display_results_;			///< display the detections in a live image on/off
 	int tag_detection_target_image_width_;		///< target image width used for tag detection in the image with Viola-Jones classifier
 	int tag_detection_target_image_height_;		///< target image height used for tag detection in the image with Viola-Jones classifier
 	int load_;	///< 1 - load training data from yml file; 0 - load training data from raw images

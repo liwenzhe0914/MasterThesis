@@ -69,7 +69,8 @@ class TextTagDetection
 {
 public:
 
-	TextTagDetection(const std::string& path_data);
+	TextTagDetection(const std::string& path_data, const float metric_tag_width, const float metric_tag_height);
+	void set_tag_properties(const float metric_tag_width, const float metric_tag_height);
 
 	inline void text_tag_detection_with_VJ(const cv::Mat& image, std::vector<cv::Rect>& rectangle_list);
 
@@ -130,6 +131,9 @@ protected:
 	cv::CascadeClassifier text_tags_cascade_;	///< Viola-Jones classifier model for text tag detection
 	cv::Mat text_tag_template_image_;	///< template image of text tags
 	cv::Size text_tag_template_target_size_;	///< desired size of templates
+
+	float metric_tag_width_;		///< metric tag dimensions (in [m])
+	float metric_tag_height_;		///< metric tag dimensions (in [m])
 };
 
 #endif // TEXT_TAG_DETECTION_H

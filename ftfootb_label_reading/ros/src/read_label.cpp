@@ -61,6 +61,12 @@
 
 void LabelReader::setParams(ros::NodeHandle& nh)
 {
+	node_handle_.param("metric_tag_width", metric_tag_width_, 0.391);
+	std::cout << "metric_tag_width = " << metric_tag_width_ << "\n";
+	node_handle_.param("metric_tag_height", metric_tag_height_, 0.065);
+	std::cout << "metric_tag_height = " << metric_tag_height_ << "\n";
+	node_handle_.param("display_results", display_results_, false);
+	std::cout << "display_results = " << display_results_ << "\n";
 	node_handle_.param("tag_detection_target_image_width", tag_detection_target_image_width_, -1);
 	std::cout << "tag_detection_target_image_width = " << tag_detection_target_image_width_ << "\n";
 	node_handle_.param("tag_detection_target_image_height", tag_detection_target_image_height_, -1);
@@ -80,9 +86,12 @@ void LabelReader::setParams(ros::NodeHandle& nh)
 }
 
 LabelReader::LabelReader(ros::NodeHandle nh)
-: 	path_(ros::package::getPath("ftfootb_label_reading") + "/"), path_data_ (path_ + "common/files/"), match_template_(path_data_), text_tag_detection_(path_data_), node_handle_(nh)
+: 	path_(ros::package::getPath("ftfootb_label_reading") + "/"), path_data_ (path_ + "common/files/"), match_template_(path_data_),
+  	text_tag_detection_(path_data_, 0., 0.), node_handle_(nh)
 {
 	setParams(node_handle_);
+
+	text_tag_detection_.set_tag_properties(metric_tag_width_, metric_tag_height_);
 
 	camera_matrix_initialized_ = false;
 
@@ -176,14 +185,16 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& color_camera_d
 	if (image.channels() == 1)
 	{
 		// monochrome image
-		image_grayscale = image.clone();
-		cvtColor(image, image_display, CV_GRAY2BGR);
+		image_grayscale = image;	//.clone();
+		if (display_results_)
+			cvtColor(image, image_display, CV_GRAY2BGR);
 	}
 	else if (image.channels() == 3)
 	{
 		// color image
-		image_display = image.clone();
 		cvtColor(image, image_grayscale, CV_BGR2GRAY);
+		if (display_results_)
+			image_display = image.clone();
 	}
 	else
 	{
@@ -238,8 +249,9 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& color_camera_d
 		{
 			std::cout << "reading starts"<<std::endl;
 			//cv::rectangle(image_display, detection_list[i], cv::Scalar(0,0,255), 1, 8, 0);
-			for(int j=0; j<4; ++j)
-				cv::line(image_display, detection_list_r[i].corners_[j], detection_list_r[i].corners_[(j+1)%4], cv::Scalar(0,0,255), 1, 8);
+			if (display_results_)
+				for(int j=0; j<4; ++j)
+					cv::line(image_display, detection_list_r[i].corners_[j], detection_list_r[i].corners_[(j+1)%4], cv::Scalar(0,0,255), 1, 8);
 
 			// get rectified image roi for reading from it
 			cv::Mat roi;	// = image_grayscale(detection_list[i]);
@@ -267,22 +279,23 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& color_camera_d
 				else
 					std::cout<<"[Read label ERROR] wrong *load* parameter given! "<<std::endl;
 
-				//cv::putText(image_display, tag_label_features, cv::Point(detection_list[i].x, detection_list[i].y-5), cv::FONT_HERSHEY_PLAIN, 2, CV_RGB(0,0,255), 2);
-				cv::putText(image_display, tag_label_features, cv::Point(detection_list_r[i].corners_[1].x, detection_list_r[i].corners_[1].y-5), cv::FONT_HERSHEY_PLAIN, 2, CV_RGB(0,0,255), 2);
+				if (display_results_)
+					//cv::putText(image_display, tag_label_features, cv::Point(detection_list[i].x, detection_list[i].y-5), cv::FONT_HERSHEY_PLAIN, 2, CV_RGB(0,0,255), 2);
+					cv::putText(image_display, tag_label_features, cv::Point(detection_list_r[i].corners_[1].x, detection_list_r[i].corners_[1].y-5), cv::FONT_HERSHEY_PLAIN, 2, CV_RGB(0,0,255), 2);
 			}
 
 			if (recognition_method_==1 || recognition_method_==3)
 			{
 				match_template_.read_tag(roi, tag_label_template_matching,template_matching_method_);
 				std::cout << "The text tag reads: " << tag_label_template_matching << "." << std::endl;
-				//cv::putText(image_display, tag_label_template_matching, cv::Point(detection_list[i].x-100, detection_list[i].y-5), cv::FONT_HERSHEY_PLAIN, 2, CV_RGB(255,0,255), 2);
-				cv::putText(image_display, tag_label_template_matching, cv::Point(detection_list_r[i].corners_[1].x-100, detection_list_r[i].corners_[1].y-5), cv::FONT_HERSHEY_PLAIN, 2, CV_RGB(255,0,255), 2);
+				if (display_results_)
+					//cv::putText(image_display, tag_label_template_matching, cv::Point(detection_list[i].x-100, detection_list[i].y-5), cv::FONT_HERSHEY_PLAIN, 2, CV_RGB(255,0,255), 2);
+					cv::putText(image_display, tag_label_template_matching, cv::Point(detection_list_r[i].corners_[1].x-100, detection_list_r[i].corners_[1].y-5), cv::FONT_HERSHEY_PLAIN, 2, CV_RGB(255,0,255), 2);
 			}
 
 			// determine 3d coordinates
 			tf::Pose pose;
-			// todo: make height + width parameters
-			text_tag_localization_.locate_tag(detection_list_r[i], pose, camera_matrix_.at<double>(0,0), camera_matrix_.at<double>(1,1), camera_matrix_.at<double>(0,2), camera_matrix_.at<double>(1,2), 0.391, 0.065);
+			text_tag_localization_.locate_tag(detection_list_r[i], pose, camera_matrix_.at<double>(0,0), camera_matrix_.at<double>(1,1), camera_matrix_.at<double>(0,2), camera_matrix_.at<double>(1,2), metric_tag_width_, metric_tag_height_);
 
 			// store to message
 			cob_perception_msgs::Detection detection;
@@ -290,21 +303,25 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& color_camera_d
 			detection.label = tag_label_features;
 			detection.pose.header = header;
 			tf::poseTFToMsg(pose, detection.pose.pose);
-			detection.bounding_box_lwh.x = 0.391;
-			detection.bounding_box_lwh.y = 0.065;
+			detection.bounding_box_lwh.x = metric_tag_width_;
+			detection.bounding_box_lwh.y = metric_tag_height_;
 			detection.bounding_box_lwh.z = 0.01;
 			detection_array.detections.push_back(detection);
 		}
 	}
 
+	// display timing and image
 	double time_in_mseconds = tim.getElapsedTimeInMilliSec();
 	std::cout << "Whole system [" << time_in_mseconds << " ms] processing time" << std::endl;
 	std::stringstream ss;
 	ss<<time_in_mseconds<<"ms processing time";
-	cv::putText(image_display, ss.str(), cv::Point(10, 30), cv::FONT_HERSHEY_PLAIN, 1.5, CV_RGB(255,0,0), 2);
-	ss.str("");
-	cv::imshow("image", image_display);
-	cv::waitKey(1);
+	if (display_results_)
+	{
+		cv::putText(image_display, ss.str(), cv::Point(10, 30), cv::FONT_HERSHEY_PLAIN, 1.5, CV_RGB(255,0,0), 2);
+		ss.str("");
+		cv::imshow("image", image_display);
+		cv::waitKey(1);
+	}
 
 	// publish detections
 	detection_array.header = header;
@@ -337,124 +354,3 @@ int main(int argc, char** argv)
 
 	return 0;
 }
-
-//template <typename T>
-//void LabelReader::inputCallback(const sensor_msgs::PointCloud2::ConstPtr& point_cloud_msg)
-//{
-////		Timer tim;
-////		tim.start();
-//
-//	// check camera link orientation and decide whether image must be turned around
-//	bool turnAround = false;
-//	tf::StampedTransform transform;
-//	try
-//	{
-//		transform_listener_->lookupTransform("/base_link", "/head_cam3d_link", ros::Time(0), transform);
-//		tfScalar roll, pitch, yaw;
-//		transform.getBasis().getRPY(roll, pitch, yaw, 1);
-//		if (cob3Number_ == 2)
-//			roll *= -1.;
-//		if (roll > 0.0)
-//			turnAround = true;
-//		//      std::cout << "xyz: " << transform.getOrigin().getX() << " " << transform.getOrigin().getY() << " " << transform.getOrigin().getZ() << "\n";
-//		//      std::cout << "abcw: " << transform.getRotation().getX() << " " << transform.getRotation().getY() << " " << transform.getRotation().getZ() << " " << transform.getRotation().getW() << "\n";
-//		//      std::cout << "rpy: " << roll << " " << pitch << " " << yaw << "\n";
-//	} catch (tf::TransformException ex)
-//	{
-//		if (display_warnings_ == true)
-//			ROS_WARN("%s",ex.what());
-//	}
-//
-//	if (turnAround == false)
-//	{
-//		// image upright
-//		//sensor_msgs::Image color_image_turned_msg = *color_image_msg;
-//		//color_image_turned_msg.header.stamp = ros::Time::now();
-//		//color_camera_image_pub_.publish(color_image_turned_msg);
-//		//sensor_msgs::PointCloud2::ConstPtr point_cloud_turned_msg = point_cloud_msg;
-//		point_cloud_pub_.publish(point_cloud_msg);
-//	}
-//	else
-//	{
-//		// image upside down
-//		// point cloud
-//		pcl::PointCloud<T> point_cloud_src;
-//		pcl::fromROSMsg(*point_cloud_msg, point_cloud_src);
-//
-//		boost::shared_ptr<pcl::PointCloud<T> > point_cloud_turned(new pcl::PointCloud<T>);
-//		point_cloud_turned->header = point_cloud_msg->header;
-//		point_cloud_turned->height = point_cloud_msg->height;
-//		point_cloud_turned->width = point_cloud_msg->width;
-//		//point_cloud_turned->sensor_orientation_ = point_cloud_msg->sensor_orientation_;
-//		//point_cloud_turned->sensor_origin_ = point_cloud_msg->sensor_origin_;
-//		point_cloud_turned->is_dense = true;	//point_cloud_msg->is_dense;
-//		point_cloud_turned->resize(point_cloud_src.height*point_cloud_src.width);
-//		for (int v = (int)point_cloud_src.height - 1; v >= 0; v--)
-//		{
-//			for (int u = (int)point_cloud_src.width - 1; u >= 0; u--)
-//			{
-//				(*point_cloud_turned)(point_cloud_src.width-1 - u, point_cloud_src.height-1 - v) = point_cloud_src(u, v);
-//			}
-//		}
-//
-//		// publish turned data
-//		sensor_msgs::PointCloud2::Ptr point_cloud_turned_msg(new sensor_msgs::PointCloud2);
-//		pcl::toROSMsg(*point_cloud_turned, *point_cloud_turned_msg);
-//		//point_cloud_turned_msg->header.stamp = ros::Time::now();
-//		point_cloud_pub_.publish(point_cloud_turned_msg);
-//
-//		//      cv::namedWindow("test");
-//		//      cv::imshow("test", color_image_turned);
-//		//      cv::waitKey(10);
-//	}
-//
-//	if (display_timing_ == true)
-//		ROS_INFO("%d ImageFlip: Time stamp of pointcloud message: %f. Delay: %f.", point_cloud_msg->header.seq, point_cloud_msg->header.stamp.toSec(), ros::Time::now().toSec()-point_cloud_msg->header.stamp.toSec());
-////		ROS_INFO("Pointcloud callback in image flip took %f ms.", tim.getElapsedTimeInMilliSec());
-//}
-//
-//void LabelReader::imgConnectCB(const image_transport::SingleSubscriberPublisher& pub)
-//{
-//	img_sub_counter_++;
-//	if (img_sub_counter_ == 1)
-//	{
-//		ROS_DEBUG("connecting");
-//		color_camera_image_sub_.subscribe(*it_, "colorimage_in", 1);
-//	}
-//}
-//
-//void LabelReader::imgDisconnectCB(const image_transport::SingleSubscriberPublisher& pub)
-//{
-//	img_sub_counter_--;
-//	if (img_sub_counter_ == 0) {
-//		ROS_DEBUG("disconnecting");
-//		color_camera_image_sub_.unsubscribe();
-//	}
-//}
-//
-//void LabelReader::pcConnectCB(const ros::SingleSubscriberPublisher& pub)
-//{
-//	pc_sub_counter_++;
-//	if (pc_sub_counter_ == 1)
-//	{
-//		ROS_DEBUG("connecting");
-//		if (pointcloud_data_format_.compare("xyz") == 0)
-//			point_cloud_sub_ = node_handle_.subscribe<sensor_msgs::PointCloud2>("pointcloud_in", 1, &LabelReader::inputCallback<pcl::PointXYZ>, this);
-//		else if (pointcloud_data_format_.compare("xyzrgb") == 0)
-//			point_cloud_sub_ = node_handle_.subscribe<sensor_msgs::PointCloud2>("pointcloud_in", 1, &LabelReader::inputCallback<pcl::PointXYZRGB>, this);
-//		else {
-//			ROS_ERROR("Unknown pointcloud format specified in the paramter file.");
-//			pc_sub_counter_ = 0;
-//		}
-//	}
-//}
-//
-//void LabelReader::pcDisconnectCB(const ros::SingleSubscriberPublisher& pub)
-//{
-//	pc_sub_counter_--;
-//	if (pc_sub_counter_ == 0)
-//	{
-//		ROS_DEBUG("disconnecting");
-//		point_cloud_sub_.shutdown();
-//	}
-//}

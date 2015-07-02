@@ -1,4 +1,16 @@
-# target image size used for tag detection in the image with Viola-Jones classifier
+# metric tag dimensions (in [m])
+# float
+metric_tag_width: 0.391
+metric_tag_height: 0.065
+
+# display the detections in a live image on/off
+# bool
+display_results: true
+
+
+##### algorithm adjustment section #####
+
+# target image size used for tag detection, the smaller the resolution the faster the detection (in pixels, -1=leave resolution as is)
 # int
 tag_detection_target_image_width: -1
 tag_detection_target_image_height: -1

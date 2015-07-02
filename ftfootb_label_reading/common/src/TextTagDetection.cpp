@@ -1,6 +1,7 @@
 #include "ftfootb_label_reading/TextTagDetection.h"
 
-TextTagDetection::TextTagDetection(const std::string& path_data)
+TextTagDetection::TextTagDetection(const std::string& path_data, const float metric_tag_width, const float metric_tag_height)
+: metric_tag_width_(metric_tag_width), metric_tag_height_(metric_tag_height)
 {
 //	// Load Text cascade (.xml file)
 //	std::string text_tags_cascade_xml_file = path_data + "TextLabelClassifier/haarclassifier_new/cascade.xml";
@@ -11,6 +12,12 @@ TextTagDetection::TextTagDetection(const std::string& path_data)
 	text_tag_template_image_ = cv::imread(tag_template_fullname, CV_LOAD_IMAGE_GRAYSCALE);
 	text_tag_template_target_size_ = cv::Size(110,20);	//cv::Size(55,10);
 	cv::resize(text_tag_template_image_, text_tag_template_image_, text_tag_template_target_size_);
+}
+
+void TextTagDetection::set_tag_properties(const float metric_tag_width, const float metric_tag_height)
+{
+	metric_tag_width_ = metric_tag_width;
+	metric_tag_height_ = metric_tag_height;
 }
 
 // struct byArea and byCenterX are meant to compare the area
@@ -985,7 +992,8 @@ void TextTagDetection::detect_tag_by_frame(const cv::Mat& image_grayscale, std::
 		// check for aspect ratio
 		cv::RotatedRect tag_frame_r = cv::minAreaRect(contours[i]);
 		correct_rotated_rect_rotation(tag_frame_r);
-		double side_length_ratio = tag_frame_r.size.height/(double)tag_frame_r.size.width;
+		const double side_length_ratio = tag_frame_r.size.height/(double)tag_frame_r.size.width;
+		const double target_ratio = metric_tag_height_/metric_tag_width_;
 
 //		cv::Point2f corners[4];
 //		tag_frame_r.points(corners);
@@ -994,13 +1002,13 @@ void TextTagDetection::detect_tag_by_frame(const cv::Mat& image_grayscale, std::
 //		std::stringstream ss; ss << side_length_ratio;
 //		cv::putText(display_image, ss.str(), cv::Point(tag_frame_r.center.x, tag_frame_r.center.y), cv::FONT_HERSHEY_PLAIN, 2, CV_RGB(0,0,255));
 
-		if (side_length_ratio < 0.85*6.5/39.1 || side_length_ratio > 1.8*6.5/39.1)
+		if (side_length_ratio < 0.85*target_ratio || side_length_ratio > 1.8*target_ratio)
 			continue;
 
 		detections.push_back(TagDetectionData(tag_frame_r, approx));
 
 //		cv::Rect tag_frame = cv::boundingRect(contours[i]);
-//		if (tag_frame.height/(double)tag_frame.width < 0.85*129./690. || tag_frame.height/(double)tag_frame.width > 1.15*129./690.)
+//		if (tag_frame.height/(double)tag_frame.width < 0.85*target_ratio || tag_frame.height/(double)tag_frame.width > 1.15*target_ratio)
 //			continue;
 //
 //		detections.push_back(tag_frame);

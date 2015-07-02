@@ -10,7 +10,7 @@ int main(int argc, char** argv)
 	std::string path = "/home/rmb-om/git/care-o-bot/ftfootb/ftfootb_label_reading/common/files";
 	std::string image_filename = argv[1];
 
-	TextTagDetection ttd(path);
+	TextTagDetection ttd(path, 0.391, 0.065);
 	std::vector<cv::Rect> detection_list;
 	cv::Mat img = cv::imread(image_filename, 1);
 //	std::cout << "image size: " << img.cols<<"x"<<img.rows<< std::endl;
