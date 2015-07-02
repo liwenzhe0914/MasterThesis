@@ -2,9 +2,9 @@
 
 TextTagDetection::TextTagDetection(const std::string& path_data)
 {
-	// Load Text cascade (.xml file)
-	std::string text_tags_cascade_xml_file = path_data + "TextLabelClassifier/haarclassifier_new/cascade.xml";
-	text_tags_cascade_.load(text_tags_cascade_xml_file);
+//	// Load Text cascade (.xml file)
+//	std::string text_tags_cascade_xml_file = path_data + "TextLabelClassifier/haarclassifier_new/cascade.xml";
+//	text_tags_cascade_.load(text_tags_cascade_xml_file);
 
 	// read text tag template image
 	std::string tag_template_fullname = path_data + "tag_template/template_with_small_rim.png";
@@ -985,7 +985,7 @@ void TextTagDetection::detect_tag_by_frame(const cv::Mat& image_grayscale, std::
 		// check for aspect ratio
 		cv::RotatedRect tag_frame_r = cv::minAreaRect(contours[i]);
 		correct_rotated_rect_rotation(tag_frame_r);
-		if (tag_frame_r.size.height/(double)tag_frame_r.size.width < 0.85*129./690. || tag_frame_r.size.height/(double)tag_frame_r.size.width > 1.2*129./690.)
+		if (tag_frame_r.size.height/(double)tag_frame_r.size.width < 0.85*6.5/39.1 || tag_frame_r.size.height/(double)tag_frame_r.size.width > 1.2*6.5/39.1)
 			continue;
 
 		detections.push_back(TagDetectionData(tag_frame_r, approx));
@@ -997,11 +997,11 @@ void TextTagDetection::detect_tag_by_frame(const cv::Mat& image_grayscale, std::
 //		detections.push_back(tag_frame);
 	}
 
-//	// display
+	// display
 //	cv::Mat display_image;
 //	cv::cvtColor(image_grayscale, display_image, CV_GRAY2BGR);
 //	for (size_t i=0; i<detections.size(); ++i)
-//		cv::rectangle(display_image, detections[i], CV_RGB(0,255,0), 2);
+//		cv::rectangle(display_image, detections[i].min_area_rect_.boundingRect(), CV_RGB(0,255,0), 2);
 //	cv::imshow("detections", display_image);
 //	cv::waitKey();
 }

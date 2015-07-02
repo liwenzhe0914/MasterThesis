@@ -172,6 +172,6 @@ install(DIRECTORY ros/launch
 )
 
 install(DIRECTORY common/files/font common/files/tag_template common/files/trained_classifiers
-	DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/common
+	DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/common/files
 	PATTERN ".svn" EXCLUDE
 )

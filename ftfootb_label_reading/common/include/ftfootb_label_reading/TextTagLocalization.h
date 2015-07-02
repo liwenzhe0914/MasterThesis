@@ -190,6 +190,8 @@ class TextTagLocalization
 		for (int trial=0; trial<2; ++trial)
 		{
 			// Newton iteration
+			double best_residual = 1e10;
+			cv::Mat best_u = u.clone();
 			int iterations = 0;
 			double diff = 1e10;
 			while (diff > 1e-3 && iterations < 100)
@@ -198,6 +200,13 @@ class TextTagLocalization
 				f(u, p, fu);		// f(u)
 				J(u, p, Ju);		// J(u)
 				cv::solve(Ju, -fu, du);//, cv::DECOMP_QR);		// Ju*du = -fu
+
+				double residual = cv::norm(fu, cv::NORM_L1);
+				if (residual < best_residual)
+				{
+					best_residual = residual;
+					best_u = u.clone();
+				}
 
 //				std::cout << "\nu " << iterations << ": ";
 //				for (int i=0; i<u.rows; ++i)
@@ -216,6 +225,7 @@ class TextTagLocalization
 			}
 
 			// check result
+			u = best_u;			// hack: to overcome problem with missing convergence
 			cv::Mat residual;
 			f(u, p, residual);
 			diff = cv::norm(residual, cv::NORM_L1);
