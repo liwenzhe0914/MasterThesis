@@ -280,11 +280,9 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& color_camera_d
 			}
 
 			// determine 3d coordinates
-			cv::Mat u, p;
-			text_tag_localization_.prepareNewtonOptimization(detection_list_r[i], camera_matrix_.at<double>(0,0), camera_matrix_.at<double>(1,1), camera_matrix_.at<double>(0,2), camera_matrix_.at<double>(1,2), 0.391, 0.065, u, p);
-			text_tag_localization_.newtonOptimization(u, p);
 			tf::Pose pose;
-			text_tag_localization_.computeLabelPose(u, pose);
+			// todo: make height + width parameters
+			text_tag_localization_.locate_tag(detection_list_r[i], pose, camera_matrix_.at<double>(0,0), camera_matrix_.at<double>(1,1), camera_matrix_.at<double>(0,2), camera_matrix_.at<double>(1,2), 0.391, 0.065);
 
 			// store to message
 			cob_perception_msgs::Detection detection;
@@ -292,6 +290,9 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& color_camera_d
 			detection.label = tag_label_features;
 			detection.pose.header = header;
 			tf::poseTFToMsg(pose, detection.pose.pose);
+			detection.bounding_box_lwh.x = 0.391;
+			detection.bounding_box_lwh.y = 0.065;
+			detection.bounding_box_lwh.z = 0.01;
 			detection_array.detections.push_back(detection);
 		}
 	}

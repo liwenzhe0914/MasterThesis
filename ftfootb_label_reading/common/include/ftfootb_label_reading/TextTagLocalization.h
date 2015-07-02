@@ -18,7 +18,83 @@
 
 class TextTagLocalization
 {
-	public:
+public:
+	//////////////////////////////////////////////////////////////////////////////////////////////////////
+	// direct approach as for camera calibration
+
+	void locate_tag(const TagDetectionData& detection, tf::Pose& pose, const double fx, const double fy, const double cx, const double cy, const double w, const double h)
+	{
+		// 1. estimate homography between 3d tag points (metric) and imaged tag points (pixels)
+		// (3d coordinate system originates in upper left corner of tag,
+		//  x-axis along width direction, y-axis along height direction, z-axis out of tag plane, i.e. all 3d coordinates have z=0)
+		// (correct point correspondences have to be obeyed between those 4 pairs)
+
+		std::vector<cv::Point3d> tag_points_3d(4);
+		tag_points_3d[0] = cv::Point3d(0, h, 0);	// X1
+		tag_points_3d[1] = cv::Point3d(0, 0, 0);	// X2
+		tag_points_3d[2] = cv::Point3d(w, 0, 0);	// X3
+		tag_points_3d[3] = cv::Point3d(w, h, 0);	// X4
+
+		cv::Mat A = cv::Mat::zeros(9, 9, CV_64FC1);
+		for (int i=0; i<4; ++i)
+		{
+			A.at<double>(2*i, 0) = -tag_points_3d[i].x;
+			A.at<double>(2*i, 1) = -tag_points_3d[i].y;
+			A.at<double>(2*i, 2) = -1.;
+			A.at<double>(2*i, 6) = tag_points_3d[i].x * detection.corners_[i].x;
+			A.at<double>(2*i, 7) = tag_points_3d[i].y * detection.corners_[i].x;
+			A.at<double>(2*i, 8) = detection.corners_[i].x;
+			A.at<double>(2*i+1, 3) = -tag_points_3d[i].x;
+			A.at<double>(2*i+1, 4) = -tag_points_3d[i].y;
+			A.at<double>(2*i+1, 5) = -1.;
+			A.at<double>(2*i+1, 6) = tag_points_3d[i].x * detection.corners_[i].y;
+			A.at<double>(2*i+1, 7) = tag_points_3d[i].y * detection.corners_[i].y;
+			A.at<double>(2*i+1, 8) = detection.corners_[i].y;
+		}
+		for (int j=0; j<A.cols; ++j)
+			A.at<double>(A.rows-1, j) = 1.;
+		cv::Mat b = cv::Mat::zeros(A.rows, 1, CV_64FC1);
+		b.at<double>(b.rows-1) = 1;
+		cv::Mat H;
+		cv::solve(A, b, H, cv::DECOMP_LU);
+		H = H.reshape(0, 3);
+
+		// 2. determine Kinv, the inverse intrinsic matrix K
+		cv::Mat Kinv = cv::Mat::zeros(3, 3, CV_64FC1);
+		Kinv.at<double>(0,0) = 1./fx;
+		Kinv.at<double>(0,2) = -cx/fx;
+		Kinv.at<double>(1,1) = 1./fy;
+		Kinv.at<double>(1,2) = -cy/fy;
+		Kinv.at<double>(2,2) = 1;
+
+		// 3. compute transform
+		cv::Mat Rs(3, 3, CV_64FC1);		// Rs = quasi rotation matrix (almost)
+		cv::Mat t(3, 1, CV_64FC1);		// t = translation vector from camera origin to upper left tag corner (metric)
+		double lambda = 1./cv::norm(Kinv*H.col(0), cv::NORM_L2);
+		Rs.col(0) = lambda * Kinv * H.col(0);
+		Rs.col(1) = lambda * Kinv * H.col(1);
+		Rs.col(2) = Rs.col(0).cross(Rs.col(1));
+		t = lambda * Kinv * H.col(2);
+
+		// 4. make Rs a proper rotation matrix R
+		cv::Mat U, D, Vt;
+		cv::SVD svd;
+		svd.compute(Rs, D, U, Vt, cv::SVD::FULL_UV);
+		cv::Mat R = U*Vt;
+
+		// 5. write data out to pose
+		pose.setOrigin(tf::Vector3(t.at<double>(0), t.at<double>(1), t.at<double>(2)));
+		tf::Matrix3x3 rotation_matrix(R.at<double>(0,0), R.at<double>(0,1), R.at<double>(0,2), R.at<double>(1,0), R.at<double>(1,1), R.at<double>(1,2), R.at<double>(2,0), R.at<double>(2,1), R.at<double>(2,2));
+		tf::Quaternion q;
+		rotation_matrix.getRotation(q);
+		pose.setRotation(q);
+	}
+
+
+
+	//////////////////////////////////////////////////////////////////////////////////////////////////////
+	// obsolete functions
+
 	//Transform localize_text_tag();
 
 	cv::Mat jacobi(double x1, double y1,double z1, double x2, double y2, double z2, double x3, double y3, double z3, double x4, double y4, double z4,
