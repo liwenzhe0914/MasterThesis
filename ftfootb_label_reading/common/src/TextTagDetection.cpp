@@ -7,7 +7,7 @@ TextTagDetection::TextTagDetection(const std::string& path_data)
 	text_tags_cascade_.load(text_tags_cascade_xml_file);
 
 	// read text tag template image
-	std::string tag_template_fullname = path_data + "template_with_small_rim.png";
+	std::string tag_template_fullname = path_data + "tag_template/template_with_small_rim.png";
 	text_tag_template_image_ = cv::imread(tag_template_fullname, CV_LOAD_IMAGE_GRAYSCALE);
 	text_tag_template_target_size_ = cv::Size(110,20);	//cv::Size(55,10);
 	cv::resize(text_tag_template_image_, text_tag_template_image_, text_tag_template_target_size_);

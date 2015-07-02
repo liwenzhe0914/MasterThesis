@@ -92,9 +92,14 @@ class TextTagLocalization
 	{
 		return (Xi2-Xi1)*(Xi2-Xi1) + (Yi2-Yi1)*(Yi2-Yi1) + (Zi2-Zi1)*(Zi2-Zi1) - side_length*side_length;
 	}
+	// 4 text tag plane intersections
+	inline double fi_plane(double Xi, double Yi, double Zi, double a, double b, double c, double d)
+	{
+		return a*Xi + b*Yi + c*Zi + d;
+	}
 
 	// optimization function f(u)
-	// unknowns u: [X1, Y1, Z1, X2, Y2, Z2, X3, Y3, Z3, X4, Y4, Z4]'   (column vector)
+	// unknowns u: [X1, Y1, Z1, X2, Y2, Z2, X3, Y3, Z3, X4, Y4, Z4, a, b, c, d]'   (column vector of 4 metric corners and plane equation)
 	// parameters p: [x1, y1, x2, y2, x3, y3, x4, y4, w, h]'		(w=metric width, h=metric height of rectangle)
 	// fu: multi-dimensional optimization function f(u)  (column vector)
 	void f(const cv::Mat& u, const cv::Mat& p, cv::Mat& fu)
@@ -108,6 +113,9 @@ class TextTagLocalization
 			fu.at<double>(8+i) = fi_sl(u.at<double>(6*i), u.at<double>(6*i+1), u.at<double>(6*i+2), u.at<double>(6*i+3), u.at<double>(6*i+4), u.at<double>(6*i+5), p.at<double>(9));
 		for (int i=0; i<2; ++i)		// 2 side length equations, width-version
 			fu.at<double>(10+i) = fi_sl(u.at<double>((6*i+3)%u.rows), u.at<double>((6*i+4)%u.rows), u.at<double>((6*i+5)%u.rows), u.at<double>((6*i+6)%u.rows), u.at<double>((6*i+7)%u.rows), u.at<double>((6*i+8)%u.rows), p.at<double>(8));
+//		for (int i=0; i<4; ++i)		// 4 text tag plane intersections
+//			fu.at<double>(12+i) = fi_plane(u.at<double>(3*i), u.at<double>(3*i+1), u.at<double>(3*i+2), u.at<double>(12), u.at<double>(13), u.at<double>(14), u.at<double>(15));
+//		fu.at<double>(16) = u.at<double>(12)*u.at<double>(12) + u.at<double>(13)*u.at<double>(13) + u.at<double>(14)*u.at<double>(14) - 1.;
 
 //		std::cout << "fu:\n" ;
 //		for (int i=0; i<fu.rows; ++i)
@@ -116,7 +124,7 @@ class TextTagLocalization
 	}
 
 	// Jacobian of optimization function f(u)
-	// unknowns u: [X1, Y1, Z1, X2, Y2, Z2, X3, Y3, Z3, X4, Y4, Z4]'   (column vector)
+	// unknowns u: [X1, Y1, Z1, X2, Y2, Z2, X3, Y3, Z3, X4, Y4, Z4, a, b, c, d]'   (column vector of 4 metric corners and plane equation)
 	// parameters p: [x1, y1, x2, y2, x3, y3, x4, y4, w, h]'		(w=metric width, h=metric height of rectangle)
 	// Ju: Jacobian J(u)  (2d matrix, row i contains all u-derivatives of fi(u))
 	void J(const cv::Mat& u, const cv::Mat& p, cv::Mat& Ju)
@@ -150,6 +158,19 @@ class TextTagLocalization
 			Ju.at<double>(10+i, (6*i+7)%u.rows) = 2*(u.at<double>((6*i+7)%u.rows)-u.at<double>((6*i+4)%u.rows));
 			Ju.at<double>(10+i, (6*i+8)%u.rows) = 2*(u.at<double>((6*i+8)%u.rows)-u.at<double>((6*i+5)%u.rows));
 		}
+//		for (int i=0; i<4; ++i)		// 4 text tag plane intersections
+//		{
+//			Ju.at<double>(12+i, 3*i)   = u.at<double>(12);
+//			Ju.at<double>(12+i, 3*i+1) = u.at<double>(13);
+//			Ju.at<double>(12+i, 3*i+2) = u.at<double>(14);
+//			Ju.at<double>(12+i, 12)    = u.at<double>(3*i);
+//			Ju.at<double>(12+i, 13)    = u.at<double>(3*i+1);
+//			Ju.at<double>(12+i, 14)    = u.at<double>(3*i+2);
+//			Ju.at<double>(12+i, 15)    = 1.0;
+//		}
+//		Ju.at<double>(16, 12) = 2*u.at<double>(12);
+//		Ju.at<double>(16, 13) = 2*u.at<double>(13);
+//		Ju.at<double>(16, 14) = 2*u.at<double>(14);
 
 //		std::cout << "Ju:\n" ;
 //		for (int i=0; i<Ju.rows; ++i)
@@ -162,27 +183,69 @@ class TextTagLocalization
 
 	// Newton solver
 	// all vectors in type CV_64FC1
-	// unknowns u: [X1, Y1, Z1, X2, Y2, Z2, X3, Y3, Z3, X4, Y4, Z4]'   (column vector, input=initial guess, output=solution)
+	// unknowns u: [X1, Y1, Z1, X2, Y2, Z2, X3, Y3, Z3, X4, Y4, Z4, a, b, c, d]'   (column vector of 4 metric corners and plane equation, input=initial guess, output=solution)
 	// parameters p: [x1, y1, x2, y2, x3, y3, x4, y4, w, h]'		(w=metric width, h=metric height of rectangle)
 	void newtonOptimization(cv::Mat& u, const cv::Mat& p)
 	{
-		double diff = 1e10;
-		int iterations = 0;
-		while (diff > 1e-3 && iterations < 100)
+		for (int trial=0; trial<2; ++trial)
 		{
-			cv::Mat fu, Ju, du;
-			f(u, p, fu);		// f(u)
-			J(u, p, Ju);		// J(u)
-			cv::solve(Ju, -fu, du);		// Ju*du = -fu
-			u = u + du;			// update
-			zCheck(u);
-			diff = cv::norm(du, cv::NORM_L2);
-			++iterations;
+			// Newton iteration
+			int iterations = 0;
+			double diff = 1e10;
+			while (diff > 1e-3 && iterations < 100)
+			{
+				cv::Mat fu, Ju, du;
+				f(u, p, fu);		// f(u)
+				J(u, p, Ju);		// J(u)
+				cv::solve(Ju, -fu, du);//, cv::DECOMP_QR);		// Ju*du = -fu
 
-//			std::cout << "diff: " << diff << "\nu: " << std::endl;
+//				std::cout << "\nu " << iterations << ": ";
+//				for (int i=0; i<u.rows; ++i)
+//					std::cout << u.at<double>(i) << "\t";
+//				std::cout << "\n|du|: " << cv::norm(du, cv::NORM_L2) << "     residual: " << cv::norm(fu, cv::NORM_L1) << std::endl;
+
+				u = u + du;			// update
+				zCheck(u);
+				diff = cv::norm(du, cv::NORM_L2);
+				++iterations;
+
+//				std::cout << "diff: " << diff << "\nu: " << std::endl;
+//				for (int i=0; i<u.rows; ++i)
+//					std::cout << u.at<double>(i) << ", ";
+//				std::cout << std::endl;
+			}
+
+			// check result
+			cv::Mat residual;
+			f(u, p, residual);
+			diff = cv::norm(residual, cv::NORM_L1);
+
+//			tf::Pose pose;
+//			computeLabelPose(u, pose);
+//			std::cout << "p: ";
+//			for (int i=0; i<p.rows; ++i)
+//				std::cout << p.at<double>(i) << "\t";
+//			std::cout << "\nu: ";
 //			for (int i=0; i<u.rows; ++i)
-//				std::cout << u.at<double>(i) << ", ";
-//			std::cout << std::endl;
+//				std::cout << u.at<double>(i) << "\t";
+//			std::cout << "\nresidual: ";
+//			for (int i=0; i<residual.rows; ++i)
+//				std::cout << residual.at<double>(i) << "\t";
+//			std::cout << "\nMetric point location: " << pose.getOrigin().x() << ", " << pose.getOrigin().y() << ", " << pose.getOrigin().z() << "   orientation: " << pose.getRotation().x() << ", " << pose.getRotation().y() << ", " << pose.getRotation().z() << ", " << pose.getRotation().w() << std::endl;
+//			std::cout << "residual: " << diff << std::endl;
+
+//			getchar();
+			//if (diff < 0.1)
+				break;
+
+			// restart with other u if result is not good
+			std::cout << "restarting optimization" << std::endl;
+			for (int i=0; i<u.rows/3; ++i)
+			{
+				u.at<double>(3*i)   = 2*p.at<double>(2*i);
+				u.at<double>(3*i+1) = 2*p.at<double>(2*i+1);
+				u.at<double>(3*i+2) = 2.;
+			}
 		}
 	}
 
@@ -207,6 +270,10 @@ class TextTagLocalization
 			u.at<double>(3*i+1) = p.at<double>(2*i+1);
 			u.at<double>(3*i+2) = 1.;
 		}
+//		u.at<double>(3*detection.corners_.size()  ) = 0.;		// plane equation
+//		u.at<double>(3*detection.corners_.size()+1) = 0.;
+//		u.at<double>(3*detection.corners_.size()+2) = 1.;
+//		u.at<double>(3*detection.corners_.size()+3) = -1.;
 	}
 
 	void zCheck(cv::Mat& u)
@@ -222,9 +289,10 @@ class TextTagLocalization
 		}
 	}
 
-	void computeLabelPose(const cv::Mat& u, tf::Vector3& position, tf::Quaternion& orientation)
+	void computeLabelPose(const cv::Mat& u, tf::Pose& pose)
 	{
 		// position
+		tf::Vector3& position = pose.getOrigin();
 		position.setZero();
 		for (int l=0; l<4; ++l)
 		{
@@ -242,7 +310,9 @@ class TextTagLocalization
 		tf::Vector3 axis_z = axis_x.cross(axis_y);
 		axis_z.normalize();
 		tf::Matrix3x3 rotation_matrix(axis_x.x(), axis_y.x(), axis_z.x(), axis_x.y(), axis_y.y(), axis_z.y(), axis_x.z(), axis_y.z(), axis_z.z());
-		rotation_matrix.getRotation(orientation);
+		tf::Quaternion q;
+		rotation_matrix.getRotation(q);
+		pose.setRotation(q);
 	}
 };
 

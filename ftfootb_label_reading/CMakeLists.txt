@@ -9,6 +9,7 @@ set(catkin_RUN_PACKAGES			# all ROS packages from package.xml (libopencv-dev is 
 	image_transport
 	message_filters
 	tf
+	cob_perception_msgs
 )
 
 set(catkin_BUILD_PACKAGES 
@@ -147,7 +148,7 @@ add_dependencies(text_tag_detection_node	${catkin_EXPORTED_TARGETS})
 ## Install ##
 #############
 ## Mark executables and/or libraries for installation
-install(TARGETS read_label match_template_node extract_features_and_recognition feature_representation_node text_tag_detection_node
+install(TARGETS read_label #match_template_node extract_features_and_recognition feature_representation_node text_tag_detection_node
 	ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 	LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 	RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -170,7 +171,7 @@ install(DIRECTORY ros/launch
 	PATTERN ".svn" EXCLUDE
 )
 
-install(DIRECTORY common/files
+install(DIRECTORY common/files/font common/files/tag_template common/files/trained_classifiers
 	DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/common
 	PATTERN ".svn" EXCLUDE
 )

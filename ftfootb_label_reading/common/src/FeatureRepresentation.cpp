@@ -473,7 +473,6 @@ cv::Mat FeatureReprenstation::get_feature_descriptor(const cv::Mat& image, int f
 void FeatureReprenstation::get_feature_descriptor_from_training_data
 (std::vector<std::string> FoldersFullNames,int number_or_letter,int feature_number,int single_or_combination, cv::Mat& train_data, cv::Mat& train_labels)
 {
-
 	//feature_number: 1.HOG 2.LBP 3.BRIEF
 	//number_or_letter: 1. number 2. letter
 	char FullFileName[100];
@@ -778,21 +777,21 @@ void FeatureReprenstation::load_or_train_SVM_classifiers(cv::SVM& numbers_svm,cv
 		char *cstr_number,*cstr_letter;
 		if (single_or_combination==2)
 		{
-			ss<<path_data<<"TrainedSVMClassifiers/numbers_svm_model_"<<suffix<<".xml";
+			ss<<path_data<<"trained_classifiers/numbers_svm_model_"<<suffix<<".xml";
 		}
 		else if (single_or_combination==1)
 		{
-			ss<<path_data<<"TrainedSVMClassifiers/single_number_svm_model_"<<suffix<<".xml";
+			ss<<path_data<<"trained_classifiers/single_number_svm_model_"<<suffix<<".xml";
 		}
 		number_svm_model = ss.str();
 		ss.str("");
 		if (single_or_combination==2)
 		{
-			ss<<path_data<<"TrainedSVMClassifiers/letters_svm_model_"<<suffix<<".xml";
+			ss<<path_data<<"trained_classifiers/letters_svm_model_"<<suffix<<".xml";
 		}
 		else if (single_or_combination==1)
 		{
-			ss<<path_data<<"TrainedSVMClassifiers/single_letter_svm_model_"<<suffix<<".xml";
+			ss<<path_data<<"trained_classifiers/single_letter_svm_model_"<<suffix<<".xml";
 		}
 		letter_svm_model = ss.str();
 		ss.str("");

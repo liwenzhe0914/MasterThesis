@@ -61,6 +61,7 @@
 #include <sensor_msgs/CameraInfo.h>
 //#include <sensor_msgs/PointCloud2.h>
 //#include <tf/transform_listener.h>
+#include <cob_perception_msgs/DetectionArray.h>
 
 // topics
 #include <message_filters/subscriber.h>
@@ -98,6 +99,7 @@ protected:
 
 //	ros::Subscriber point_cloud_sub_;
 //	ros::Publisher point_cloud_pub_; ///< Point cloud output topic
+	ros::Publisher detections_pub_;		///< Publishes the detected tags
 	//message_filters::Subscriber<sensor_msgs::PointCloud2> point_cloud_sub_;	///< Point cloud input topic
 	image_transport::ImageTransport* it_;
 	image_transport::SubscriberFilter color_camera_image_sub_;	///< Color camera image input topic

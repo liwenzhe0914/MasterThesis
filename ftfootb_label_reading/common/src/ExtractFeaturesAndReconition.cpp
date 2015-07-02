@@ -808,14 +808,14 @@ int main(int argc, char** argv)
 		start_time=clock();
 		//numbers_svm_BRIEF.load("common/files/numbers_svm_model_BRIEF.xml");
 		//letters_svm_BRIEF.load("common/files/letters_svm_model_BRIEF.xml");
-		numbers_svm_HOG.load("common/files/TrainedSVMClassifiers/numbers_svm_model_HOG.xml");
-		letters_svm_HOG.load("common/files/TrainedSVMClassifiers/letters_svm_model_HOG.xml");
+		numbers_svm_HOG.load("common/files/trained_classifiers/numbers_svm_model_HOG.xml");
+		letters_svm_HOG.load("common/files/trained_classifiers/letters_svm_model_HOG.xml");
 		time_in_seconds = (clock() - start_time) / (double)CLOCKS_PER_SEC;
 		std::cout << "[" << time_in_seconds << " s] processing time for loading 2 HOG SVM." << std::endl;
 
 		start_time=clock();
-		numbers_svm_LBP.load("common/files/TrainedSVMClassifiers/numbers_svm_model_LBP.xml");
-		letters_svm_LBP.load("common/files/TrainedSVMClassifiers/letters_svm_model_LBP.xml");
+		numbers_svm_LBP.load("common/files/trained_classifiers/numbers_svm_model_LBP.xml");
+		letters_svm_LBP.load("common/files/trained_classifiers/letters_svm_model_LBP.xml");
 		time_in_seconds = (clock() - start_time) / (double)CLOCKS_PER_SEC;
 		std::cout << "[" << time_in_seconds << " s] processing time for loading 2 LBP SVM." << std::endl;
 

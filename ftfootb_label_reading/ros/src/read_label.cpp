@@ -99,6 +99,7 @@ LabelReader::LabelReader(ros::NodeHandle nh)
 	else
 		std::cout<<"[ROS Read label ERROR] wrong *classifier_* parameter given! "<<std::endl;
 
+	// subscribe image topics
 	it_ = new image_transport::ImageTransport(node_handle_);
 	//color_camera_image_sub_.registerCallback(boost::bind(&LabelReader::imageCallback, this, _1));
 	color_camera_image_sub_.subscribe(*it_, "image_color", 1);
@@ -107,6 +108,9 @@ LabelReader::LabelReader(ros::NodeHandle nh)
     color_image_sub_sync_ = boost::shared_ptr<message_filters::Synchronizer<ColorImageSyncPolicy> >(new message_filters::Synchronizer<ColorImageSyncPolicy>(ColorImageSyncPolicy(3)));
     color_image_sub_sync_->connectInput(color_camera_image_sub_, color_camera_info_sub_);
     color_image_sub_sync_->registerCallback(boost::bind(&LabelReader::imageCallback, this, _1, _2));
+
+    // publishers
+    detections_pub_ = node_handle_.advertise<cob_perception_msgs::DetectionArray>("text_tag_detections", 1);
 
 	std::cout << "LabelReader initialized." << std::endl;
 }
@@ -226,6 +230,8 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& color_camera_d
 	}
 
 	// 3. read texts from tags, determine 3d coordinates
+	cob_perception_msgs::DetectionArray detection_array;
+	std_msgs::Header header = color_camera_data->header;
 	for (size_t i=0; i< detection_list_r.size(); ++i)
 	{
 		if (detection_list_r[i].min_area_rect_.center.x!=0 && detection_list_r[i].min_area_rect_.center.y!=0)
@@ -273,13 +279,20 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& color_camera_d
 				cv::putText(image_display, tag_label_template_matching, cv::Point(detection_list_r[i].corners_[1].x-100, detection_list_r[i].corners_[1].y-5), cv::FONT_HERSHEY_PLAIN, 2, CV_RGB(255,0,255), 2);
 			}
 
+			// determine 3d coordinates
 			cv::Mat u, p;
 			text_tag_localization_.prepareNewtonOptimization(detection_list_r[i], camera_matrix_.at<double>(0,0), camera_matrix_.at<double>(1,1), camera_matrix_.at<double>(0,2), camera_matrix_.at<double>(1,2), 0.391, 0.065, u, p);
 			text_tag_localization_.newtonOptimization(u, p);
-			tf::Vector3 position;
-			tf::Quaternion orientation;
-			text_tag_localization_.computeLabelPose(u, position, orientation);
-			std::cout << "Metric point location: " << position.x() << ", " << position.y() << ", " << position.z() << "   orientation: " << orientation.x() << ", " << orientation.y() << ", " << orientation.z() << ", " << orientation.w() << std::endl;
+			tf::Pose pose;
+			text_tag_localization_.computeLabelPose(u, pose);
+
+			// store to message
+			cob_perception_msgs::Detection detection;
+			detection.header = header;
+			detection.label = tag_label_features;
+			detection.pose.header = header;
+			tf::poseTFToMsg(pose, detection.pose.pose);
+			detection_array.detections.push_back(detection);
 		}
 	}
 
@@ -291,6 +304,10 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& color_camera_d
 	ss.str("");
 	cv::imshow("image", image_display);
 	cv::waitKey(1);
+
+	// publish detections
+	detection_array.header = header;
+	detections_pub_.publish(detection_array);
 
 	//	// create ReadLabel object (from common folder) and call detect function
 //
