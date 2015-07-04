@@ -585,113 +585,45 @@ std::string FeatureReprenstation::convertASCIIToLetters(int number,int single_or
     return letter_class;
 }
 
-void FeatureReprenstation::load_all_training_data_with_feature_descriptors
-(std::string training_path,int number_or_letter,int feature_number, int load, int single_or_combination, cv::Mat& train_data, cv::Mat& train_labels)
+void FeatureReprenstation::load_all_training_data_with_feature_descriptors(std::string training_path, int number_or_letter,
+		int feature_type, int training_data_source, int single_or_combination, cv::Mat& train_data, cv::Mat& train_labels)
 {
-	//load: 1. load data from yml. 0. load from raw data
-//	std::cout<<"load:"<<load<<"    feature number: "<<feature_number<<std::endl;
-//	std::cout << "type:"<<typeid(feature_number).name() << std::endl;
-	std::string prefix,suffix;
-	std::stringstream ss_numbers,ss_letters;
-	std::string path_letters,path_numbers;
+	const std::string number_symbols_str = get_number_symbols_string(single_or_combination);
+	const std::string feature_type_str = get_feature_type_string(feature_type);
+	const std::string symbol_type_str = (number_or_letter==0 ? "letter" : "number");
+	const std::string yml_filename = training_path + "yaml/" + number_symbols_str + "_" + symbol_type_str + "_training_data_" + feature_type_str + ".yml";
+	const std::string yml_train_data = number_symbols_str + "_" + symbol_type_str<<"_train_data_"<<feature_type_str;
+	const std::string yml_train_labels = number_symbols_str + "_" + symbol_type_str + "_train_labels_" + feature_type_str;
 
-	std::size_t pos = training_path.find("TrainingDataRAW/");      // position of "live" in str
-	std::string raw_path = training_path.substr (0,pos);
+	if (training_data_source==0)
+	{
+		// load images from hard disk and compute descriptors, store descriptors to yaml file
+		std::cout << "computing training data and labels from training dataset..." << std::endl;
 
-	if (single_or_combination==2)
-	{
-		ss_numbers<<training_path<<"numbers"<<"/";
-		path_numbers = ss_numbers.str();
-		ss_numbers.str("");
-		std::cout<<"path_numbers: "<<path_numbers<<std::endl;
-		ss_letters<<training_path<<"letters"<<"/";
-		path_letters = ss_letters.str();
-		ss_letters.str("");
-	}
-	else if (single_or_combination==1)
-	{
-		ss_numbers<<training_path<<"single_number"<<"/";
-		path_numbers = ss_numbers.str();
-		ss_numbers.str("");
-
-		ss_letters<<training_path<<"single_letter"<<"/";
-		path_letters = ss_letters.str();
-		ss_letters.str("");
-	}
-
-	std::vector<std::string> TrainingFoldersFullNames;
-	if (number_or_letter==1)
-	{
-		TrainingFoldersFullNames = folder_list(path_numbers);
-		if (single_or_combination==2)
-		{
-			prefix = "numbers";
-		}
-		else if (single_or_combination==1)
-		{
-			prefix = "single_number";
-		}
-	}
-	else if (number_or_letter==0)
-	{
-		TrainingFoldersFullNames = folder_list(path_letters);
-		if (single_or_combination==2)
-		{
-			prefix = "letters";
-		}
-		else if (single_or_combination==1)
-		{
-			prefix = "single_letter";
-		}
-	}
-	if (feature_number==1)
-	{
-		suffix = "HOG";
-	}
-	else if (feature_number==2)
-	{
-		suffix = "LBP";
-	}
-	else if (feature_number==3)
-	{
-		suffix = "BRIEF";
-	}
-
-	std::stringstream ss;
-	std::string yml_filename, yml_train_data, yml_train_labels;
-	ss<<raw_path<<"TrainingDataYML/"<<prefix<<"_trainData_and_trainClasses_"<<suffix<<".yml";
-	yml_filename=ss.str();
-	ss.str("");
-	ss<<prefix<<"_train_data_"<<suffix;
-	yml_train_data=ss.str();
-	ss.str("");
-	yml_train_labels = prefix + "_train_labels_" + suffix;
-
-
-	if (load==0)
-	{
-		std::cout<<"computing trainData_and_trainClasses from training dataset..."<<std::endl;
-
-		get_feature_descriptor_from_training_data(TrainingFoldersFullNames,number_or_letter,feature_number,single_or_combination, train_data, train_labels);
+		const std::string path_letters = training_path + number_symbols_str + "_letter/";
+		const std::string path_numbers = training_path + number_symbols_str + "_number/";
+		std::vector<std::string> training_folders_full_names;
+		if (number_or_letter==0)
+			training_folders_full_names = folder_list(path_letters);
+		else if (number_or_letter==1)
+			training_folders_full_names = folder_list(path_numbers);
+		get_feature_descriptor_from_training_data(training_folders_full_names, number_or_letter, feature_type, single_or_combination, train_data, train_labels);
 
 		cv::FileStorage fs(yml_filename, cv::FileStorage::WRITE);
 		fs << yml_train_data << train_data;
 		fs << yml_train_labels << train_labels;
 	}
-	else if (load==1)
+	else if (training_data_source==2)
 	{
-		std::cout<<"Reading trainData_and_trainClasses from feature description files."<<std::endl;
-
+		// load descriptor data from yaml file
+		std::cout << "Reading training data and labels from feature description file." << std::endl;
 		cv::FileStorage fs(yml_filename, cv::FileStorage::READ);
-		ss.str("");
 		fs[yml_train_data] >> train_data;
 		fs[yml_train_labels] >> train_labels;
 		fs.release();
 	}
 	else
 		std::cout<<"[Feature representation ERROR: ] wrong load number is given!"<<std::endl;
-
-//	return trainData_and_trainClasses;
 }
 
 cv::Mat FeatureReprenstation::preprocess_text_tag(cv::Mat& tag_image, int feature_number, int single_or_combination)
@@ -725,159 +657,74 @@ cv::Mat FeatureReprenstation::preprocess_text_tag(cv::Mat& tag_image, int featur
 	return descriptor_values;
 }
 
-void FeatureReprenstation::load_or_train_SVM_classifiers(cv::SVM& numbers_svm,cv::SVM& letters_svm,
-															int load,int classifier,int feature_number,int single_or_combination,
-															std::string path_data)
+void FeatureReprenstation::load_or_train_SVM_classifiers(cv::SVM& numbers_svm, cv::SVM& letters_svm, int training_data_source,
+		int classifier, int feature_type, int single_or_combination, std::string path_data)
 {
-//	std::cout<<"package path: "<<package_path<<std::endl;
-	double start_time,time_in_seconds;
-	std::string suffix,classifier_name;
-	cv::Mat numbers_train_data, letters_train_data, numbers_train_labels, letters_train_labels; //numbers_trainData_and_trainClasses,letters_trainData_and_trainClasses;
-	if (feature_number==1)
-	{
-		suffix = "HOG";
-	}
-	else if (feature_number==2)
-	{
-		suffix = "LBP";
-	}
-	else if (feature_number==3)
-	{
-		suffix = "BRIEF";
-	}
-	else
-		std::cout<<"[Feature representation ERROR: ] wrong feature number is given!"<<std::endl;
+	std::string number_symbols_str = get_number_symbols_string(single_or_combination);
+	std::string feature_type_str = get_feature_type_string(feature_type);
+	std::string number_svm_model = path_data + "trained_classifiers/" + number_symbols_str + "_number_svm_model_" + feature_type_str + ".xml";
+	std::string letter_svm_model = path_data + "trained_classifiers/" + number_symbols_str + "_letter_svm_model_" + feature_type_str + ".xml";
 
+	cv::Mat numbers_train_data, letters_train_data, numbers_train_labels, letters_train_labels;
 	if (classifier==2)
 	{
-		//std::cout<<"start processing training data..."<<std::endl;
-		std::string training_path = path_data + "TrainingDataRAW/";
-//				std::string training_path = "/home/rmb-om/training_samples_for_SVM/";
+		if (training_data_source == 1)
+		{
 
-		load_all_training_data_with_feature_descriptors(training_path,1,feature_number,load,single_or_combination, numbers_train_data, numbers_train_labels);
-		load_all_training_data_with_feature_descriptors(training_path,0,feature_number,load,single_or_combination, letters_train_data, letters_train_labels);
+		}
+		else
+		{
+			//std::cout<<"start processing training data..."<<std::endl;
+			std::string training_path = path_data + "training_data/";
+			load_all_training_data_with_feature_descriptors(training_path, 1, feature_type, training_data_source, single_or_combination, numbers_train_data, numbers_train_labels);
+			load_all_training_data_with_feature_descriptors(training_path, 0, feature_type, training_data_source, single_or_combination, letters_train_data, letters_train_labels);
+			//std::cout<<"finish processing training data..."<<std::endl;
+		}
 
-//		cv::Mat numbers_trainData_temp (numbers_trainData_and_trainClasses,cv::Rect(0,0,numbers_trainData_and_trainClasses.cols-1,numbers_trainData_and_trainClasses.rows));
-//		cv::Mat letters_trainData_temp (letters_trainData_and_trainClasses,cv::Rect(0,0,letters_trainData_and_trainClasses.cols-1,letters_trainData_and_trainClasses.rows));
-//		numbers_trainData_temp.copyTo(numbers_trainData);
-//		letters_trainData_temp.copyTo(letters_trainData);
-//		numbers_trainClasses = numbers_trainData_and_trainClasses.col(numbers_trainData_and_trainClasses.cols-1);
-//		letters_trainClasses = letters_trainData_and_trainClasses.col(letters_trainData_and_trainClasses.cols-1);
+		/// train SVM with trainData and trainClasses
+		Timer tim;
+		std::cout << "training SVM classifiers" << std::endl;
+		//cv::SVMParams params(cv::SVM::C_SVC, cv::SVM::LINEAR, 0, 0, 0, 1, 0, 0, 0, cv::TermCriteria(CV_TERMCRIT_ITER, (int)1e7, 1e-6));
+		cv::SVMParams params(cv::SVM::C_SVC, cv::SVM::RBF, 0, 0.01, 0, 1., 0, 0, 0, cv::TermCriteria(CV_TERMCRIT_ITER | CV_TERMCRIT_EPS, 1e7, FLT_EPSILON));	//(CV_TERMCRIT_ITER, (int)1e7, 1e-6);
+		numbers_svm.train(numbers_train_data,numbers_train_labels, cv::Mat(), cv::Mat(),params);
+		letters_svm.train(letters_train_data,letters_train_labels, cv::Mat(), cv::Mat(),params);
+		std::cout << "[" << tim.getElapsedTimeInSec() << " s] processing time for training SVM" << std::endl;
+
+		numbers_svm.save(number_svm_model.c_str());
+		letters_svm.save(letter_svm_model.c_str());
+		std::cout << "SVM training model saved" << std::endl;
 	}
-
-	//std::cout<<"finish processing training data..."<<std::endl;
-
-	if (classifier==3 || classifier==2)
+	else if(classifier==3)
 	{
-
-		std::stringstream ss;
-		std::string number_svm_model,letter_svm_model;
-		classifier_name="SVM";
-		std::cout<<"classifiers name: "<<classifier_name<<std::endl;
-		char *cstr_number,*cstr_letter;
-		if (single_or_combination==2)
-		{
-			ss<<path_data<<"trained_classifiers/numbers_svm_model_"<<suffix<<".xml";
-		}
-		else if (single_or_combination==1)
-		{
-			ss<<path_data<<"trained_classifiers/single_number_svm_model_"<<suffix<<".xml";
-		}
-		number_svm_model = ss.str();
-		ss.str("");
-		if (single_or_combination==2)
-		{
-			ss<<path_data<<"trained_classifiers/letters_svm_model_"<<suffix<<".xml";
-		}
-		else if (single_or_combination==1)
-		{
-			ss<<path_data<<"trained_classifiers/single_letter_svm_model_"<<suffix<<".xml";
-		}
-		letter_svm_model = ss.str();
-		ss.str("");
-
-		cstr_number = new char[number_svm_model.length() + 1];
-		cstr_letter = new char[letter_svm_model.length() + 1];
-		strcpy(cstr_number, number_svm_model.c_str());
-		strcpy(cstr_letter, letter_svm_model.c_str());
-		std::cout<<"letter_svm_model: "<<cstr_letter<<std::endl;
-		std::cout<<"number_svm_model: "<<cstr_number<<std::endl;
-
-		if(classifier==3)
-		{
-			//std::cout<<"loading SVM classifiers"<<std::endl;
-			start_time=clock();
-			std::cout<<"loading SVM classifiers"<<std::endl;
-
-			numbers_svm.load(cstr_number);
-			letters_svm.load(cstr_letter);
-			time_in_seconds = (clock() - start_time) / (double)CLOCKS_PER_SEC;
-			std::cout<<"SVM classifiers loaded"<<std::endl;
-			std::cout << "[" << time_in_seconds << " s] processing time for loading 2 SVMs." << std::endl;
-		}
-		else if (classifier==2)
-		{
-			std::cout<<"training SVM classifiers"<<std::endl;
-
-			///train SVM with trainData and trainClasses
-			//cv::SVMParams params(cv::SVM::C_SVC, cv::SVM::LINEAR, 0, 0, 0, 1, 0, 0, 0, cv::TermCriteria(CV_TERMCRIT_ITER, (int)1e7, 1e-6));
-			cv::SVMParams params(cv::SVM::C_SVC, cv::SVM::RBF, 0, 0.01, 0, 1., 0, 0, 0, cv::TermCriteria(CV_TERMCRIT_ITER | CV_TERMCRIT_EPS, 1e7, FLT_EPSILON));	//(CV_TERMCRIT_ITER, (int)1e7, 1e-6);
-			start_time = clock();
-
-			numbers_svm.train(numbers_train_data,numbers_train_labels, cv::Mat(), cv::Mat(),params);
-			letters_svm.train(letters_train_data,letters_train_labels, cv::Mat(), cv::Mat(),params);
-
-			time_in_seconds = (clock() - start_time) / (double)CLOCKS_PER_SEC;
-			//std::cout << "[" << time_in_seconds << " s] processing time for training SVM" << std::endl;
-
-			numbers_svm.save(cstr_number);
-			letters_svm.save(cstr_letter);
-
-			//std::cout << "SVM training model Saved" << std::endl;
-		}
-		delete [] cstr_number;
-		delete [] cstr_letter;
+		// load trained classifiers from disk
+		Timer tim;
+		std::cout << "loading SVM classifiers" << std::endl;
+		numbers_svm.load(number_svm_model.c_str());
+		letters_svm.load(letter_svm_model.c_str());
+		std::cout << "[" << tim.getElapsedTimeInSec() << " s] processing time for loading 2 SVMs." << std::endl;
 	}
 }
 
-void FeatureReprenstation::load_or_train_KNN_classifiers(cv::KNearest& numbers_knn,cv::KNearest& letters_knn,
-															int load,int classifier,int feature_number,int single_or_combination,
-															std::string path_data)
+void FeatureReprenstation::load_or_train_KNN_classifiers(cv::KNearest& numbers_knn, cv::KNearest& letters_knn, int training_data_source,
+		int classifier, int feature_type, int single_or_combination, std::string path_data)
 {
 	double start_time,time_in_seconds;
-	std::string classifier_name;
-	cv::Mat numbers_train_data, letters_train_data, numbers_train_labels, letters_train_labels; //numbers_trainData_and_trainClasses,letters_trainData_and_trainClasses;
-
-	classifier_name="KNN";
+	cv::Mat numbers_train_data, letters_train_data, numbers_train_labels, letters_train_labels;
 
 	//std::cout<<"start processing training data..."<<std::endl;
-	std::string training_path = path_data + "TrainingDataRAW/";
+	std::string training_path = path_data + "training_data/";
 //	std::cout<<"training_path: "<<training_path<<std::endl;
-//				std::string training_path = "/home/rmb-om/training_samples_for_SVM/";
 
-	load_all_training_data_with_feature_descriptors(training_path,1,feature_number,load,single_or_combination, numbers_train_data, numbers_train_labels);
-	load_all_training_data_with_feature_descriptors(training_path,0,feature_number,load,single_or_combination, letters_train_data, letters_train_labels);
-
-//	cv::Mat numbers_trainData_temp (numbers_trainData_and_trainClasses,cv::Rect(0,0,numbers_trainData_and_trainClasses.cols-1,numbers_trainData_and_trainClasses.rows));
-//	cv::Mat letters_trainData_temp (letters_trainData_and_trainClasses,cv::Rect(0,0,letters_trainData_and_trainClasses.cols-1,letters_trainData_and_trainClasses.rows));
-//	numbers_trainData_temp.copyTo(numbers_trainData);
-//	letters_trainData_temp.copyTo(letters_trainData);
-//	numbers_trainClasses = numbers_trainData_and_trainClasses.col(numbers_trainData_and_trainClasses.cols-1);
-//	letters_trainClasses = letters_trainData_and_trainClasses.col(letters_trainData_and_trainClasses.cols-1);
-
-	//Build KNNs
-
-//	cv::KNearest numbers_knn(numbers_trainData,numbers_trainClasses);
-//	cv::KNearest letters_knn(letters_trainData,letters_train_labels);
+	load_all_training_data_with_feature_descriptors(training_path, 1, feature_type, training_data_source, single_or_combination, numbers_train_data, numbers_train_labels);
+	load_all_training_data_with_feature_descriptors(training_path, 0, feature_type, training_data_source, single_or_combination, letters_train_data, letters_train_labels);
 
 	//Start training
-
 	//std::cout<<"training KNN classifiers with"<<std::endl;
 	start_time = clock();
 	numbers_knn.train(numbers_train_data, numbers_train_labels);
 	letters_knn.train(letters_train_data, letters_train_labels);
-	time_in_seconds = (clock() - start_time) / (double)CLOCKS_PER_SEC;
-		//std::cout << "[" << time_in_seconds << " s] processing time for training KNN" << std::endl;
+	//time_in_seconds = (clock() - start_time) / (double)CLOCKS_PER_SEC;
+	//std::cout << "[" << time_in_seconds << " s] processing time for training KNN" << std::endl;
 }
 
 

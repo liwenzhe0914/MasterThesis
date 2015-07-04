@@ -71,8 +71,8 @@ void LabelReader::setParams(ros::NodeHandle& nh)
 	std::cout << "tag_detection_target_image_width = " << tag_detection_target_image_width_ << "\n";
 	node_handle_.param("tag_detection_target_image_height", tag_detection_target_image_height_, -1);
 	std::cout << "tag_detection_target_image_height = " << tag_detection_target_image_height_ << "\n";
-	node_handle_.param("load", load_, 0);
-	std::cout << "load = " << load_ << "\n";
+	node_handle_.param("training_data_source", training_data_source_, 0);
+	std::cout << "training_data_source = " << training_data_source_ << "\n";
 	node_handle_.param("classifier", classifier_, 1);
 	std::cout << "classifier = " << classifier_ << "\n";
 	node_handle_.param("feature_number", feature_number_, 1);
@@ -97,13 +97,13 @@ LabelReader::LabelReader(ros::NodeHandle nh)
 
 	if (classifier_==2 || classifier_==3) // SVM for classification
 	{
-		feature_representation_.load_or_train_SVM_classifiers(feature_representation_.numbers_svm,feature_representation_.letters_svm,
-															load_,classifier_,feature_number_,single_or_combination_,path_data_);
+		feature_representation_.load_or_train_SVM_classifiers(feature_representation_.numbers_svm_,feature_representation_.letters_svm_,
+				training_data_source_,classifier_,feature_number_,single_or_combination_,path_data_);
 	}
 	else if (classifier_==1) // KNN for classification
 	{
-		feature_representation_.load_or_train_KNN_classifiers(feature_representation_.numbers_knn,feature_representation_.letters_knn,
-															load_,classifier_,feature_number_,single_or_combination_,path_data_);
+		feature_representation_.load_or_train_KNN_classifiers(feature_representation_.numbers_knn_,feature_representation_.letters_knn_,
+				training_data_source_,classifier_,feature_number_,single_or_combination_,path_data_);
 	}
 	else
 		std::cout<<"[ROS Read label ERROR] wrong *classifier_* parameter given! "<<std::endl;
@@ -267,13 +267,13 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& color_camera_d
 				if (classifier_==2 || classifier_==3) // SVM for classification
 				{
 					// todo: check for const image
-					tag_label_features=feature_representation_.read_text_tag_SVM(feature_representation_.numbers_svm,feature_representation_.letters_svm,roi,
+					tag_label_features=feature_representation_.read_text_tag_SVM(feature_representation_.numbers_svm_,feature_representation_.letters_svm_,roi,
 																				feature_number_,single_or_combination_);
 				}
 
 				else if (classifier_==1) // KNN for classification
 				{
-					tag_label_features=feature_representation_.read_text_tag_KNN(feature_representation_.numbers_knn,feature_representation_.letters_knn,roi,
+					tag_label_features=feature_representation_.read_text_tag_KNN(feature_representation_.numbers_knn_,feature_representation_.letters_knn_,roi,
 																				feature_number_,single_or_combination_);
 				}
 				else

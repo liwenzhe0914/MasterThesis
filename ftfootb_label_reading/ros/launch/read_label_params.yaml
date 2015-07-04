@@ -15,9 +15,9 @@ display_results: true
 tag_detection_target_image_width: -1
 tag_detection_target_image_height: -1
 
-# 1 - load training data from yml file; 0 - load training data from raw images
+# 0 - load training data from raw images;  1 - load all letter or number symbols from one file and generate further training samples;  2 - load training data from yml file
 # int
-load: 0
+training_data_source: 1
 
 # 1-KNN, 2-train svm, 3-load svm
 # int
