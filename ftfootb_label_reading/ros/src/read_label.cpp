@@ -286,7 +286,7 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& color_camera_d
 
 			if (recognition_method_==1 || recognition_method_==3)
 			{
-				match_template_.read_tag(roi, tag_label_template_matching,template_matching_method_);
+				match_template_.read_tag(roi, tag_label_template_matching, template_matching_method_);
 				std::cout << "The text tag reads: " << tag_label_template_matching << "." << std::endl;
 				if (display_results_)
 					//cv::putText(image_display, tag_label_template_matching, cv::Point(detection_list[i].x-100, detection_list[i].y-5), cv::FONT_HERSHEY_PLAIN, 2, CV_RGB(255,0,255), 2);

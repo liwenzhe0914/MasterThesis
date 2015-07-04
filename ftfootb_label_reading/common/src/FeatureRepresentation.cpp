@@ -1,8 +1,5 @@
 #include "ftfootb_label_reading/FeatureRepresentation.h"
-
-
-
-
+#include "ftfootb_label_reading/timer.h"
 
 
 //-------------------------- Wolf Thresholding ---------------------------------------------------
@@ -263,7 +260,7 @@ void NiblackSauvolaWolfJolion (cv::Mat im, cv::Mat output, NiblackVersion versio
     }
 }
 
-cv::Mat FeatureReprenstation::wolf_thresholding(cv::Mat& img_gray)
+cv::Mat FeatureRepresentation::wolf_thresholding(cv::Mat& img_gray)
 {
 
 	cv::Size dsize = cv::Size(img_gray.cols,img_gray.rows);
@@ -298,36 +295,31 @@ cv::Mat FeatureReprenstation::wolf_thresholding(cv::Mat& img_gray)
 
 //-------------------------- Feature representation (HOG, BRIEF, LBP) ---------------------------------------------------
 
-std::vector<std::string> FeatureReprenstation::folder_list(std::string path)
+void FeatureRepresentation::get_folder_list(std::string path, std::vector<std::string>& folder_list)
 {
-	std::vector<std::string> FolderNames;
 	DIR *pDIR;
 	struct dirent *entry;
 	if ((pDIR = opendir(path.c_str())) != NULL)
 	{
-	  /* print all the files and directories within directory */
+		// print all the files and directories within directory
 		while ((entry = readdir(pDIR)) != NULL)
 		{
 			std::string completeName = entry->d_name;
 			std::string name_end = completeName.substr(completeName.find_last_of("/") + 1, completeName.length());
 			std::string s = path;
 			if (name_end !="." and name_end !="..")
-				{
-					s.append(completeName);
-					FolderNames.push_back(s);
-				}
+			{
+				s.append(completeName);
+				folder_list.push_back(s);
+			}
 		}
 	}
 	else
-	{
 		std::cout << "Error: Could not open path." << std::endl;
-	}
-return FolderNames;
 }
 
-std::vector<std::string> FeatureReprenstation::load_folder_of_image(std::string path)
+void FeatureRepresentation::get_image_file_list(std::string path, std::vector<std::string>& image_file_list)
 {
-	std::vector<std::string> ImageNames;
 	DIR *pDIR;
 	struct dirent *entry;
 	if ((pDIR = opendir(path.c_str())) != NULL)
@@ -349,20 +341,17 @@ std::vector<std::string> FeatureReprenstation::load_folder_of_image(std::string 
 					if (s.at(s.length() - 1) != '/')
 						s.append("/");
 					s.append(entry->d_name);
-					ImageNames.push_back(s);
+					image_file_list.push_back(s);
 				}
 			}
 		}
 	}
 	else
-	{
 		std::cout << "Error: Could not open path!" << std::endl;
-	}
-return ImageNames;
 }
 
 
-cv::Rect FeatureReprenstation::remove_white_image_border(const cv::Mat& image, cv::Rect roi)
+cv::Rect FeatureRepresentation::remove_white_image_border(const cv::Mat& image, cv::Rect roi)
 {
 	// remove white border
 	cv::Mat binary_image, temp;
@@ -396,11 +385,11 @@ cv::Rect FeatureReprenstation::remove_white_image_border(const cv::Mat& image, c
 }
 
 
-cv::Mat FeatureReprenstation::get_feature_descriptor(const cv::Mat& image, int feature_number, int single_or_combination)
+cv::Mat FeatureRepresentation::get_feature_descriptor(const cv::Mat& image, int feature_number, int single_or_combination)
 {
 	//read image file
+	cv::Mat descriptor;
 	cv::Mat image_grayscale;
-	cv::Mat descriptor_values;
 	cv::Size dsize_HOG_LBP;
 	cv::Size dsize_BRIEF;
 	if (single_or_combination==1)
@@ -416,19 +405,20 @@ cv::Mat FeatureReprenstation::get_feature_descriptor(const cv::Mat& image, int f
 
 	if(feature_number==1)
 	{
-
 		//resizing
 		cv::resize(image, image_grayscale, dsize_HOG_LBP); //Size(64,48) ); //Size(32*2,16*2)); //Size(80,72) );
 
 		cv::HOGDescriptor d( dsize_HOG_LBP, cv::Size(dsize_HOG_LBP.width/4,dsize_HOG_LBP.height/4),
 				cv::Size(dsize_HOG_LBP.width/8,dsize_HOG_LBP.height/8), cv::Size(dsize_HOG_LBP.width/8,dsize_HOG_LBP.height/8), 9);
-		cv::vector< float> descriptorsValues_vector;
-		cv::vector< cv::Point> locations;
-		d.compute(image_grayscale, descriptorsValues_vector, cv::Size(0,0), cv::Size(0,0), locations);
-		cv::Mat descriptorsValues_temp(1, descriptorsValues_vector.size(),CV_32FC1);
+		cv::vector<float> descriptor_values_vector;
+		cv::vector<cv::Point> locations;
+		d.compute(image_grayscale, descriptor_values_vector, cv::Size(0,0), cv::Size(0,0), locations);
+		descriptor.create(1, descriptor_values_vector.size(), CV_32FC1);
+		memcpy(descriptor.data, descriptor_values_vector.data(), descriptor_values_vector.size()*sizeof(float));
+//		cv::Mat descriptorsValues_temp(1, descriptor_values_vector.size(),CV_32FC1);
 		//convert descriptorsValues(type vector) to row matrix
-		memcpy(descriptorsValues_temp.data,descriptorsValues_vector.data(), descriptorsValues_vector.size()*sizeof(float));
-		descriptorsValues_temp.copyTo(descriptor_values);
+//		memcpy(descriptorsValues_temp.data,descriptor_values_vector.data(), descriptor_values_vector.size()*sizeof(float));
+//		descriptorsValues_temp.copyTo(descriptor);
 	}
 	else if(feature_number==2)
 	{
@@ -440,11 +430,11 @@ cv::Mat FeatureReprenstation::get_feature_descriptor(const cv::Mat& image, int f
 		lbp::OLBP(image_grayscale,lbp_image);
 		cv::normalize(lbp_image, lbp_image, 0, 255, cv::NORM_MINMAX, CV_8UC1);
 
-		descriptor_values=lbp::spatial_histogram(lbp_image, 59, dsize_HOG_LBP.width/8, dsize_HOG_LBP.height/8, true);
+		descriptor=lbp::spatial_histogram(lbp_image, 59, dsize_HOG_LBP.width/8, dsize_HOG_LBP.height/8, true);
 	}
 	else if (feature_number==3)
 	{
-		cv::Mat descriptorsValues_Mat;
+//		cv::Mat descriptor_values_mat;
 		cv::resize(image, image_grayscale, dsize_BRIEF); //Size(64,48) ); //Size(32*2,16*2)); //Size(80,72) );
 		cv::DenseFeatureDetector detector(12.0f, 1, 0.1f, 10);
 		cv::BriefDescriptorExtractor extractor(32);
@@ -455,85 +445,58 @@ cv::Mat FeatureReprenstation::get_feature_descriptor(const cv::Mat& image, int f
 		cv::KeyPoint pt(float(image_grayscale.cols/2),float(image_grayscale.rows/2),1,-1, 0, 0, -1);
 		keyPoints.push_back(pt);
 
-	//	detector.detect(image_grayscale,keyPoints);
-		extractor.compute(image_grayscale,keyPoints,descriptorsValues_Mat);
-		std::vector<float> descriptorsValues_vector;
-
-		descriptorsValues_vector.assign(descriptorsValues_Mat.datastart, descriptorsValues_Mat.dataend);
-
-		cv::Mat descriptorsValues_temp(1, descriptorsValues_vector.size(),CV_32FC1);
-		//convert descriptorsValues(type vector) to row matrix
-		memcpy(descriptorsValues_temp.data,descriptorsValues_vector.data(), descriptorsValues_vector.size()*sizeof(float));
-		descriptorsValues_temp.copyTo(descriptor_values);
+//		detector.detect(image_grayscale,keyPoints);
+		extractor.compute(image_grayscale, keyPoints, descriptor);
+//		extractor.compute(image_grayscale,keyPoints, descriptor_values_mat);
+//		std::vector<float> descriptor_values_vector;
+//		descriptor_values_vector.assign(descriptor_values_mat.datastart, descriptor_values_mat.dataend);
+//
+//		cv::Mat descriptorsValues_temp(1, descriptor_values_vector.size(),CV_32FC1);
+//		//convert descriptorsValues(type vector) to row matrix
+//		memcpy(descriptorsValues_temp.data,descriptor_values_vector.data(), descriptor_values_vector.size()*sizeof(float));
+//		descriptorsValues_temp.copyTo(descriptor);
 	}
 
-	return descriptor_values;
+	return descriptor;
 }
 
-void FeatureReprenstation::get_feature_descriptor_from_training_data
-(std::vector<std::string> FoldersFullNames,int number_or_letter,int feature_number,int single_or_combination, cv::Mat& train_data, cv::Mat& train_labels)
+void FeatureRepresentation::get_feature_descriptor_from_training_data(const std::string path_training_data_files, int number_or_letter,
+		int feature_type, int single_or_combination, cv::Mat& train_data, cv::Mat& train_labels)
 {
-	//feature_number: 1.HOG 2.LBP 3.BRIEF
-	//number_or_letter: 1. number 2. letter
-	char FullFileName[100];
-	std::string foldersNames;
-//	cv::Mat trainData,trainClasses;
-	char *cstr;
-	std::vector<std::string> ImageNames;
-	std::vector< cv::Point> locations;
-	cv::Mat descriptorsValues;
-	int Classes;
+	// get list of data folders (each folder contains images for one class)
+	std::vector<std::string> training_folder_list;
+	get_folder_list(path_training_data_files, training_folder_list);
 
-	for(unsigned int i=0; i< FoldersFullNames.size(); ++i)
+	// iterate over classes
+	for(size_t i=0; i<training_folder_list.size(); ++i)
 	{
-		std::string foldername_temp = FoldersFullNames[i];
-		foldersNames = foldername_temp.substr(foldername_temp.find_last_of("/") + 1, foldername_temp.length());
-		std::stringstream ss1;
-		ss1<<foldername_temp<<"/"<<foldersNames<<"_";
-		std::string FirstFileName = ss1.str();
-		ss1.str("");
-		cstr = new char[FirstFileName.length() + 1];
-		strcpy(cstr, FirstFileName.c_str());
-//		std::cout<<foldername_temp<<std::endl;
-		ImageNames = load_folder_of_image(foldername_temp);
+		// compute class label
+		const std::string folder_name = training_folder_list[i].substr(training_folder_list[i].find_last_of("/") + 1, training_folder_list[i].length());
+		int class_label = -1;
+		if (number_or_letter == 1)
+			std::istringstream(folder_name) >> class_label;
+		else
+			class_label = convertLettersToASCII(folder_name, single_or_combination);
 
-		for(unsigned int k=0; k<ImageNames.size(); ++k)
+		// open each image of this class
+		std::vector<std::string> image_file_list;
+		get_image_file_list(training_folder_list[i], image_file_list);
+		for(size_t k=0; k<image_file_list.size(); ++k)
 		{
-//			std::cout << "ImageNames[k]: " << ImageNames[k] << std::endl;
-//			sprintf(FullFileName, "%s%d.png", cstr, k+1);
-//			std::cout<<"FullFileName: "<<FullFileName<<std::endl;
-			cv::Mat img = cv::imread(ImageNames[k], CV_LOAD_IMAGE_GRAYSCALE);
+			// compute descriptor
+//			std::cout << "image_file_list[k]: " << image_file_list[k] << std::endl;
+			cv::Mat img = cv::imread(image_file_list[k], CV_LOAD_IMAGE_GRAYSCALE);
 			cv::Rect roi = remove_white_image_border(img, cv::Rect(0,0,img.cols, img.rows));
+			cv::Mat descriptor = get_feature_descriptor(img(roi), feature_type, single_or_combination);
+			train_data.push_back(descriptor);
 
-			descriptorsValues=get_feature_descriptor(img(roi),feature_number,single_or_combination);
-//			std::cout << "descriptorsValues dimensions: " << descriptorsValues.cols << " width x " << descriptorsValues.rows << " height" << std::endl;
-			train_data.push_back(descriptorsValues);
-			if (number_or_letter == 1)
-			{
-				std::istringstream ( foldersNames ) >> Classes;
-			}
-			else
-			{
-				Classes = convertLettersToASCII(foldersNames,single_or_combination);
-			}
-			train_labels.push_back( Classes );
+			// label
+			train_labels.push_back(class_label);
 		}
 	}
-	delete [] cstr;
-
-//	cv::Mat trainData_trainClasses(trainData.rows,trainData.cols+trainClasses.cols,CV_32FC1,cv::Scalar::all(0));
-/////combine two Matrix -- trainData and trainClasses into one Matrix
-//
-//	for (int i = 1;i<trainData.cols;i++)
-//	{
-//		trainData.col(i).copyTo(trainData_trainClasses.col(i));
-//	}
-//	trainClasses.col(0).copyTo(trainData_trainClasses.col(trainData_trainClasses.cols-1));
-//
-//	return trainData_trainClasses;//trainData_trainClasses contains trainData and trainClasses
 }
 
-int FeatureReprenstation::convertLettersToASCII(std::string letter,int single_or_combination)
+int FeatureRepresentation::convertLettersToASCII(const std::string letter, const int single_or_combination)
 {
 	int class_number;
 	if (single_or_combination==2)
@@ -550,7 +513,7 @@ int FeatureReprenstation::convertLettersToASCII(std::string letter,int single_or
     return class_number;
 }
 
-std::string FeatureReprenstation::convertASCIIToLetters(int number,int single_or_combination)
+std::string FeatureRepresentation::convertASCIIToLetters(int number,int single_or_combination)
 {
 	std::string letter_class;
 	std::stringstream ss;
@@ -585,29 +548,22 @@ std::string FeatureReprenstation::convertASCIIToLetters(int number,int single_or
     return letter_class;
 }
 
-void FeatureReprenstation::load_all_training_data_with_feature_descriptors(std::string training_path, int number_or_letter,
+void FeatureRepresentation::load_all_training_data_with_feature_descriptors(std::string training_path, int number_or_letter,
 		int feature_type, int training_data_source, int single_or_combination, cv::Mat& train_data, cv::Mat& train_labels)
 {
 	const std::string number_symbols_str = get_number_symbols_string(single_or_combination);
 	const std::string feature_type_str = get_feature_type_string(feature_type);
 	const std::string symbol_type_str = (number_or_letter==0 ? "letter" : "number");
 	const std::string yml_filename = training_path + "yaml/" + number_symbols_str + "_" + symbol_type_str + "_training_data_" + feature_type_str + ".yml";
-	const std::string yml_train_data = number_symbols_str + "_" + symbol_type_str<<"_train_data_"<<feature_type_str;
+	const std::string yml_train_data = number_symbols_str + "_" + symbol_type_str + "_train_data_" + feature_type_str;
 	const std::string yml_train_labels = number_symbols_str + "_" + symbol_type_str + "_train_labels_" + feature_type_str;
 
 	if (training_data_source==0)
 	{
 		// load images from hard disk and compute descriptors, store descriptors to yaml file
 		std::cout << "computing training data and labels from training dataset..." << std::endl;
-
-		const std::string path_letters = training_path + number_symbols_str + "_letter/";
-		const std::string path_numbers = training_path + number_symbols_str + "_number/";
-		std::vector<std::string> training_folders_full_names;
-		if (number_or_letter==0)
-			training_folders_full_names = folder_list(path_letters);
-		else if (number_or_letter==1)
-			training_folders_full_names = folder_list(path_numbers);
-		get_feature_descriptor_from_training_data(training_folders_full_names, number_or_letter, feature_type, single_or_combination, train_data, train_labels);
+		const std::string path_training_data_files = training_path + number_symbols_str + "_" + symbol_type_str + "/";
+		get_feature_descriptor_from_training_data(path_training_data_files, number_or_letter, feature_type, single_or_combination, train_data, train_labels);
 
 		cv::FileStorage fs(yml_filename, cv::FileStorage::WRITE);
 		fs << yml_train_data << train_data;
@@ -626,7 +582,79 @@ void FeatureReprenstation::load_all_training_data_with_feature_descriptors(std::
 		std::cout<<"[Feature representation ERROR: ] wrong load number is given!"<<std::endl;
 }
 
-cv::Mat FeatureReprenstation::preprocess_text_tag(cv::Mat& tag_image, int feature_number, int single_or_combination)
+void FeatureRepresentation::load_training_data(std::string path_data, int feature_type, int training_data_source, int single_or_combination,
+		cv::Mat& numbers_train_data, cv::Mat& numbers_train_labels, cv::Mat& letters_train_data, cv::Mat& letters_train_labels)
+{
+	std::cout << "loading training data ..." << std::endl;
+	if (training_data_source == 1)
+	{
+		// todo:
+	}
+	else
+	{
+		std::string training_path = path_data + "training_data/";
+		load_all_training_data_with_feature_descriptors(training_path, 1, feature_type, training_data_source, single_or_combination, numbers_train_data, numbers_train_labels);
+		load_all_training_data_with_feature_descriptors(training_path, 0, feature_type, training_data_source, single_or_combination, letters_train_data, letters_train_labels);
+	}
+	std::cout << "training data loaded" << std::endl;
+}
+
+
+void FeatureRepresentation::load_or_train_SVM_classifiers(cv::SVM& numbers_svm, cv::SVM& letters_svm, int training_data_source,
+		int classifier, int feature_type, int single_or_combination, std::string path_data)
+{
+	std::string number_symbols_str = get_number_symbols_string(single_or_combination);
+	std::string feature_type_str = get_feature_type_string(feature_type);
+	std::string number_svm_model = path_data + "trained_classifiers/" + number_symbols_str + "_number_svm_model_" + feature_type_str + ".xml";
+	std::string letter_svm_model = path_data + "trained_classifiers/" + number_symbols_str + "_letter_svm_model_" + feature_type_str + ".xml";
+
+	if (classifier==2)
+	{
+		// load training data
+		cv::Mat numbers_train_data, letters_train_data, numbers_train_labels, letters_train_labels;
+		load_training_data(path_data, feature_type, training_data_source, single_or_combination, numbers_train_data, numbers_train_labels, letters_train_data, letters_train_labels);
+
+		// train SVM
+		Timer tim;
+		std::cout << "training SVM classifiers ..." << std::endl;
+		//cv::SVMParams params(cv::SVM::C_SVC, cv::SVM::LINEAR, 0, 0, 0, 1, 0, 0, 0, cv::TermCriteria(CV_TERMCRIT_ITER, (int)1e7, 1e-6));
+		cv::SVMParams params(cv::SVM::C_SVC, cv::SVM::RBF, 0, 0.01, 0, 1., 0, 0, 0, cv::TermCriteria(CV_TERMCRIT_ITER | CV_TERMCRIT_EPS, 1e7, FLT_EPSILON));	//(CV_TERMCRIT_ITER, (int)1e7, 1e-6);
+		numbers_svm.train(numbers_train_data,numbers_train_labels, cv::Mat(), cv::Mat(),params);
+		letters_svm.train(letters_train_data,letters_train_labels, cv::Mat(), cv::Mat(),params);
+		std::cout << "[" << tim.getElapsedTimeInSec() << " s] processing time for training SVM" << std::endl;
+
+		numbers_svm.save(number_svm_model.c_str());
+		letters_svm.save(letter_svm_model.c_str());
+		std::cout << "SVM training model saved" << std::endl;
+	}
+	else if(classifier==3)
+	{
+		// load trained classifiers from disk
+		Timer tim;
+		std::cout << "loading SVM classifiers ..." << std::endl;
+		numbers_svm.load(number_svm_model.c_str());
+		letters_svm.load(letter_svm_model.c_str());
+		std::cout << "[" << tim.getElapsedTimeInSec() << " s] processing time for loading 2 SVMs." << std::endl;
+	}
+}
+
+void FeatureRepresentation::load_or_train_KNN_classifiers(cv::KNearest& numbers_knn, cv::KNearest& letters_knn, int training_data_source,
+		int classifier, int feature_type, int single_or_combination, std::string path_data)
+{
+	// load training data
+	cv::Mat numbers_train_data, letters_train_data, numbers_train_labels, letters_train_labels;
+	load_training_data(path_data, feature_type, training_data_source, single_or_combination, numbers_train_data, numbers_train_labels, letters_train_data, letters_train_labels);
+
+	// train KNN classifiers
+	Timer tim;
+	std::cout << "training KNN classifiers" << std::endl;
+	numbers_knn.train(numbers_train_data, numbers_train_labels);
+	letters_knn.train(letters_train_data, letters_train_labels);
+	std::cout << "[" << tim.getElapsedTimeInSec() << " s] processing time for training KNN" << std::endl;
+}
+
+
+cv::Mat FeatureRepresentation::get_descriptor_from_text_tag(const cv::Mat& tag_image, const int feature_number, const int single_or_combination)
 {
 	// single_or_combination: 1-single, 2- combination
 
@@ -657,227 +685,63 @@ cv::Mat FeatureReprenstation::preprocess_text_tag(cv::Mat& tag_image, int featur
 	return descriptor_values;
 }
 
-void FeatureReprenstation::load_or_train_SVM_classifiers(cv::SVM& numbers_svm, cv::SVM& letters_svm, int training_data_source,
-		int classifier, int feature_type, int single_or_combination, std::string path_data)
+std::string FeatureRepresentation::convert_classification_labels_to_string(const std::vector<int>& classification_labels, const int single_or_combination)
 {
-	std::string number_symbols_str = get_number_symbols_string(single_or_combination);
-	std::string feature_type_str = get_feature_type_string(feature_type);
-	std::string number_svm_model = path_data + "trained_classifiers/" + number_symbols_str + "_number_svm_model_" + feature_type_str + ".xml";
-	std::string letter_svm_model = path_data + "trained_classifiers/" + number_symbols_str + "_letter_svm_model_" + feature_type_str + ".xml";
-
-	cv::Mat numbers_train_data, letters_train_data, numbers_train_labels, letters_train_labels;
-	if (classifier==2)
+	std::stringstream text_label;
+	const int number_symbols_per_block = (single_or_combination==1 ? 2 : 1);
+	for (int j=0; j<number_symbols_per_block; ++j)
+		text_label << convertASCIIToLetters(classification_labels[j], single_or_combination);
+	for (int j=1; j<4; ++j)
 	{
-		if (training_data_source == 1)
-		{
-
-		}
-		else
-		{
-			//std::cout<<"start processing training data..."<<std::endl;
-			std::string training_path = path_data + "training_data/";
-			load_all_training_data_with_feature_descriptors(training_path, 1, feature_type, training_data_source, single_or_combination, numbers_train_data, numbers_train_labels);
-			load_all_training_data_with_feature_descriptors(training_path, 0, feature_type, training_data_source, single_or_combination, letters_train_data, letters_train_labels);
-			//std::cout<<"finish processing training data..."<<std::endl;
-		}
-
-		/// train SVM with trainData and trainClasses
-		Timer tim;
-		std::cout << "training SVM classifiers" << std::endl;
-		//cv::SVMParams params(cv::SVM::C_SVC, cv::SVM::LINEAR, 0, 0, 0, 1, 0, 0, 0, cv::TermCriteria(CV_TERMCRIT_ITER, (int)1e7, 1e-6));
-		cv::SVMParams params(cv::SVM::C_SVC, cv::SVM::RBF, 0, 0.01, 0, 1., 0, 0, 0, cv::TermCriteria(CV_TERMCRIT_ITER | CV_TERMCRIT_EPS, 1e7, FLT_EPSILON));	//(CV_TERMCRIT_ITER, (int)1e7, 1e-6);
-		numbers_svm.train(numbers_train_data,numbers_train_labels, cv::Mat(), cv::Mat(),params);
-		letters_svm.train(letters_train_data,letters_train_labels, cv::Mat(), cv::Mat(),params);
-		std::cout << "[" << tim.getElapsedTimeInSec() << " s] processing time for training SVM" << std::endl;
-
-		numbers_svm.save(number_svm_model.c_str());
-		letters_svm.save(letter_svm_model.c_str());
-		std::cout << "SVM training model saved" << std::endl;
+		text_label << "-";
+		for (int k=0; k<number_symbols_per_block; ++k)
+			text_label << classification_labels[j*number_symbols_per_block+k];
 	}
-	else if(classifier==3)
-	{
-		// load trained classifiers from disk
-		Timer tim;
-		std::cout << "loading SVM classifiers" << std::endl;
-		numbers_svm.load(number_svm_model.c_str());
-		letters_svm.load(letter_svm_model.c_str());
-		std::cout << "[" << tim.getElapsedTimeInSec() << " s] processing time for loading 2 SVMs." << std::endl;
-	}
+
+	return text_label.str();
 }
 
-void FeatureReprenstation::load_or_train_KNN_classifiers(cv::KNearest& numbers_knn, cv::KNearest& letters_knn, int training_data_source,
-		int classifier, int feature_type, int single_or_combination, std::string path_data)
+std::string FeatureRepresentation::read_text_tag_SVM(const cv::SVM& numbers_svm, const cv::SVM& letters_svm, const cv::Mat& tag_image, const int feature_type, const int single_or_combination)
 {
-	double start_time,time_in_seconds;
-	cv::Mat numbers_train_data, letters_train_data, numbers_train_labels, letters_train_labels;
+	// compute descriptors
+	cv::Mat descriptors = get_descriptor_from_text_tag(tag_image, feature_type, single_or_combination);
 
-	//std::cout<<"start processing training data..."<<std::endl;
-	std::string training_path = path_data + "training_data/";
-//	std::cout<<"training_path: "<<training_path<<std::endl;
+	// classify symbols
+	std::vector<int> classification_labels;
+	const int number_symbols_per_block = (single_or_combination==1 ? 2 : 1);
+	for (int j=0; j<number_symbols_per_block; ++j)
+		classification_labels.push_back(letters_svm.predict(descriptors.row(j)));	//, descriptors.row(j).cols);
+	for (int j=number_symbols_per_block; j<4*number_symbols_per_block; ++j)
+		classification_labels.push_back(numbers_svm.predict(descriptors.row(j)));	//,descriptors.row(j).cols);
 
-	load_all_training_data_with_feature_descriptors(training_path, 1, feature_type, training_data_source, single_or_combination, numbers_train_data, numbers_train_labels);
-	load_all_training_data_with_feature_descriptors(training_path, 0, feature_type, training_data_source, single_or_combination, letters_train_data, letters_train_labels);
-
-	//Start training
-	//std::cout<<"training KNN classifiers with"<<std::endl;
-	start_time = clock();
-	numbers_knn.train(numbers_train_data, numbers_train_labels);
-	letters_knn.train(letters_train_data, letters_train_labels);
-	//time_in_seconds = (clock() - start_time) / (double)CLOCKS_PER_SEC;
-	//std::cout << "[" << time_in_seconds << " s] processing time for training KNN" << std::endl;
-}
-
-
-std::string FeatureReprenstation::read_text_tag_SVM(cv::SVM& numbers_svm, cv::SVM& letters_svm, cv::Mat& tag_image, int feature_number, int single_or_combination)
-{
-	double start_time,time_in_seconds;
-	std::vector<int> text_label_result_int;
-	std::string suffix;
-
-	if (feature_number==1)
-	{
-		suffix = "HOG";
-	}
-	else if (feature_number==2)
-	{
-		suffix = "LBP";
-	}
-	else if (feature_number==3)
-	{
-		suffix = "BRIEF";
-	}
-	else
-		std::cout<<"[Feature representation ERROR: ] wrong feature number is given!"<<std::endl;
-
-	cv::Mat descriptors_values = preprocess_text_tag(tag_image,feature_number,single_or_combination);
-	if (single_or_combination==2)
-	{
-		float response = letters_svm.predict(descriptors_values.row(0),descriptors_values.row(0).cols);
-		text_label_result_int.push_back(response);
-
-		for (unsigned int j =1;j<4;j++)
-		{
-			float response = numbers_svm.predict(descriptors_values.row(j),descriptors_values.row(j).cols);
-			text_label_result_int.push_back(response);
-		}
-	}
-	else if (single_or_combination==1)
-	{
-		for (unsigned int j=0; j<2; ++j)
-		{
-			float response = letters_svm.predict(descriptors_values.row(j),descriptors_values.row(j).cols);
-			text_label_result_int.push_back(response);
-		}
-		for (unsigned int j=2; j<8; ++j)
-		{
-			float response = numbers_svm.predict(descriptors_values.row(j),descriptors_values.row(j).cols);
-			text_label_result_int.push_back(response);
-		}
-	}
-
-	std::stringstream ss;
-	std::string text_label;
-	if (single_or_combination==1)
-	{
-		ss<<convertASCIIToLetters(text_label_result_int[0],single_or_combination)
-		<<convertASCIIToLetters(text_label_result_int[1],single_or_combination)
-		<<"-"<<text_label_result_int[2]<<text_label_result_int[3]
-		<<"-"<<text_label_result_int[4]<<text_label_result_int[5]
-		<<"-"<<text_label_result_int[6]<<text_label_result_int[7];
-		text_label = ss.str();
-		ss.str("");
-	}
-	else if (single_or_combination==2)
-	{
-		ss<<convertASCIIToLetters(text_label_result_int[0],single_or_combination)<<"-"<<text_label_result_int[1]
-							<<"-"<<text_label_result_int[2]<<"-"<<text_label_result_int[3];
-		text_label = ss.str();
-		ss.str("");
-	}
-	std::cout << "From $"<<"SVM"<<"$ with the feature $"<< suffix <<"$ got label = "<<text_label<< std::endl;
+	// convert to text
+	std::string text_label = convert_classification_labels_to_string(classification_labels, single_or_combination);
+	std::cout << "From $SVM$ with the feature $" << get_feature_type_string(feature_type) << "$ got label = " << text_label << std::endl;
 
 	return text_label;
 }
 
-std::string FeatureReprenstation::read_text_tag_KNN(cv::KNearest& numbers_knn,cv::KNearest& letters_knn,cv::Mat& testImg,int feature_number,int single_or_combination)
+std::string FeatureRepresentation::read_text_tag_KNN(const cv::KNearest& numbers_knn, const cv::KNearest& letters_knn, const cv::Mat& tag_image, const int feature_type, const int single_or_combination)
 {
-	double start_time,time_in_seconds;
-	std::vector<int> text_label_result_int;
-	std::string suffix;
+	// compute descriptors
+	cv::Mat descriptors = get_descriptor_from_text_tag(tag_image, feature_type, single_or_combination);
 
-	if (feature_number==1)
-	{
-		suffix = "HOG";
-	}
-	else if (feature_number==2)
-	{
-		suffix = "LBP";
-	}
-	else if (feature_number==3)
-	{
-		suffix = "BRIEF";
-	}
-	else
-		std::cout<<"[Feature representation ERROR: ] wrong feature number is given!"<<std::endl;
+	// classify symbols
+	std::vector<int> classification_labels;
+	const int number_symbols_per_block = (single_or_combination==1 ? 2 : 1);
+	for (int j=0; j<number_symbols_per_block; ++j)
+		classification_labels.push_back(letters_knn.find_nearest(descriptors.row(j), 1));
+	for (int j=number_symbols_per_block; j<4*number_symbols_per_block; ++j)
+		classification_labels.push_back(numbers_knn.find_nearest(descriptors.row(j), 1));
 
-	cv::Mat test_descriptorsValues=preprocess_text_tag(testImg,feature_number,single_or_combination);
-
-	cv::Mat results(1,1,CV_32FC1);
-	cv::Mat neighbourResponses = cv::Mat::ones(1,10,CV_32FC1);
-	cv::Mat dist = cv::Mat::ones(1, 10, CV_32FC1);
-
-	if (single_or_combination==2)
-	{
-		letters_knn.find_nearest(test_descriptorsValues.row(0),1,results, neighbourResponses, dist);
-		text_label_result_int.push_back(results.at<float>(0,0));
-
-		for (unsigned int j =1;j<4;j++)
-		{
-			numbers_knn.find_nearest(test_descriptorsValues.row(j),1,results, neighbourResponses, dist);
-			text_label_result_int.push_back(results.at<float>(0,0));
-		}
-	}
-	else if (single_or_combination==1)
-	{
-		for (unsigned int j =0;j<2;j++)
-		{
-			letters_knn.find_nearest(test_descriptorsValues.row(j),1,results, neighbourResponses, dist);
-			text_label_result_int.push_back(results.at<float>(0,0));
-		}
-		for (unsigned int j =2;j<8;j++)
-		{
-			numbers_knn.find_nearest(test_descriptorsValues.row(j),1,results, neighbourResponses, dist);
-			text_label_result_int.push_back(results.at<float>(0,0));
-		}
-	}
-
-
-	std::stringstream ss;
-	std::string text_label;
-	if (single_or_combination==1)
-	{
-		ss<<convertASCIIToLetters(text_label_result_int[0],single_or_combination)
-		<<convertASCIIToLetters(text_label_result_int[1],single_or_combination)
-		<<"-"<<text_label_result_int[2]<<text_label_result_int[3]
-		<<"-"<<text_label_result_int[4]<<text_label_result_int[5]
-		<<"-"<<text_label_result_int[6]<<text_label_result_int[7];
-		text_label = ss.str();
-		ss.str("");
-	}
-	else if (single_or_combination==2)
-	{
-		ss<<convertASCIIToLetters(text_label_result_int[0],single_or_combination)<<"-"<<text_label_result_int[1]
-							<<"-"<<text_label_result_int[2]<<"-"<<text_label_result_int[3];
-		text_label = ss.str();
-		ss.str("");
-	}
-
-	std::cout << "From $"<<"KNN"<<"$ with the feature $"<<suffix<<"$ got label = "<<text_label<< std::endl;
+	// convert to text
+	std::string text_label = convert_classification_labels_to_string(classification_labels, single_or_combination);
+	std::cout << "From $SVM$ with the feature $" << get_feature_type_string(feature_type) << "$ got label = " << text_label << std::endl;
 
 	return text_label;
 }
 
-void FeatureReprenstation::help()
+void FeatureRepresentation::help()
 {
  std::cout <<
          "Usage:\n"

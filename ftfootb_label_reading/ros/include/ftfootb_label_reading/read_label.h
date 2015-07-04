@@ -122,7 +122,7 @@ protected:
 
 	MatchTemplate match_template_;
 	TextTagDetection text_tag_detection_;
-	FeatureReprenstation feature_representation_;
+	FeatureRepresentation feature_representation_;
 	TextTagLocalization text_tag_localization_;
 
 	// parameters

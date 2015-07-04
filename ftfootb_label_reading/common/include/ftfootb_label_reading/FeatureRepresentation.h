@@ -25,32 +25,38 @@
 #include "ftfootb_label_reading/LBPandHistogram.h"
 
 
-class FeatureReprenstation
+class FeatureRepresentation
 {
 public:
 
 	cv::Rect remove_white_image_border(const cv::Mat& image, cv::Rect roi);
 
-	cv::Mat get_feature_descriptor(const cv::Mat& img,int feature_number,int single_or_combination);
+	cv::Mat get_feature_descriptor(const cv::Mat& image, int feature_number, int single_or_combination);
 
-	int convertLettersToASCII(std::string letter,int single_or_combination);
+	int convertLettersToASCII(const std::string letter, const int single_or_combination);
 
 	std::string convertASCIIToLetters(int number,int single_or_combination);
 
-	std::vector<std::string> folder_list(std::string path);
+	void get_folder_list(std::string path, std::vector<std::string>& folder_list);
 
-	std::vector<std::string> load_folder_of_image(std::string path);
+	void get_image_file_list(std::string path, std::vector<std::string>& image_file_list);
 
-	void get_feature_descriptor_from_training_data(std::vector<std::string> FoldersFullNames,
-															int number_or_letter,int feature_number,int single_or_combination, cv::Mat& train_data, cv::Mat& train_labels);
+	void get_feature_descriptor_from_training_data(const std::string path_training_data_files, int number_or_letter, int feature_type,
+			int single_or_combination, cv::Mat& train_data, cv::Mat& train_labels);
 
 	void load_all_training_data_with_feature_descriptors(std::string training_path, int number_or_letter, int feature_type,
 			int training_data_source, int single_or_combination, cv::Mat& train_data, cv::Mat& train_labels);
 
-	cv::Mat preprocess_text_tag(cv::Mat& tag_image, int feature_number, int single_or_combination);
+	void load_training_data(std::string path_data, int feature_type, int training_data_source, int single_or_combination,
+			cv::Mat& numbers_train_data, cv::Mat& numbers_train_labels, cv::Mat& letters_train_data, cv::Mat& letters_train_labels);
 
-	std::string read_text_tag_SVM(cv::SVM& numbers_svm, cv::SVM& letters_svm, cv::Mat& tag_image, int feature_number, int single_or_combination);
-	std::string read_text_tag_KNN(cv::KNearest& numbers_knn,cv::KNearest& letters_knn,cv::Mat& testImg,int feature_number,int single_or_combination);
+	cv::Mat get_descriptor_from_text_tag(const cv::Mat& tag_image, const int feature_number, const int single_or_combination);
+
+	std::string convert_classification_labels_to_string(const std::vector<int>& classification_labels, const int single_or_combination);
+
+	std::string read_text_tag_SVM(const cv::SVM& numbers_svm, const cv::SVM& letters_svm, const cv::Mat& tag_image, const int feature_type, const int single_or_combination);
+	std::string read_text_tag_KNN(const cv::KNearest& numbers_knn, const cv::KNearest& letters_knn, const cv::Mat& tag_image, const int feature_type, const int single_or_combination);
+
 	cv::Mat wolf_thresholding(cv::Mat& img_gray);
 
 	void help();
