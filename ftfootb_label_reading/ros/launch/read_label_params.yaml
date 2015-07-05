@@ -1,5 +1,5 @@
 # metric tag dimensions (in [m])
-# float
+# double
 metric_tag_width: 0.391
 metric_tag_height: 0.065
 
@@ -7,6 +7,9 @@ metric_tag_height: 0.065
 # bool
 display_results: true
 
+# sensitivity of text tag detection, the lower the number, the more detections (and false detections) may be obtained (value range [0, 1])
+# double 
+text_tag_detection_sensitivity: 0.33      # 0.5
 
 ##### algorithm adjustment section #####
 
@@ -15,9 +18,9 @@ display_results: true
 tag_detection_target_image_width: -1
 tag_detection_target_image_height: -1
 
-# 0 - load training data from raw images;  1 - load all letter or number symbols from one file and generate further training samples;  2 - load training data from yml file
+# 0 - load all letter or number symbols from one file and generate further training samples;  1 - load training data from raw images;  2 - load training data from yml file
 # int
-training_data_source: 1
+training_data_source: 0
 
 # 1-KNN, 2-train svm, 3-load svm
 # int

@@ -31,7 +31,7 @@ public:
 
 	cv::Rect remove_white_image_border(const cv::Mat& image, cv::Rect roi);
 
-	cv::Mat get_feature_descriptor(const cv::Mat& image, int feature_number, int single_or_combination);
+	cv::Mat get_feature_descriptor(const cv::Mat& image, int feature_type, int single_or_combination);
 
 	int convertLettersToASCII(const std::string letter, const int single_or_combination);
 
@@ -44,7 +44,12 @@ public:
 	void get_feature_descriptor_from_training_data(const std::string path_training_data_files, int number_or_letter, int feature_type,
 			int single_or_combination, cv::Mat& train_data, cv::Mat& train_labels);
 
-	void load_all_training_data_with_feature_descriptors(std::string training_path, int number_or_letter, int feature_type,
+	void compute_descriptor_pyramid(const cv::Mat& image, const int label, int feature_type, cv::Mat& train_data, cv::Mat& train_labels);
+
+	void load_symbol_templates_and_generate_training_data(std::string template_path, int letter_or_number, int feature_type,
+			cv::Mat& train_data, cv::Mat& train_labels);
+
+	void load_all_training_data_with_feature_descriptors(std::string training_path, int letter_or_number, int feature_type,
 			int training_data_source, int single_or_combination, cv::Mat& train_data, cv::Mat& train_labels);
 
 	void load_training_data(std::string path_data, int feature_type, int training_data_source, int single_or_combination,

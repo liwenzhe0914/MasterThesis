@@ -67,6 +67,8 @@ void LabelReader::setParams(ros::NodeHandle& nh)
 	std::cout << "metric_tag_height = " << metric_tag_height_ << "\n";
 	node_handle_.param("display_results", display_results_, false);
 	std::cout << "display_results = " << display_results_ << "\n";
+	node_handle_.param("text_tag_detection_sensitivity", text_tag_detection_sensitivity_, 0.5);
+	std::cout << "text_tag_detection_sensitivity = " << text_tag_detection_sensitivity_ << "\n";
 	node_handle_.param("tag_detection_target_image_width", tag_detection_target_image_width_, -1);
 	std::cout << "tag_detection_target_image_width = " << tag_detection_target_image_width_ << "\n";
 	node_handle_.param("tag_detection_target_image_height", tag_detection_target_image_height_, -1);
@@ -258,7 +260,7 @@ void LabelReader::imageCallback(const sensor_msgs::ImageConstPtr& color_camera_d
 			text_tag_detection_.remove_projection(detection_list_r[i], image_grayscale, roi);
 			// verify with template
 			double score = text_tag_detection_.compare_detection_with_template(roi);
-			if (score <= 0.5)
+			if (score <= text_tag_detection_sensitivity_)
 				continue;
 
 			std::string tag_label_features, tag_label_template_matching;

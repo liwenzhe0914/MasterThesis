@@ -129,9 +129,10 @@ protected:
 	double metric_tag_width_;		///< metric tag dimensions (in [m])
 	double metric_tag_height_;		///< metric tag dimensions (in [m])
 	bool display_results_;			///< display the detections in a live image on/off
+	double text_tag_detection_sensitivity_;		///< sensitivity of text tag detection, the lower the number, the more detections (and false detections) may be obtained (value range [0, 1])
 	int tag_detection_target_image_width_;		///< target image width used for tag detection in the image with Viola-Jones classifier
 	int tag_detection_target_image_height_;		///< target image height used for tag detection in the image with Viola-Jones classifier
-	int training_data_source_;	///< 0 - load training data from raw images;  1 - load all letter or number symbols from one file and generate further training samples;  2 - load training data from yml file
+	int training_data_source_;	///< 0 - load all letter or number symbols from one file and generate further training samples;  1 - load training data from raw images;  2 - load training data from yml file
 	int classifier_;		///< 1-KNN, 2-train svm, 3-load svm
 	int feature_number_;		///< feature number: 1. HOG 2. LBP 3. BRIEF
 	int single_or_combination_;	///< single or combinations (pairs) of letters/numbers: 1. single 2. combinations

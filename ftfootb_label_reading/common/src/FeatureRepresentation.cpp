@@ -1,6 +1,8 @@
 #include "ftfootb_label_reading/FeatureRepresentation.h"
 #include "ftfootb_label_reading/timer.h"
 
+#include <fstream>
+
 
 //-------------------------- Wolf Thresholding ---------------------------------------------------
 /**************************************************************
@@ -385,7 +387,7 @@ cv::Rect FeatureRepresentation::remove_white_image_border(const cv::Mat& image, 
 }
 
 
-cv::Mat FeatureRepresentation::get_feature_descriptor(const cv::Mat& image, int feature_number, int single_or_combination)
+cv::Mat FeatureRepresentation::get_feature_descriptor(const cv::Mat& image, int feature_type, int single_or_combination)
 {
 	//read image file
 	cv::Mat descriptor;
@@ -403,7 +405,7 @@ cv::Mat FeatureRepresentation::get_feature_descriptor(const cv::Mat& image, int 
 		dsize_BRIEF=cv::Size(57,57);
 	}
 
-	if(feature_number==1)
+	if(feature_type==1)
 	{
 		//resizing
 		cv::resize(image, image_grayscale, dsize_HOG_LBP); //Size(64,48) ); //Size(32*2,16*2)); //Size(80,72) );
@@ -420,7 +422,7 @@ cv::Mat FeatureRepresentation::get_feature_descriptor(const cv::Mat& image, int 
 //		memcpy(descriptorsValues_temp.data,descriptor_values_vector.data(), descriptor_values_vector.size()*sizeof(float));
 //		descriptorsValues_temp.copyTo(descriptor);
 	}
-	else if(feature_number==2)
+	else if(feature_type==2)
 	{
 		cv::Mat lbp_image;
 		//resizing
@@ -432,7 +434,7 @@ cv::Mat FeatureRepresentation::get_feature_descriptor(const cv::Mat& image, int 
 
 		descriptor=lbp::spatial_histogram(lbp_image, 59, dsize_HOG_LBP.width/8, dsize_HOG_LBP.height/8, true);
 	}
-	else if (feature_number==3)
+	else if (feature_type==3)
 	{
 //		cv::Mat descriptor_values_mat;
 		cv::resize(image, image_grayscale, dsize_BRIEF); //Size(64,48) ); //Size(32*2,16*2)); //Size(80,72) );
@@ -548,22 +550,158 @@ std::string FeatureRepresentation::convertASCIIToLetters(int number,int single_o
     return letter_class;
 }
 
-void FeatureRepresentation::load_all_training_data_with_feature_descriptors(std::string training_path, int number_or_letter,
+void FeatureRepresentation::compute_descriptor_pyramid(const cv::Mat& image, const int label, int feature_type, cv::Mat& train_data, cv::Mat& train_labels)
+{
+	const int min_height = 15;
+	const int single_or_combination = 1;
+
+	// vary brightness range
+	for (double dynamics_factor=1.0; dynamics_factor>0.1; dynamics_factor-=0.2)
+	{
+		for (int offset=0; offset<=255*(1.-dynamics_factor); offset += 10)
+		{
+			cv::Mat dynamics_image = image*dynamics_factor + offset;
+
+//			cv::imshow("sample", dynamics_image);
+//			cv::waitKey();
+
+			// sizes
+			cv::Size target_size(image.cols, image.rows);
+			while (target_size.height >= min_height)
+			{
+				// resize image, compute descriptor and store to descriptor matrix
+				cv::Mat image_resized;
+				cv::resize(dynamics_image, image_resized, target_size);
+				cv::Rect cropped_roi = remove_white_image_border(image_resized, cv::Rect(0, 0, image_resized.cols, image_resized.rows));
+				train_data.push_back(get_feature_descriptor(image_resized(cropped_roi), feature_type, single_or_combination));
+				train_labels.push_back(label);
+
+				// new target size
+				target_size.width *= 0.8;
+				target_size.height *= 0.8;
+
+//				cv::imshow("sample", image_resized(cropped_roi));
+//				cv::waitKey();
+			}
+		}
+	}
+}
+
+void FeatureRepresentation::load_symbol_templates_and_generate_training_data(std::string template_path, int letter_or_number,
+		int feature_type, cv::Mat& train_data, cv::Mat& train_labels)
+{
+	const std::string symbol_type_str = (letter_or_number==0 ? "letters" : "numbers");
+	const int single_or_combination = 1;
+
+	// 1. load template
+	const std::string txt_filename = template_path + symbol_type_str + ".txt";
+	const std::string image_filename = template_path + symbol_type_str + ".png";
+	// read txt file
+	std::vector<int> labels;
+	std::ifstream file(txt_filename.c_str(), std::ios::in);
+	if (file.is_open()==true)
+	{
+		int number_symbols = 0;
+		file >> number_symbols;
+		for (int i=0; i<number_symbols; ++i)
+		{
+			if (letter_or_number == 0)
+			{
+				std::string symbol;
+				file >> symbol;
+				labels.push_back(convertLettersToASCII(symbol, single_or_combination));
+			}
+			else
+			{
+				int symbol;
+				file >> symbol;
+				labels.push_back(symbol);
+			}
+		}
+	}
+	else
+	{
+		std::cout << "Error: FeatureRepresentation::load_symbol_templates_and_generate_training_data: Could not open file " << txt_filename << std::endl;
+		return;
+	}
+	// load image
+	cv::Mat symbol_templates_image = cv::imread(image_filename, CV_LOAD_IMAGE_GRAYSCALE);
+
+	// 2. separate symbols, generate standard template for each symbol
+	std::vector<cv::Mat> symbol_templates(labels.size());
+	const double symbol_width = symbol_templates_image.cols / (double)labels.size();
+	const int cut_out_padding = 3;		// neglect so many pixels at borders when reading out symbols from symbol_templates_image
+	const int base_template_padding = 10;	// add so many white pixels to the border of the cut out symbols for the base template
+	for (size_t i=0; i<labels.size(); ++i)
+	{
+		cv::Rect cout_out_roi(i*symbol_width+cut_out_padding, cut_out_padding, symbol_width-2*cut_out_padding, symbol_templates_image.rows-2*cut_out_padding);
+		cv::Rect symbol_roi_narrow = remove_white_image_border(symbol_templates_image, cout_out_roi);
+		cv::Mat symbol_template = 255*cv::Mat::ones(symbol_roi_narrow.height+2*base_template_padding, symbol_roi_narrow.width+2*base_template_padding, symbol_templates_image.type());
+		symbol_templates_image(symbol_roi_narrow).copyTo(symbol_template(cv::Rect(base_template_padding, base_template_padding, symbol_roi_narrow.width, symbol_roi_narrow.height)));
+		symbol_templates[i] = symbol_template;
+	}
+
+	// 3. compute several image disturbances, sizes, etc. and compute descriptor
+	for (size_t i=0; i<labels.size(); ++i)
+	{
+		// a. as is
+		compute_descriptor_pyramid(symbol_templates[i], labels[i], feature_type, train_data, train_labels);
+
+		// b. Gaussian blur
+		for (int k=3; k<9; k+=2)
+		{
+			cv::Mat img;
+			cv::GaussianBlur(symbol_templates[i], img, cv::Size(k,k), 0, 0);
+			compute_descriptor_pyramid(img, labels[i], feature_type, train_data, train_labels);
+		}
+
+		// c. with dark pixels at border
+		int draw_offset = base_template_padding*0.25;
+		std::vector<cv::Point> line_points;
+		line_points.push_back(cv::Point(draw_offset, symbol_templates[i].rows/4)); line_points.push_back(cv::Point(draw_offset, 3*symbol_templates[i].rows/4));
+		line_points.push_back(cv::Point(symbol_templates[i].cols-draw_offset, symbol_templates[i].rows/4)); line_points.push_back(cv::Point(symbol_templates[i].cols-draw_offset, 3*symbol_templates[i].rows/4));
+		line_points.push_back(cv::Point(symbol_templates[i].cols/4, draw_offset)); line_points.push_back(cv::Point(3*symbol_templates[i].cols/4, draw_offset));
+		line_points.push_back(cv::Point(symbol_templates[i].cols/4, symbol_templates[i].rows-draw_offset)); line_points.push_back(cv::Point(3*symbol_templates[i].cols/4, symbol_templates[i].rows-draw_offset));
+		draw_offset = base_template_padding*0.75;
+		line_points.push_back(cv::Point(draw_offset, symbol_templates[i].rows/2)); line_points.push_back(cv::Point(draw_offset, symbol_templates[i].rows/2+5));
+		line_points.push_back(cv::Point(symbol_templates[i].cols-draw_offset, symbol_templates[i].rows/2)); line_points.push_back(cv::Point(symbol_templates[i].cols-draw_offset, symbol_templates[i].rows/2+5));
+		for (int j=0; j<(int)(line_points.size())/2; ++j)
+		{
+			cv::Mat img = symbol_templates[i].clone();
+			cv::line(img, line_points[2*j], line_points[2*j+1], cv::Scalar(0), 2);
+			compute_descriptor_pyramid(img, labels[i], feature_type, train_data, train_labels);
+//			cv::imshow("sample", img);
+//			cv::waitKey();
+		}
+
+		// d. random noise
+		for (double noise_level=0.05; noise_level<=0.3; noise_level+=0.05)
+		{
+			cv::Mat img = symbol_templates[i].clone();
+			for (int v=0; v<img.rows; ++v)
+				for (int u=0; u<img.cols; ++u)
+					img.at<uchar>(v,u) = std::max(0, std::min(255, (int)(img.at<uchar>(v,u)+(255.*noise_level*((double)rand()/(double)RAND_MAX - 0.5)))));
+			compute_descriptor_pyramid(img, labels[i], feature_type, train_data, train_labels);
+		}
+	}
+}
+
+void FeatureRepresentation::load_all_training_data_with_feature_descriptors(std::string training_path, int letter_or_number,
 		int feature_type, int training_data_source, int single_or_combination, cv::Mat& train_data, cv::Mat& train_labels)
 {
 	const std::string number_symbols_str = get_number_symbols_string(single_or_combination);
 	const std::string feature_type_str = get_feature_type_string(feature_type);
-	const std::string symbol_type_str = (number_or_letter==0 ? "letter" : "number");
+	const std::string symbol_type_str = (letter_or_number==0 ? "letter" : "number");
 	const std::string yml_filename = training_path + "yaml/" + number_symbols_str + "_" + symbol_type_str + "_training_data_" + feature_type_str + ".yml";
 	const std::string yml_train_data = number_symbols_str + "_" + symbol_type_str + "_train_data_" + feature_type_str;
 	const std::string yml_train_labels = number_symbols_str + "_" + symbol_type_str + "_train_labels_" + feature_type_str;
 
-	if (training_data_source==0)
+	if (training_data_source==1)
 	{
 		// load images from hard disk and compute descriptors, store descriptors to yaml file
 		std::cout << "computing training data and labels from training dataset..." << std::endl;
 		const std::string path_training_data_files = training_path + number_symbols_str + "_" + symbol_type_str + "/";
-		get_feature_descriptor_from_training_data(path_training_data_files, number_or_letter, feature_type, single_or_combination, train_data, train_labels);
+		get_feature_descriptor_from_training_data(path_training_data_files, letter_or_number, feature_type, single_or_combination, train_data, train_labels);
 
 		cv::FileStorage fs(yml_filename, cv::FileStorage::WRITE);
 		fs << yml_train_data << train_data;
@@ -579,22 +717,29 @@ void FeatureRepresentation::load_all_training_data_with_feature_descriptors(std:
 		fs.release();
 	}
 	else
-		std::cout<<"[Feature representation ERROR: ] wrong load number is given!"<<std::endl;
+		std::cout<<"[Feature representation ERROR: ] wrong training_data_source number is given!"<<std::endl;
 }
 
 void FeatureRepresentation::load_training_data(std::string path_data, int feature_type, int training_data_source, int single_or_combination,
 		cv::Mat& numbers_train_data, cv::Mat& numbers_train_labels, cv::Mat& letters_train_data, cv::Mat& letters_train_labels)
 {
 	std::cout << "loading training data ..." << std::endl;
-	if (training_data_source == 1)
+	if (training_data_source == 0)
 	{
-		// todo:
+		if (single_or_combination != 1)
+		{
+			std::cout << "Error: FeatureRepresentation::load_training_data: training with generated data requires to work with single letter/number format. Pairs of symbols are not supported. Please set single_or_combination to 1." << std::endl;
+			return;
+		}
+		std::string template_path = path_data + "tag_template/";
+		load_symbol_templates_and_generate_training_data(template_path, 0, feature_type, letters_train_data, letters_train_labels);
+		load_symbol_templates_and_generate_training_data(template_path, 1, feature_type, numbers_train_data, numbers_train_labels);
 	}
 	else
 	{
 		std::string training_path = path_data + "training_data/";
-		load_all_training_data_with_feature_descriptors(training_path, 1, feature_type, training_data_source, single_or_combination, numbers_train_data, numbers_train_labels);
 		load_all_training_data_with_feature_descriptors(training_path, 0, feature_type, training_data_source, single_or_combination, letters_train_data, letters_train_labels);
+		load_all_training_data_with_feature_descriptors(training_path, 1, feature_type, training_data_source, single_or_combination, numbers_train_data, numbers_train_labels);
 	}
 	std::cout << "training data loaded" << std::endl;
 }
@@ -623,6 +768,7 @@ void FeatureRepresentation::load_or_train_SVM_classifiers(cv::SVM& numbers_svm, 
 		letters_svm.train(letters_train_data,letters_train_labels, cv::Mat(), cv::Mat(),params);
 		std::cout << "[" << tim.getElapsedTimeInSec() << " s] processing time for training SVM" << std::endl;
 
+		// store trained SVMs
 		numbers_svm.save(number_svm_model.c_str());
 		letters_svm.save(letter_svm_model.c_str());
 		std::cout << "SVM training model saved" << std::endl;
