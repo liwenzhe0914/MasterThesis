@@ -29,11 +29,13 @@ public:
 		//  x-axis along width direction, y-axis along height direction, z-axis out of tag plane, i.e. all 3d coordinates have z=0)
 		// (correct point correspondences have to be obeyed between those 4 pairs)
 
-		std::vector<cv::Point3d> tag_points_3d(4);
-		tag_points_3d[0] = cv::Point3d(0, h, 0);	// X1
-		tag_points_3d[1] = cv::Point3d(0, 0, 0);	// X2
-		tag_points_3d[2] = cv::Point3d(w, 0, 0);	// X3
-		tag_points_3d[3] = cv::Point3d(w, h, 0);	// X4
+		std::vector<cv::Point2f> tag_points_3d(4);
+		tag_points_3d[0] = cv::Point2f(0, h);	// X1 = (0, h, 0)
+		tag_points_3d[1] = cv::Point2f(0, 0);	// X2 = (0, 0, 0)
+		tag_points_3d[2] = cv::Point2f(w, 0);	// X3 = (w, 0, 0)
+		tag_points_3d[3] = cv::Point2f(w, h);	// X4 = (w, h, 0)
+
+//		cv::Mat H = cv::findHomography(tag_points_3d, detection.corners_);	// did not work better than the manual computation
 
 		cv::Mat A = cv::Mat::zeros(9, 9, CV_64FC1);
 		for (int i=0; i<4; ++i)
